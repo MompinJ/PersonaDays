@@ -25,17 +25,29 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
 
 # macOS
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Windows ### NUEVO
+Thumbs.db
+Desktop.ini
+
+# local env files (Seguridad mejorada) ### EDITADO
+.env
+.env*
 
 # typescript
 *.tsbuildinfo
 
 # generated native folders
+# (Manten esto así si usas Expo Go o Prebuild sin modificar nativo)
 /ios
 /android
+
+# Database (SQLite) ### NUEVO CRITICO
+*.db
+*.db-journal
+*.db-wal
