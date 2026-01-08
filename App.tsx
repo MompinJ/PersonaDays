@@ -2,67 +2,91 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-// Navegador
+import { db } from './src/database';
+// Navegador y Pantallas
 import { AppNavigator } from './src/navigation/AppNavigator';
-// Inicializador de la base de datos
+import { SetupScreen } from './src/screens/Setup/SetupScreen';
+
+// Servicios (Lógica)
 import { initDatabase } from './src/database';
+import { checkPlayerExists } from './src/services/playerService';
 
 export default function App() {
-  // 1. Estado para controlar si estamos cargando
+  // 1. Estados
+  // isDbReady: Controla si ya terminamos de cargar todo lo inicial (BD + Chequeos)
   const [isDbReady, setIsDbReady] = useState(false);
+  // hasPlayer: Controla si el usuario ya firmó el contrato antes
+  const [hasPlayer, setHasPlayer] = useState(false);
 
-  // 2. useEffect: Se ejecuta una sola vez al iniciar la app
+  // 2. useEffect: Se ejecuta una sola vez al iniciar
   useEffect(() => {
     const setup = async () => {
       try {
         console.log('🏁 Iniciando configuración...');
-        await initDatabase();
 
+        // Paso A: Iniciar la base de datos física
+        await initDatabase();
+        await db.execAsync('DELETE FROM jugadores'); // TODO Quitar esto
         console.log('✅ Base de datos lista');
+
+        // Paso B: Preguntar si ya existe un jugador registrado
+        const existeJugador = await checkPlayerExists();
+        setHasPlayer(existeJugador);
+        console.log('👤 ¿Existe jugador?:', existeJugador);
+
+        // Paso C: Todo listo, quitamos el spinner de carga
         setIsDbReady(true);
+
       } catch (e) {
         console.error('❌ Error al iniciar:', e);
       }
     };
 
     setup();
-  }, []); // Los corchetes vacíos [] aseguran que solo pase una vez
+  }, []);
 
-  // 3. Si la base de datos no está lista, mostramos un Spinner
   if (!isDbReady) {
     return (
-      <View style={styles.container}>
-        {/* ActivityIndicator es el circulito de carga nativo */}
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00D4FF" />
-        <Text style={{ marginTop: 10 }}>Invocando a tu Persona...</Text>
+        <Text style={styles.loadingText}>Invocando a tu Persona...</Text>
       </View>
     );
   }
 
-  // 4. Si ya cargó, mostramos la App Principal
-return (
+  // 4. Lógica Principal (El Semáforo)
+  return (
     <>
       <StatusBar style="light" />
-      <AppNavigator />
+
+      {hasPlayer ? (
+        // CAMINO A: Si ya tiene jugador, entra al juego normal
+        <AppNavigator />
+      ) : (
+        // CAMINO B: Si es nuevo, muestra el Contrato (SetupScreen)
+        <SetupScreen onFinishSetup={() => setHasPlayer(true)} />
+      )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A1628e',
+    backgroundColor: '#0A1628',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#00D4FF', // Azul Persona 3
-    marginBottom: 10,
-  },
-  subtitle: {
+  loadingText: {
+    marginTop: 10,
+    color: '#FFFFFF',
     fontSize: 16,
-    color: '#666',
+    fontWeight: 'bold'
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 });
