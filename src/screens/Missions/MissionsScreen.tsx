@@ -1,42 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useIsFocused } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
-import { Mision } from '../../types'; // Tus tipos
+import { Mision, MissionType } from '../../types'; // Tus tipos
+import { MissionItem } from '../../components/Missions/MissionItem';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/types';
 
 export const MissionsScreen = () => {
   // 1. Estado para guardar la lista de misiones que vienen de la BD
   const [misiones, setMisiones] = useState<Mision[]>([]);
+  const [filtroActual, setFiltroActual] = useState<MissionType>(MissionType.DIARIA);
   const isFocused = useIsFocused();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  // 2. Función para LEER (SELECT) las misiones
+ // Mostrar misiones
   const cargarMisiones = async () => {
     try {
-      const resultados = await db.getAllAsync<Mision>('SELECT * FROM misiones ORDER BY id_mision DESC');
+      const query = 'SELECT * FROM misiones WHERE tipo = ? ORDER BY completada ASC, id_mision DESC';
+      const resultados = await db.getAllAsync<Mision>(query, [filtroActual]);
       setMisiones(resultados);
     } catch (error) {
       console.error('Error al cargar misiones:', error);
     }
   };
 
-  // 3. Función para ESCRIBIR (INSERT) una misión de prueba
-  const crearMisionPrueba = async () => {
+  // Marcar como completada una mision
+  const toogleMission = async (id: number) => {
     try {
-      const randomId = Math.floor(Math.random() * 1000);
-      const nombre = `Misión de Prueba #${randomId}`;
+      const mision = misiones.find(m => m.id_mision === id);
+      if (!mision) return;
 
-      // Insertamos en la tabla 'misiones'
+      const nuevoEstado = mision.completada ? 0 : 1;
       await db.runAsync(
-        'INSERT INTO misiones (nombre, tipo, fecha_creacion, activa) VALUES (?, ?, ?, ?)',
-        [nombre, 'DIARIA', new Date().toISOString(), 1]
+        'UPDATE misiones SET completada = ? WHERE id_mision = ?',
+        [nuevoEstado, id]
       );
-
-      // Recargamos la lista para ver el cambio al instante
       cargarMisiones();
+
+      // TODO: Aquí en el futuro llamaremos a "Sumar Experiencia"
     } catch (error) {
-      Alert.alert('Error', 'No se pudo guardar en la BD');
-      console.error(error);
+      console.error('Error actualizando misión:', error);
     }
+  };
+
+
+
+  // todo temporal
+const irACrearMision = () => {
+    navigation.navigate('CreateMission');
   };
 
   // 4. Cada vez que entres a esta pestaña, recarga los datos
@@ -44,40 +57,97 @@ export const MissionsScreen = () => {
     if (isFocused) {
       cargarMisiones();
     }
-  }, [isFocused]);
+  }, [isFocused, filtroActual]);
 
+
+  const renderFiltro = (tipo: MissionType) => (
+    <TouchableOpacity
+      style={[styles.filterChip, filtroActual === tipo && styles.filterChipActive]}
+      onPress={() => setFiltroActual(tipo)}
+    >
+      <Text style={[styles.filterText, filtroActual === tipo && styles.filterTextActive]}>
+        {tipo}
+      </Text>
+    </TouchableOpacity>
+  );
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Lista de Misiones</Text>
-        <TouchableOpacity style={styles.button} onPress={crearMisionPrueba}>
-          <Text style={styles.buttonText}>+ Agregar Test</Text>
-        </TouchableOpacity>
+      <Text style={styles.headerTitle}>REQUESTS</Text>
+
+      {/* Zona de Filtros (Scroll Horizontal) */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {renderFiltro(MissionType.DIARIA)}
+          {renderFiltro(MissionType.SEMANAL)}
+          {renderFiltro(MissionType.ARCO)}
+          {renderFiltro(MissionType.EXTRA)}
+          {renderFiltro(MissionType.BOSS)}
+        </ScrollView>
       </View>
 
+      {/* Lista de Misiones */}
       <FlatList
         data={misiones}
         keyExtractor={(item) => item.id_mision.toString()}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.nombre}</Text>
-            <Text style={styles.cardSubtitle}>Tipo: {item.tipo}</Text>
-          </View>
+          <MissionItem
+            mision={item}
+            onToogle={toogleMission}
+          />
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No hay misiones activas.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No hay misiones de tipo {filtroActual}.</Text>
+        }
+        contentContainerStyle={{ paddingBottom: 80 }} // Espacio para que no se corte abajo
       />
+
+      {/* Botón Flotante para añadir (Temporal) */}
+      <TouchableOpacity style={styles.fab} onPress={irACrearMision}>
+          <Text style={styles.fabText}>+</Text>
+        </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60, backgroundColor: '#f2f2f2' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold' },
-  button: { backgroundColor: '#00D4FF', padding: 10, borderRadius: 8 },
-  buttonText: { color: 'white', fontWeight: 'bold' },
-  card: { backgroundColor: 'white', padding: 15, borderRadius: 10, marginBottom: 10, elevation: 2 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold' },
-  cardSubtitle: { color: '#666', marginTop: 5 },
-  empty: { textAlign: 'center', marginTop: 50, color: '#999' }
+  container: { flex: 1, backgroundColor: '#0A1628', padding: 20, paddingTop: 50 },
+  headerTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 15, fontFamily: 'serif' },
+
+  // Estilos de los Filtros
+  filterContainer: { marginBottom: 20, height: 40 },
+  filterChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1A2639',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#2D3B55',
+  },
+  filterChipActive: {
+    backgroundColor: '#00D4FF', // Cyan activo
+    borderColor: '#00D4FF',
+  },
+  filterText: { color: '#8892B0', fontWeight: 'bold', fontSize: 12 },
+  filterTextActive: { color: '#0A1628' }, // Texto oscuro sobre fondo cyan
+
+  emptyText: { color: '#8892B0', textAlign: 'center', marginTop: 50, fontStyle: 'italic' },
+
+  // Botón Flotante (FAB)
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#00D4FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#00D4FF',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  fabText: { fontSize: 30, color: '#fff', marginTop: -4 }
 });

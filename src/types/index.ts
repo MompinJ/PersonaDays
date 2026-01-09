@@ -95,6 +95,7 @@ export interface Mision {
 	recompensa_yenes: number;
 	completada: boolean;
 	fecha_creacion: string;
+	fecha_expiracion?: string;
 	fecha_completada?: string;
 }
 

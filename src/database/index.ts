@@ -2,6 +2,12 @@ import * as SQLite from 'expo-sqlite';
 export const db = SQLite.openDatabaseSync('personadays.db');
 export const initDatabase = async () => {
   try {
+     await db.execAsync('DROP TABLE IF EXISTS misiones');
+     await db.execAsync('DROP TABLE IF EXISTS jugadores');
+     await db.execAsync('DROP TABLE IF EXISTS stats');
+     await db.execAsync('DROP TABLE IF EXISTS arcanos');
+
+
     await db.execAsync('PRAGMA foreign_keys = ON;'); //Activa las FK
 
     // 2. Ejecutamos las queries para crear las tablas una por una
@@ -83,6 +89,7 @@ export const initDatabase = async () => {
         recompensa_yenes INTEGER DEFAULT 0,
         completada INTEGER DEFAULT 0, -- 0=False, 1=True
         fecha_creacion TEXT NOT NULL,
+        fecha_expiracion TEXT,
         fecha_completada TEXT,
         FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
       );

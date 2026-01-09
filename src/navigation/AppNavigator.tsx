@@ -5,36 +5,49 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
 //Pantallas de la app
-import { RootTabParamList } from './types';
+import { RootTabParamList, RootStackParamList } from './types';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { StatsScreen } from '../screens/Stats/StatsScreen';
 import { MissionsScreen } from '../screens/Missions/MissionsScreen';
 import { CalendarScreen } from '../screens/Calendar/CalendarScreen';
+import { EconomyScreen } from '../screens/Economy/EconomyScreen';
+import { CreateMissionScreen } from '../screens/Missions/CreateMissionScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
 // Ademas genera la barra visual por defecto
 const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const MainTabs = () => {
+  return (
+    <Tab.Navigator>
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Stats" component={StatsScreen} />
+      <Tab.Screen name="Missions" component={MissionsScreen} />
+      <Tab.Screen name="Calendar" component={CalendarScreen} />
+      <Tab.Screen name="Economy" component={EconomyScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+};
 
 // 4. El componente principal
 export const AppNavigator = () => {
   return (
     <NavigationContainer>
-      {/* Todo lo que esté aquí dentro es navegable */}
-      <Tab.Navigator>
-        {/* Aquí definimos cada BOTÓN del menú inferior */}
-        <Tab.Screen name="Home" component={HomeScreen} />
-        {/* Crea una pestaña llamada "Home".
-            Cuando la toquen, muestra el archivo HomeScreen.tsx */}
-        <Tab.Screen name="Stats" component={StatsScreen} />
-        <Tab.Screen name="Missions" component={MissionsScreen} />
-        <Tab.Screen name="Calendar" component={CalendarScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
-      </Tab.Navigator>
-
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen
+          name="CreateMission"
+          component={CreateMissionScreen}
+          options={{ presentation: 'modal' }}
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };
