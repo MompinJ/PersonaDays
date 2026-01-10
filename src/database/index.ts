@@ -91,6 +91,7 @@ export const initDatabase = async () => {
         fecha_creacion TEXT NOT NULL,
         fecha_expiracion TEXT,
         fecha_completada TEXT,
+        dias_repeticion TEXT,
         FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
       );
 

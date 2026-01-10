@@ -90,9 +90,19 @@ const irACrearMision = () => {
         data={misiones}
         keyExtractor={(item) => item.id_mision.toString()}
         renderItem={({ item }) => (
-          <MissionItem
-            mision={item}
-            onToogle={toogleMission}
+          <MissionItem 
+            mision={item} 
+            // Accion al deslizar:
+            onSwipeLeft={(id) => {
+              // Vibración o sonido aquí quedaría genial
+              toogleMission(id);
+            }}
+            // Acción al tocar:
+            onPress={(mision) => {
+              console.log("Abrir detalles de:", mision.nombre);
+              // AQUÍ NAVEGAREMOS A LA PANTALLA DETALLE EN EL FUTURO
+              // navigation.navigate('MissionDetail', { id: mision.id_mision });
+            }}
           />
         )}
         ListEmptyComponent={

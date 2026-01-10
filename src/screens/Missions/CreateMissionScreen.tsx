@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker'; // <--- IMPORTANTE
+import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../database';
-import { MissionType } from '../../types';
+import { MissionType, MissionFrequency } from '../../types'; // Asegúrate de tener MissionFrequency en types
+import { DaySelector } from '../../components/Missions/DaySelector';
 import { useTheme } from '../../themes/useTheme';
 
 export const CreateMissionScreen = () => {
@@ -12,55 +15,101 @@ export const CreateMissionScreen = () => {
   // Estados del formulario
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<MissionType>(MissionType.DIARIA);
+  const [dificultad, setDificultad] = useState<'EASY' | 'MEDIUM' | 'HARD'>('EASY');
+
+  // 1. NUEVO ESTADO PARA YENES (editable)
+  const [yenes, setYenes] = useState('500');
+
+  // NUEVO: Días seleccionados para repetición
+  const [diasSeleccionados, setDiasSeleccionados] = useState<number[]>([]);
+
+  // Nuevo: Fecha
   const [tieneExpiracion, setTieneExpiracion] = useState(false);
-  // Por simplicidad MVP, expiración será "Mañana" si se activa. Luego pondremos un selector real.
+
+  // 2. EFECTO: sugerir yenes al cambiar dificultad (pero es editable por el usuario)
+  useEffect(() => {
+    switch (dificultad) {
+      case 'EASY': setYenes('500'); break;
+      case 'MEDIUM': setYenes('1500'); break;
+      case 'HARD': setYenes('5000'); break;
+    }
+  }, [dificultad]);
+  const [fechaExpiracion, setFechaExpiracion] = useState(new Date());
+  const [mostrarPicker, setMostrarPicker] = useState(false);
+
+  // Calcular recompensas según dificultad
+  const getRecompensas = () => {
+    switch (dificultad) {
+      case 'EASY': return { xp: 10, yenes: 500 };
+      case 'MEDIUM': return { xp: 30, yenes: 1000 };
+      case 'HARD': return { xp: 50, yenes: 1500 };
+    }
+  };
 
   const guardarMision = async () => {
     if (!nombre.trim()) {
-      Alert.alert("Error", "La misión necesita un nombre");
+      Alert.alert("Atención", "Escribe el nombre del encargo.");
       return;
     }
 
     try {
+      const { xp } = getRecompensas();
+      const recompensaYenes = parseInt(yenes) || 0;
       const fechaCreacion = new Date().toISOString();
-      // Si activó expiración, ponemos fecha de mañana como placeholder
-      const fechaExpiracion = tieneExpiracion
-        ? new Date(Date.now() + 86400000).toISOString()
-        : null;
+      // Si tiene fecha límite, usamos la seleccionada, si no, null
+      const fechaFinal = tieneExpiracion ? fechaExpiracion.toISOString() : null;
+
+      // Determinar frecuencia y días
+      const frecuenciaVal = diasSeleccionados.length > 0 ? 'REPEATING' : 'ONE_OFF';
+      const diasString = diasSeleccionados.join(',');
 
       await db.runAsync(
-        `INSERT INTO misiones (nombre, tipo, fecha_creacion, activa, completada, fecha_expiracion, recompensa_exp)
-         VALUES (?, ?, ?, 1, 0, ?, 15)`, // 15xp default
-        [nombre, tipo, fechaCreacion, fechaExpiracion]
+        `INSERT INTO misiones (
+          nombre, tipo, fecha_creacion, activa, completada,
+          fecha_expiracion, recompensa_exp, recompensa_yenes,
+          frecuencia_repeticion, dias_repeticion
+        ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
+        [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
       );
 
-      // Regresar atrás (Cierra el modal)
       navigation.goBack();
 
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "No se pudo crear la misión");
+      Alert.alert("Error", "Falló al guardar la misión");
+    }
+  };
+
+  // Manejador del calendario
+  const onChangeDate = (event: any, selectedDate?: Date) => {
+    setMostrarPicker(false); // Cerrar picker en Android
+    if (selectedDate) {
+      setFechaExpiracion(selectedDate);
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.primary }]}>Nueva Misión</Text>
+      <Text style={[styles.headerTitle, { color: colors.primary }]}>NUEVO ENCARGO</Text>
 
-      <ScrollView>
-        {/* Input Nombre */}
-        <Text style={[styles.label, { color: colors.text }]}>Objetivo:</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.surface, backgroundColor: colors.surface }]}
-          placeholder="Ej: Estudiar React Native"
-          placeholderTextColor={colors.textDim}
-          value={nombre}
-          onChangeText={setNombre}
-        />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* Selector de Tipo (Chips) */}
-        <Text style={[styles.label, { color: colors.text }]}>Tipo de Encargo:</Text>
-        <View style={styles.chipsContainer}>
+        {/* 1. OBJETIVO */}
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+          <Text style={[styles.label, { color: colors.textDim }]}>OBJETIVO</Text>
+          <TextInput
+            style={[styles.input, { color: colors.text }]}
+            placeholder="¿Qué debes hacer?"
+            placeholderTextColor={colors.textDim}
+            value={nombre}
+            onChangeText={setNombre}
+            autoFocus
+          />
+        </View>
+
+        {/* 2. CATEGORÍA */}
+        <Text style={[styles.sectionLabel, { color: colors.textDim }]}>CATEGORÍA</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
           {Object.values(MissionType).map((t) => (
             <TouchableOpacity
               key={t}
@@ -73,46 +122,120 @@ export const CreateMissionScreen = () => {
             >
               <Text style={{
                 color: tipo === t ? colors.background : colors.text,
-                fontWeight: 'bold'
+                fontWeight: 'bold', fontSize: 12
               }}>
                 {t}
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+
+        {/* 3. DIFICULTAD (Recompensas) */}
+        <Text style={[styles.sectionLabel, { color: colors.textDim }]}>DIFICULTAD & RECOMPENSA</Text>
+        <View style={styles.row}>
+          {['EASY', 'MEDIUM', 'HARD'].map((dif) => (
+            <TouchableOpacity
+              key={dif}
+              onPress={() => setDificultad(dif as any)}
+              style={[
+                styles.difficultyBtn,
+                { borderColor: dificultad === dif ? colors.primary : colors.textDim },
+                dificultad === dif && { backgroundColor: 'rgba(0, 212, 255, 0.1)' }
+              ]}
+            >
+              <Text style={{ color: dificultad === dif ? colors.primary : colors.textDim, fontWeight: 'bold' }}>
+                {dif}
+              </Text>
+              <Text style={{ fontSize: 10, color: colors.textDim, marginTop: 4 }}>
+                {dif === 'EASY' ? '+10 XP' : dif === 'MEDIUM' ? '+30 XP' : '+60 XP'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Switch Expiración */}
-        <View style={styles.switchContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>¿Tiene fecha límite?</Text>
-          <Switch
-            value={tieneExpiracion}
-            onValueChange={setTieneExpiracion}
-            trackColor={{ false: "#767577", true: colors.primary }}
-            thumbColor={tieneExpiracion ? "#fff" : "#f4f3f4"}
-          />
+        {/* 4. REPETICIÓN (Selector de Días) */}
+        <Text style={[styles.sectionLabel, { color: colors.textDim }]}>REPETICIÓN {diasSeleccionados.length === 0 && "(Una sola vez)"}{diasSeleccionados.length === 7 && "(Todos los días)"}</Text>
+
+        {/* 3b. YENES (Editable) */}
+        <Text style={[styles.sectionLabel, { color: colors.textDim }]}>RECOMPENSA</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }]}>
+            <Ionicons name="cash-outline" size={24} color="#FFD700" style={{ marginRight: 10 }} />
+            <Text style={{ color: colors.text, fontWeight: 'bold', marginRight: 10 }}>Valor de la mision: ¥</Text>
+            <TextInput
+                style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold', flex: 1 }}
+                value={yenes}
+                onChangeText={setYenes}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.textDim}
+            />
         </View>
-        {tieneExpiracion && (
-          <Text style={{ color: colors.textDim, marginBottom: 20 }}>
-            ⚠️ Se marcará para vencer mañana (WIP)
-          </Text>
-        )}
+
+        <DaySelector
+            selectedDays={diasSeleccionados}
+            onChange={setDiasSeleccionados}
+        />
+
+        <Text style={{ fontSize: 10, color: colors.textDim, marginBottom: 20, textAlign: 'center' }}>
+          {diasSeleccionados.length > 0
+            ? "Se reiniciará automáticamente los días marcados."
+            : "Esta misión no se repite, desaparecerá al completarse."}
+        </Text>
+
+        {/* 5. FECHA LÍMITE (Calendario) */}
+        <View style={[styles.dateSection, { borderColor: colors.textDim }]}>
+          <View style={styles.dateHeader}>
+            <Text style={[styles.label, { color: colors.text, marginBottom: 0 }]}>Fecha Límite</Text>
+            <Switch
+              value={tieneExpiracion}
+              onValueChange={setTieneExpiracion}
+              trackColor={{ false: "#333", true: colors.primary }}
+              thumbColor={"#fff"}
+            />
+          </View>
+
+          {tieneExpiracion && (
+            <TouchableOpacity
+              onPress={() => setMostrarPicker(true)}
+              style={[styles.dateDisplay, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="calendar" size={20} color={colors.primary} />
+              <Text style={[styles.dateText, { color: colors.text }]}>
+                {fechaExpiracion.toLocaleDateString()}
+              </Text>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>
+                (Toca para cambiar)
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {tieneExpiracion && mostrarPicker && (
+            <DateTimePicker
+              value={fechaExpiracion}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onChangeDate}
+              minimumDate={new Date()} // No permitir fechas pasadas
+              textColor={colors.text} // Solo funciona en iOS a veces
+            />
+          )}
+        </View>
 
       </ScrollView>
 
-      {/* Botones de Acción */}
+      {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.btnCancel, { borderColor: colors.textDim }]}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
           <Text style={{ color: colors.textDim }}>CANCELAR</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.btnSave, { backgroundColor: colors.primary }]}
+          style={[styles.saveBtn, { backgroundColor: colors.primary }]}
           onPress={guardarMision}
         >
-          <Text style={{ color: colors.background, fontWeight: 'bold' }}>ACEPTAR</Text>
+          <Text style={{ color: colors.background, fontWeight: 'bold', fontSize: 16 }}>
+            CONFIRMAR
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -120,14 +243,27 @@ export const CreateMissionScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  label: { fontSize: 16, marginBottom: 10, fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 20 },
-  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  chip: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8 },
-  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-  btnCancel: { flex: 1, padding: 15, borderRadius: 8, borderWidth: 1, marginRight: 10, alignItems: 'center' },
-  btnSave: { flex: 1, padding: 15, borderRadius: 8, alignItems: 'center' },
+  container: { flex: 1, padding: 20, paddingTop: 50 },
+  headerTitle: { fontSize: 22, fontWeight: '900', marginBottom: 25, textAlign: 'center', letterSpacing: 2, fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif' },
+
+  section: { padding: 15, borderRadius: 10, borderWidth: 1, marginBottom: 20 },
+  sectionLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 10, letterSpacing: 1, marginTop: 10 },
+  label: { fontSize: 14, fontWeight: 'bold', marginBottom: 5 },
+  input: { fontSize: 18, fontWeight: 'bold' },
+
+  horizontalScroll: { flexDirection: 'row', marginBottom: 20, maxHeight: 50 },
+  chip: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginRight: 10, justifyContent: 'center' },
+
+  row: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  difficultyBtn: { flex: 1, padding: 15, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  freqBtn: { flex: 1, paddingVertical: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+
+  dateSection: { marginTop: 10, marginBottom: 30, borderTopWidth: 1, paddingTop: 20, borderStyle: 'dashed' },
+  dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  dateDisplay: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 8, gap: 10 },
+  dateText: { fontSize: 18, fontWeight: 'bold' },
+
+  footer: { flexDirection: 'row', alignItems: 'center', marginTop: 'auto' },
+  cancelBtn: { padding: 15, marginRight: 20 },
+  saveBtn: { flex: 1, padding: 18, borderRadius: 50, alignItems: 'center', elevation: 5 }
 });

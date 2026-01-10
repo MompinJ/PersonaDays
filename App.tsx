@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { db } from './src/database';
 // Navegador y Pantallas
@@ -56,17 +57,15 @@ export default function App() {
 
   // 4. Lógica Principal (El Semáforo)
   return (
-    <>
+ <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
 
       {hasPlayer ? (
-        // CAMINO A: Si ya tiene jugador, entra al juego normal
         <AppNavigator />
       ) : (
-        // CAMINO B: Si es nuevo, muestra el Contrato (SetupScreen)
         <SetupScreen onFinishSetup={() => setHasPlayer(true)} />
       )}
-    </>
+    </GestureHandlerRootView>
   );
 }
 
