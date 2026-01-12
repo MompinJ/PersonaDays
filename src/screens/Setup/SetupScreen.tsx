@@ -4,21 +4,24 @@ import { createPlayer } from '../../services/playerService';
 import { CharacterTheme } from '../../types';
 
 interface Props {
-  onFinishSetup: () => void;
+  onFinishSetup?: () => void;
 }
 
 export const SetupScreen = ({ onFinishSetup }: Props) => {
   const [nombre, setNombre] = useState('');
+  const navigation: any = require('@react-navigation/native').useNavigation();
+
   const handleFirmarContrato = async () => {
     if (nombre.trim().length === 0) {
       Alert.alert("Error", "El contrato requiere un nombre.");
       return;
     }
       // TODO Sustituir por selector de temas
-      const exito = await createPlayer(nombre, CharacterTheme.MAKOTO);
+      const exito = await createPlayer(nombre);
 
     if (exito) {
-      onFinishSetup();
+      // Navegar al selector de personaje inmediatamente
+      navigation.navigate('CharacterSelection');
     } else {
       Alert.alert("Error", "No se pudo guardar el contrato.");
     }

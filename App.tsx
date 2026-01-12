@@ -7,10 +7,14 @@ import { db } from './src/database';
 // Navegador y Pantallas
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { SetupScreen } from './src/screens/Setup/SetupScreen';
+import { CharacterSelectionScreen } from './src/screens/CharacterSelectionScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Servicios (Lógica)
 import { initDatabase } from './src/database';
 import { checkPlayerExists } from './src/services/playerService';
+
 
 export default function App() {
   // 1. Estados
@@ -27,7 +31,6 @@ export default function App() {
 
         // Paso A: Iniciar la base de datos física
         await initDatabase();
-        await db.execAsync('DELETE FROM jugadores'); // TODO Quitar esto
         console.log('✅ Base de datos lista');
 
         // Paso B: Preguntar si ya existe un jugador registrado
@@ -56,14 +59,26 @@ export default function App() {
   }
 
   // 4. Lógica Principal (El Semáforo)
+  // Si ya hay jugador, mostramos el stack principal; si no, mostramos una navegación pequeña
+  const Stack = createNativeStackNavigator();
+
   return (
- <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
 
       {hasPlayer ? (
         <AppNavigator />
       ) : (
-        <SetupScreen onFinishSetup={() => setHasPlayer(true)} />
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Setup" component={SetupScreen} />
+            <Stack.Screen name="CharacterSelection">
+              {(props) => (
+                <CharacterSelectionScreen {...props} onAuthentication={() => setHasPlayer(true)} />
+              )}
+            </Stack.Screen>
+          </Stack.Navigator>
+        </NavigationContainer>
       )}
     </GestureHandlerRootView>
   );

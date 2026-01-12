@@ -1,29 +1,53 @@
 import * as SQLite from 'expo-sqlite';
-import { checkAndSeedData } from './base_de_datos';
+
+// Abrimos la base de datos (sync wrapper usado en el proyecto)
 export const db = SQLite.openDatabaseSync('personadays.db');
+
+// Función para poblar datos iniciales si la app está vacía
+export const checkAndSeedData = async () => {
+  try {
+    const result: any = await db.getAllAsync('SELECT count(*) as count FROM jugadores');
+    if (!result || result.length === 0 || result[0].count === 0) {
+      console.log('🌱 Sembrando datos iniciales del protagonista...');
+
+      await db.execAsync(`
+      -- 1. Crear al Protagonista (Makoto por defecto)
+      INSERT OR IGNORE INTO jugadores (id_jugador, nombre_jugador, nivel_jugador, vida, yenes, slots_desbloqueados, character_theme, created_at)
+      VALUES (1, 'Invitado', 1, 10, 5000, 1, 'MAKOTO', datetime('now'));
+
+      -- 2. Crear las 5 Stats Sociales (Estilo Persona)
+      -- IDs fijos para facilitar referencias
+      INSERT OR IGNORE INTO stats (id_stat, nombre, descripcion, tipo, dificultad) VALUES
+      (1, 'Conocimiento', 'Tu capacidad académica y resolución de problemas.', 'PREDEFINED', 1.0),
+      (2, 'Coraje', 'Tu valentía para enfrentar situaciones difíciles.', 'PREDEFINED', 1.0),
+      (3, 'Destreza', 'Habilidad manual y precisión técnica.', 'PREDEFINED', 1.0),
+      (4, 'Gentileza', 'Tu empatía y capacidad de cuidar a otros.', 'PREDEFINED', 1.0),
+      (5, 'Carisma', 'Tu habilidad para atraer e influir en los demás.', 'PREDEFINED', 1.0);
+
+      -- 3. Vincular Stats al Jugador (Inicializar en Nivel 1)
+      INSERT OR IGNORE INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES
+      (1, 1, 20, 0, 99), -- Conocimiento
+      (1, 2, 10, 0, 99), -- Coraje
+      (1, 3, 55, 0, 99), -- Destreza
+      (1, 4, 40, 0, 99), -- Gentileza
+      (1, 5, 70, 0, 99); -- Carisma
+      `);
+
+      console.log('✨ ¡Protagonista creado! Datos iniciales listos.');
+    }
+  } catch (err) {
+    console.error('Error en checkAndSeedData:', err);
+  }
+};
+
 export const initDatabase = async () => {
   try {
+    await db.execAsync('PRAGMA foreign_keys = ON;');
 
-
-
-    await db.execAsync(`
-      DROP TABLE IF EXISTS logs;
-      DROP TABLE IF EXISTS impacto_mision;
-      DROP TABLE IF EXISTS misiones;
-      DROP TABLE IF EXISTS arcos;
-      DROP TABLE IF EXISTS jugador_stat;
-      DROP TABLE IF EXISTS stats;
-      DROP TABLE IF EXISTS jugador_arcanos_slots;
-      DROP TABLE IF EXISTS jugadores;
-      DROP TABLE IF EXISTS arcanos;
-    `);
-
-    await db.execAsync('PRAGMA foreign_keys = ON;'); //Activa las FK
-
-    // 2. Ejecutamos las queries para crear las tablas una por una
+    // Creamos tablas necesarias (asegurarse de que coincidan con el esquema usado en el proyecto)
     await db.execAsync(`
       -- TABLA ARCANOS
-        CREATE TABLE IF NOT EXISTS arcanos (
+      CREATE TABLE IF NOT EXISTS arcanos (
         id_arcano INTEGER PRIMARY KEY,
         nombre_arcano TEXT NOT NULL,
         simbolo TEXT NOT NULL,
@@ -51,7 +75,7 @@ export const initDatabase = async () => {
         id_stat INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
         descripcion TEXT,
-        tipo TEXT NOT NULL, -- 'PREDEFINED' o 'CUSTOM'
+        tipo TEXT NOT NULL,
         id_arcano INTEGER,
         dificultad REAL DEFAULT 1.0,
         id_stat_padre INTEGER,
@@ -93,18 +117,18 @@ export const initDatabase = async () => {
         id_mision INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
         descripcion TEXT,
-        activa INTEGER DEFAULT 1, -- 0=False, 1=True
+        activa INTEGER DEFAULT 1,
         tipo TEXT NOT NULL,
         frecuencia_repeticion TEXT,
         id_arco INTEGER,
         recompensa_exp INTEGER DEFAULT 10,
         recompensa_yenes INTEGER DEFAULT 0,
-        completada INTEGER DEFAULT 0, -- 0=False, 1=True
+        completada INTEGER DEFAULT 0,
         fecha_creacion TEXT NOT NULL,
         fecha_expiracion TEXT,
         fecha_completada TEXT,
         dias_repeticion TEXT,
-        FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
+        FOREIGN KEY (id_arco) REFERENCES arcos(id_arcano)
       );
 
       -- TABLA IMPACTO_MISION
@@ -117,14 +141,13 @@ export const initDatabase = async () => {
         FOREIGN KEY (id_stat) REFERENCES stats(id_stat)
       );
 
-
       -- TABLA JUGADORES_ARCANOS_SLOTS (Arcanos equipados)
       CREATE TABLE IF NOT EXISTS jugador_arcanos_slots (
         id_slot INTEGER PRIMARY KEY AUTOINCREMENT,
         id_jugador INTEGER NOT NULL,
         id_arcano INTEGER NOT NULL,
-        numero_slot INTEGER NOT NULL, -- 1, 2 o 3
-        fecha_equipado TEXT NOT NULL, -- Para validar la regla de los 2 días
+        numero_slot INTEGER NOT NULL,
+        fecha_equipado TEXT NOT NULL,
         FOREIGN KEY (id_jugador) REFERENCES jugadores(id_jugador),
         FOREIGN KEY (id_arcano) REFERENCES arcanos(id_arcano)
       );
@@ -140,9 +163,7 @@ export const initDatabase = async () => {
       );
     `);
 
-
-
-    // TODO INSERTAR FRASE DE LORE
+    // Insertar arcanos base (usamos INSERT OR REPLACE para garantizar id fijo)
     await db.execAsync(`
       INSERT OR REPLACE INTO arcanos (id_arcano, simbolo, nombre_arcano, stat_asociado, efecto_descripcion) VALUES
       (0, '0', 'El Loco', 'Comodín', 'Ganas un 2% más de XP en todas las misiones de cualquier stat'),
@@ -169,21 +190,11 @@ export const initDatabase = async () => {
       (21, 'XXI', 'El Mundo', 'Todos', 'Tu decides tu futuro...');
     `);
 
-    // --- Asegurar que el jugador y stats base estén sembrados ---
+    // Llamada al seed para poblar jugador y stats si está vacío
     await checkAndSeedData();
 
-    // DEV: eliminar jugador al iniciar para forzar setup (borrar jugador y sus referencias)
-    try {
-      await db.execAsync('DELETE FROM jugador_stat;');
-      await db.execAsync('DELETE FROM jugador_arcanos_slots;');
-      await db.execAsync('DELETE FROM jugadores;');
-      console.log('🧹 Jugador borrado para forzar flujo de setup (DEBUG)');
-    } catch (e) {
-      console.error('Error borrando jugador al iniciar:', e);
-    }
-
-    console.log('Base de datos inicializada correctamente');
+    console.log('✅ Base de datos inicializada correctamente');
   } catch (error) {
-    console.error('Error al inicializar la base de datos:', error);
+    console.error('❌ Error al inicializar la base de datos:', error);
   }
 };

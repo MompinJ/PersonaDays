@@ -47,18 +47,44 @@ export interface Jugador {
 	yenes: number;
 	racha: number;
 	last_activity_date?: string;
-	id_arcano: number;  // FK
+	slots_desbloqueados: number;
 	character_theme: CharacterTheme;
 	created_at: string;
 }
 
 // Tabla Arcanos
 export interface Arcano {
-	id_arcano: number;
-	nombre_arcano: string;
-	simbolo: string;
-	descripcion: string;
-	xp_bonus: number;
+    id_arcano: number;
+    nombre_arcano: string;
+    simbolo: string;
+    stat_asociado: string;
+    descripcion_lore?: string;
+    efecto_descripcion: string;
+}
+
+export enum ArcanaID {
+    LOCO = 0,
+    MAGO = 1,
+    SACERDOTISA = 2,
+    EMPERATRIZ = 3,
+    EMPERADOR = 4,
+    HIEROFANTE = 5,
+    AMANTES = 6,
+    CARRO = 7,
+    JUSTICIA = 8,
+	HERMITANO = 9,
+    FORTUNA = 10,
+    FUERZA = 11,
+    AHORCADO = 12,
+    MUERTE = 13,
+    TEMPLANZA = 14,
+    DIABLO = 15,
+    TORRE = 16,
+    ESTRELLA = 17,
+    LUNA = 18,
+    SOL = 19,
+    JUICIO = 20,
+    MUNDO = 21
 }
 
 // Tabla Stats
@@ -69,6 +95,7 @@ export interface Stat {
 	tipo: "PREDEFINED" | "CUSTOM";
 	id_arcano?: number;  // FK
 	dificultad: number
+	id_stat_padre?: number; // Nuevo: referencia al stat padre
 }
 
 // Tabla jugador_stat
@@ -119,6 +146,19 @@ export interface Arco {
 	color_hex: string;
 	estado: ArcState;
 	resumen_final?: string;
+}
+
+export interface JugadorArcanoSlot {
+    id_slot: number;
+    id_jugador: number;
+    id_arcano: number;
+    numero_slot: number; // 1, 2, 3
+    fecha_equipado: string; // ISO String
+}
+
+export interface ArcanoActivo extends Arcano {
+    fecha_equipado: string;
+    dias_restantes_bloqueo: number;
 }
 
 // Tabla logs
