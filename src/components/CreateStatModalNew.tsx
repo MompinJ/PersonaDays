@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  KeyboardAvoidingView, Platform, ScrollView 
+import {
+  Modal, View, Text, TextInput, TouchableOpacity, StyleSheet,
+  KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { createCustomStat } from '../database/statsHelpers';
 import { useTheme } from '../themes/useTheme';
@@ -64,14 +64,14 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
           <View style={[styles.modalContainer, { borderColor: colors.primary }]}>
             <View style={[styles.headerDecoration, { backgroundColor: colors.primary }]} />
             <Text style={styles.title}>NUEVO HÁBITO</Text>
-            
+
             <ScrollView style={{ maxHeight: 500 }}>
               <Text style={[styles.label, { color: colors.primary }]}>NOMBRE DEL HÁBITO</Text>
               <TextInput
@@ -133,8 +133,8 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
                   <Text style={styles.cancelText}>CANCELAR</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[styles.saveButton, { backgroundColor: colors.primary, opacity: loading ? 0.5 : 1 }]} 
+                <TouchableOpacity
+                  style={[styles.saveButton, { backgroundColor: colors.primary, opacity: loading ? 0.5 : 1 }]}
                   onPress={handleSave}
                   disabled={loading}
                 >
