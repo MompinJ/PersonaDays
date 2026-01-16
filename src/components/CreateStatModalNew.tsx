@@ -12,7 +12,7 @@ interface Props {
   onSuccess: () => void;
 }
 
-const THEME_COLOR = '#00D4FF';
+
 
 // Hardcodeamos los IDs de las stats base (según tu seed data)
 const MAIN_STATS = [
@@ -68,16 +68,16 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          <View style={[styles.modalContainer, { borderColor: colors.primary }]}>
+          <View style={[styles.modalContainer, { borderColor: colors.primary, backgroundColor: colors.background }]}> 
             <View style={[styles.headerDecoration, { backgroundColor: colors.primary }]} />
-            <Text style={styles.title}>NUEVO HÁBITO</Text>
+            <Text style={[styles.title, { color: colors.text }]}>NUEVO HÁBITO</Text>
 
             <ScrollView style={{ maxHeight: 500 }}>
               <Text style={[styles.label, { color: colors.primary }]}>NOMBRE DEL HÁBITO</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderBottomColor: colors.border, color: colors.text }]}
                 placeholder="Ej: Tocar Piano, Leer, Gym..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textDim}
                 value={nombre}
                 onChangeText={setNombre}
               />
@@ -93,10 +93,7 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
                     ]}
                     onPress={() => setSelectedParentId(stat.id)}
                   >
-                    <Text style={[
-                      styles.parentButtonText,
-                      selectedParentId === stat.id && styles.parentButtonTextSelected
-                    ]}>
+                    <Text style={[styles.parentButtonText, { color: colors.textDim }, selectedParentId === stat.id && { color: colors.background, fontWeight: 'bold' }]}> 
                       {stat.nombre}
                     </Text>
                   </TouchableOpacity>
@@ -119,9 +116,9 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
 
               <Text style={[styles.label, { color: colors.primary }]}>DESCRIPCIÓN (Opcional)</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderBottomColor: colors.border, color: colors.text }]}
                 placeholder="Detalles..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textDim}
                 value={descripcion}
                 onChangeText={setDescripcion}
                 multiline
@@ -160,27 +157,24 @@ const styles = StyleSheet.create({
   },
   keyboardView: { width: '100%' },
   modalContainer: {
-    backgroundColor: '#0A1628',
     borderWidth: 2,
-    borderColor: THEME_COLOR,
     padding: 20,
     borderRadius: 4,
   },
   headerDecoration: {
     position: 'absolute', top: -10, left: 20,
-    width: 60, height: 20, backgroundColor: THEME_COLOR,
+    width: 60, height: 20,
   },
   title: {
-    color: '#FFF', fontSize: 22, fontWeight: '900',
+    fontSize: 22, fontWeight: '900',
     fontStyle: 'italic', marginBottom: 20,
   },
   label: {
-    color: THEME_COLOR, fontSize: 10, fontWeight: 'bold',
+    fontSize: 10, fontWeight: 'bold',
     marginBottom: 8, letterSpacing: 1, marginTop: 10,
   },
   input: {
-    backgroundColor: '#112', borderBottomWidth: 2,
-    borderBottomColor: '#444', color: '#FFF',
+    borderBottomWidth: 2,
     fontSize: 16, paddingVertical: 8, paddingHorizontal: 12,
     marginBottom: 10,
   },
@@ -189,28 +183,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', gap: 8,
   },
   parentButton: {
-    borderWidth: 1, borderColor: '#444',
+    borderWidth: 1,
     paddingVertical: 6, paddingHorizontal: 12,
     borderRadius: 20,
   },
-  parentButtonSelected: {
-    backgroundColor: THEME_COLOR, borderColor: THEME_COLOR,
-  },
-  parentButtonText: { color: '#888', fontSize: 12, fontWeight: 'bold' },
-  parentButtonTextSelected: { color: '#000' },
+  parentButtonSelected: {},
+  parentButtonText: { fontSize: 12, fontWeight: 'bold' },
+  parentButtonTextSelected: {},
   rowInput: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  helperText: { color: '#666', fontSize: 12, fontStyle: 'italic' },
+  helperText: { fontSize: 12, fontStyle: 'italic' },
   buttonRow: {
     flexDirection: 'row', justifyContent: 'flex-end',
     marginTop: 25, gap: 15,
   },
   cancelButton: { paddingVertical: 12, paddingHorizontal: 20 },
-  cancelText: { color: '#888', fontWeight: 'bold' },
-  saveButton: {
-    backgroundColor: THEME_COLOR, paddingVertical: 12,
-    paddingHorizontal: 30, transform: [{ skewX: '-20deg' }]
-  },
-  saveText: {
-    color: '#000', fontWeight: 'bold', transform: [{ skewX: '20deg' }]
-  }
+  cancelText: { fontWeight: 'bold' },
+  saveButton: { paddingVertical: 12, paddingHorizontal: 30, transform: [{ skewX: '-20deg' }] },
+  saveText: { fontWeight: 'bold', transform: [{ skewX: '20deg' }] }
 });

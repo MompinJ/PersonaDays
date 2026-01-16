@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { StatViewData } from '../hooks/usePlayerStats';
+import { useTheme } from '../themes/useTheme';
 
 interface Props {
   data: StatViewData;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export const StatRow = ({ data, colorTema }: Props) => {
+  const theme = useTheme();
   // Calculamos porcentaje para la barra usando experiencia_actual / xpNecesaria
   // xpNeeded = baseXP (100) * dificultad (si existe)
   const xpBase = 100;
@@ -17,31 +19,31 @@ export const StatRow = ({ data, colorTema }: Props) => {
   return (
     <View style={styles.container}>
       {/* Círculo del Nivel (Estilo Rank) */}
-      <View style={[styles.rankCircle, { borderColor: colorTema }]}>
-        <Text style={[styles.rankText, { color: colorTema }]}>{data.nivel_actual}</Text>
+      <View style={[styles.rankCircle, { borderColor: colorTema, backgroundColor: theme.surface }]}>
+        <Text style={[styles.rankText, { color: colorTema, fontFamily: theme.fonts?.bold }]}>{data.nivel_actual}</Text>
       </View>
 
       <View style={styles.infoContainer}>
         <View style={styles.headerRow}>
-          <Text style={styles.statName}>{data.nombre_stat}</Text>
+          <Text style={[styles.statName, { color: theme.text, fontFamily: theme.fonts?.bold }]}>{data.nombre_stat}</Text>
           {data.cuenta_prestigio > 0 && (
-            <Text style={styles.prestige}>★ {data.cuenta_prestigio}</Text>
+            <Text style={[styles.prestige, { color: theme.primary, fontFamily: theme.fonts?.bold }]}>★ {data.cuenta_prestigio}</Text>
           )}
         </View>
 
         {/* Barra de Progreso "Inclinada" estilo Persona */}
-        <View style={styles.progressBarBackground}>
+        <View style={[styles.progressBarBackground, { backgroundColor: theme.surface }]}> 
           <View 
             style={[
               styles.progressBarFill, 
               { 
                 width: `${xpPercent}%`, 
-                backgroundColor: colorTema 
+                backgroundColor: colorTema || theme.primary
               }
             ]} 
           />
         </View>
-        <Text style={styles.xpText}>{data.experiencia_actual} / {xpNeeded} XP</Text>
+        <Text style={[styles.xpText, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>{data.experiencia_actual} / {xpNeeded} XP</Text>
       </View>
     </View>
   );
@@ -62,7 +64,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'transparent',
   },
   rankText: {
     fontWeight: '900',
@@ -77,19 +79,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statName: {
-    color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   prestige: {
-    color: '#FFD700', // Dorado
-    fontWeight: 'bold',
   },
   progressBarBackground: {
     height: 8,
-    backgroundColor: '#333',
     transform: [{ skewX: '-20deg' }], // ESTO LE DA EL TOQUE PERSONA
     borderRadius: 2,
     overflow: 'hidden',
@@ -98,7 +95,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   xpText: {
-    color: '#AAA',
     fontSize: 10,
     marginTop: 2,
     textAlign: 'right',

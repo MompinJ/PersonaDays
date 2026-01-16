@@ -140,7 +140,7 @@ export const CreateMissionScreen = () => {
               style={[
                 styles.difficultyBtn,
                 { borderColor: dificultad === dif ? colors.primary : colors.textDim },
-                dificultad === dif && { backgroundColor: 'rgba(0, 212, 255, 0.1)' }
+                dificultad === dif && { backgroundColor: `${colors.primary}20` }
               ]}
             >
               <Text style={{ color: dificultad === dif ? colors.primary : colors.textDim, fontWeight: 'bold' }}>
@@ -159,10 +159,10 @@ export const CreateMissionScreen = () => {
         {/* 3b. YENES (Editable) */}
         <Text style={[styles.sectionLabel, { color: colors.textDim }]}>RECOMPENSA</Text>
         <View style={[styles.section, { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }]}>
-            <Ionicons name="cash-outline" size={24} color="#FFD700" style={{ marginRight: 10 }} />
+            <Ionicons name="cash-outline" size={24} color={colors.secondary} style={{ marginRight: 10 }} />
             <Text style={{ color: colors.text, fontWeight: 'bold', marginRight: 10 }}>Valor de la mision: ¥</Text>
             <TextInput
-                style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold', flex: 1 }}
+                style={{ color: colors.secondary, fontSize: 18, fontWeight: 'bold', flex: 1 }}
                 value={yenes}
                 onChangeText={setYenes}
                 keyboardType="numeric"
@@ -189,8 +189,8 @@ export const CreateMissionScreen = () => {
             <Switch
               value={tieneExpiracion}
               onValueChange={setTieneExpiracion}
-              trackColor={{ false: "#333", true: colors.primary }}
-              thumbColor={"#fff"}
+              trackColor={{ false: colors.inactive, true: colors.primary }}
+              thumbColor={colors.textInverse}
             />
           </View>
 

@@ -2,15 +2,19 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Polygon, Line, Text as SvgText, Circle } from 'react-native-svg';
 import { StatViewData } from '../hooks/usePlayerStats';
+import { useTheme } from '../themes/useTheme';
 
 interface Props {
   stats: StatViewData[]; // La lista COMPLETA de stats
   selectedStatsIds?: number[]; // IDs de las 5 stats a mostrar (opcional)
   size?: number;
-  color: string;
+  color?: string;
 }
 
 export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: Props) => {
+  const theme = useTheme();
+  const strokeColor = color || theme.primary;
+
   // 1. DEFINIR QUÉ MOSTRAR
   let statsToShow: StatViewData[] = [];
 
@@ -56,7 +60,7 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
         const coords = getCoordinates(axisMax * scale, i, axisMax);
         return `${coords.x},${coords.y}`;
       }).join(' ');
-      return <Polygon key={k} points={points} stroke="#444" strokeWidth="1" fill="none" />;
+      return <Polygon key={k} points={points} stroke={theme.border} strokeWidth="1" fill="none" />;
     });
   };
 
@@ -75,7 +79,7 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
           key={i}
           x={x}
           y={y}
-          fill="#FFF"
+          fill={theme.text}
           fontSize="10"
           fontWeight="bold"
           textAnchor="middle"
@@ -95,15 +99,15 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
         {Array.from({ length: 5 }).map((_, i) => {
           const axisMax = statMaxes[i] || 99;
           const end = getCoordinates(axisMax, i, axisMax);
-          return <Line key={`l-${i}`} x1={center} y1={center} x2={end.x} y2={end.y} stroke="#444" strokeWidth="1" />;
+          return <Line key={`l-${i}`} x1={center} y1={center} x2={end.x} y2={end.y} stroke={theme.border} strokeWidth="1" />;
         })}
 
-        <Polygon points={dataPoints} fill={color} fillOpacity="0.5" stroke={color} strokeWidth="2" />
+        <Polygon points={dataPoints} fill={strokeColor} fillOpacity="0.5" stroke={strokeColor} strokeWidth="2" />
 
         {statsToShow.map((stat, i) => {
           const axisMax = statMaxes[i] || 99;
           const coords = getCoordinates((stat && (stat as any).nivel_actual) || 0, i, axisMax);
-          return <Circle key={`d-${i}`} cx={coords.x} cy={coords.y} r="3" fill="#FFF" />;
+          return <Circle key={`d-${i}`} cx={coords.x} cy={coords.y} r="3" fill={theme.text} />;
         })}
 
         {renderLabels()}

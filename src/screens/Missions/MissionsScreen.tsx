@@ -7,6 +7,7 @@ import { MissionItem } from '../../components/Missions/MissionItem';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
+import { useGame } from '../../context/GameContext';
 
 export const MissionsScreen = () => {
   // 1. Estado para guardar la lista de misiones que vienen de la BD
@@ -14,6 +15,7 @@ export const MissionsScreen = () => {
   const [filtroActual, setFiltroActual] = useState<MissionType>(MissionType.DIARIA);
   const isFocused = useIsFocused();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { theme } = useGame();
 
  // Mostrar misiones
   const cargarMisiones = async () => {
@@ -62,17 +64,19 @@ const irACrearMision = () => {
 
   const renderFiltro = (tipo: MissionType) => (
     <TouchableOpacity
-      style={[styles.filterChip, filtroActual === tipo && styles.filterChipActive]}
+      style={[styles.filterChip, { backgroundColor: theme.surface, borderColor: theme.primary },
+        filtroActual === tipo && { backgroundColor: theme.primary, borderColor: theme.primary }
+      ]}
       onPress={() => setFiltroActual(tipo)}
     >
-      <Text style={[styles.filterText, filtroActual === tipo && styles.filterTextActive]}>
+      <Text style={[styles.filterText, { color: theme.text, fontFamily: theme.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }, filtroActual === tipo && { color: theme.textInverse }] }>
         {tipo}
       </Text>
     </TouchableOpacity>
   );
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerTitle}>REQUESTS</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      <Text style={[styles.headerTitle, { color: theme.text, fontFamily: theme.fonts?.title, textTransform: 'uppercase', letterSpacing: 1.5 }]}>REQUESTS</Text>
 
       {/* Zona de Filtros (Scroll Horizontal) */}
       <View style={styles.filterContainer}>
@@ -106,14 +110,14 @@ const irACrearMision = () => {
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay misiones de tipo {filtroActual}.</Text>
+          <Text style={[styles.emptyText, { color: theme.text, fontFamily: theme.fonts?.body, letterSpacing: 0.25 }]}>No hay misiones de tipo {filtroActual}.</Text>
         }
         contentContainerStyle={{ paddingBottom: 80 }} // Espacio para que no se corte abajo
       />
 
       {/* Botón Flotante para añadir (Temporal) */}
-      <TouchableOpacity style={styles.fab} onPress={irACrearMision}>
-          <Text style={styles.fabText}>+</Text>
+      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
+          <Text style={[styles.fabText, { color: theme.textInverse, fontFamily: theme.fonts?.title }]}>+</Text>
         </TouchableOpacity>
     </View>
   );
@@ -121,7 +125,7 @@ const irACrearMision = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A1628', padding: 20, paddingTop: 50 },
-  headerTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 15, fontFamily: 'serif' },
+  headerTitle: { color: '#fff', fontSize: 28, marginBottom: 15, fontFamily: 'serif' },
 
   // Estilos de los Filtros
   filterContainer: { marginBottom: 20, height: 40 },
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00D4FF', // Cyan activo
     borderColor: '#00D4FF',
   },
-  filterText: { color: '#8892B0', fontWeight: 'bold', fontSize: 12 },
+  filterText: { color: '#8892B0', fontSize: 12 },
   filterTextActive: { color: '#0A1628' }, // Texto oscuro sobre fondo cyan
 
   emptyText: { color: '#8892B0', textAlign: 'center', marginTop: 50, fontStyle: 'italic' },

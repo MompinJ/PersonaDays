@@ -1,22 +1,24 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Jugador } from '../../types'
+import { useTheme } from '../../themes/useTheme'
 
 interface Props {
     jugador: Jugador;
 }
 
 export const PlayerHeader = ({ jugador }: Props) => {
+    const colors = useTheme();
     return (
-        <View style={styles.container}>
-            <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>
+        <View style={[styles.container, { backgroundColor: colors.background, borderBottomColor: colors.primary }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.avatarText, { color: colors.textInverse }]}>
                     {jugador.nombre_jugador.charAt(0)}
                 </Text>
             </View>
             <View style={styles.infoContainer}>
-                <Text style={styles.avatarContainer}>{jugador.nombre_jugador}</Text>
-                <Text style={styles.stats}>
+                <Text style={[styles.name, { color: colors.text }]}>{jugador.nombre_jugador}</Text>
+                <Text style={[styles.stats, { color: colors.textDim }]}> 
                     Nivel {jugador.nivel_jugador} • ❤️ {jugador.vida} • ¥ {jugador.yenes}
                 </Text>
             </View>

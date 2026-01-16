@@ -7,6 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../themes/useTheme';
 
 //Pantallas de la app
 import { RootTabParamList, RootStackParamList } from './types';
@@ -24,8 +25,21 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MainTabs = () => {
+  const theme = useTheme();
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.background,
+          borderTopColor: theme.primary,
+          borderTopWidth: 1,
+        },
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textDim,
+        tabBarShowLabel: true,
+      }}
+    >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Stats" component={StatsScreen} />
       <Tab.Screen name="Missions" component={MissionsScreen} />

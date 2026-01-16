@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { createPlayer } from '../../services/playerService';
 import { CharacterTheme } from '../../types';
+import { useTheme } from '../../themes/useTheme';
 
 interface Props {
   onFinishSetup?: () => void;
@@ -10,6 +11,7 @@ interface Props {
 export const SetupScreen = ({ onFinishSetup }: Props) => {
   const [nombre, setNombre] = useState('');
   const navigation: any = require('@react-navigation/native').useNavigation();
+  const colors = useTheme();
 
   const handleFirmarContrato = async () => {
     if (nombre.trim().length === 0) {
@@ -28,10 +30,10 @@ export const SetupScreen = ({ onFinishSetup }: Props) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+      <View style={[styles.card, { backgroundColor: colors.surface }]}> 
         <Text style={styles.title}>Contract</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.textDim }] }>
           I chooseth this fate of mine own free will.
         </Text>
 
@@ -39,13 +41,13 @@ export const SetupScreen = ({ onFinishSetup }: Props) => {
         <TextInput
           style={styles.input}
           placeholder="Nombre del Protagonista"
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.textDim}
           value={nombre}
           onChangeText={setNombre}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleFirmarContrato}>
-          <Text style={styles.buttonText}>Firmar Contrato</Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={handleFirmarContrato}>
+          <Text style={[styles.buttonText, { color: colors.textInverse }]}>Firmar Contrato</Text>
         </TouchableOpacity>
       </View>
     </View>

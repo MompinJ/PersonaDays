@@ -21,8 +21,8 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
     const exp = new Date(mision.fecha_expiracion);
     const diffTime = exp.getTime() - hoy.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return '#FF4444';
-    if (diffDays <= 1) return '#FFAA00';
+    if (diffDays < 0) return colors.error;
+    if (diffDays <= 1) return colors.primary;
     return colors.textDim;
   };
 
@@ -40,10 +40,10 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
 
     return (
       <View style={[styles.actionContainer, { backgroundColor: colors.primary }]}>
-        <Animated.Text style={[styles.actionText, { transform: [{ scale }] }]}>
+        <Animated.Text style={[styles.actionText, { color: colors.textInverse, transform: [{ scale }], fontFamily: colors.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }]}>
           COMPLETAR
         </Animated.Text>
-        <Ionicons name="checkmark-circle" size={30} color="white" />
+        <Ionicons name="checkmark-circle" size={30} color={colors.textInverse} />
       </View>
     );
   };
@@ -60,11 +60,11 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
         style={[styles.card, { backgroundColor: colors.surface, borderLeftColor: colors.primary }]}
       >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: colors.text }]}>{mision.nombre}</Text>
+          <Text style={[styles.title, { color: colors.text, fontFamily: colors.fonts?.title, textTransform: 'uppercase' }]}>{mision.nombre}</Text>
 
           <View style={styles.metaRow}>
             {mision.fecha_expiracion && (
-              <Text style={[styles.metaText, { color: getExpirationColor(), fontWeight: 'bold' }]}>
+              <Text style={[styles.metaText, { color: getExpirationColor(), fontFamily: colors.fonts?.bold }]}>
                 {fechaTexto}
               </Text>
             )}
@@ -75,9 +75,9 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
         </View>
 
         <View style={styles.rewardContainer}>
-          <Text style={[styles.xpText, { color: colors.primary }]}>+{mision.recompensa_exp} XP</Text>
+          <Text style={[styles.xpText, { color: colors.primary, fontFamily: colors.fonts?.bold, textTransform: 'uppercase' }]}>+{mision.recompensa_exp} XP</Text>
           {mision.recompensa_yenes > 0 && (
-             <Text style={[styles.yenText, { color: colors.textDim }]}>¥{mision.recompensa_yenes}</Text>
+             <Text style={[styles.yenText, { color: colors.textDim, fontFamily: colors.fonts?.body }]}>¥{mision.recompensa_yenes}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: { flex: 1 },
-  title: { fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
+  title: { fontSize: 17, marginBottom: 4 },
   metaRow: { flexDirection: 'row', alignItems: 'center' },
   metaText: { fontSize: 13 },
   rewardContainer: { alignItems: 'flex-end' },
@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: 'white',
-    fontWeight: 'bold',
     marginRight: 10,
     fontSize: 14
   }

@@ -29,7 +29,7 @@ export const StatsScreen = () => {
   if (loading && stats.length === 0) {
     return (
       <View style={[styles.screen, styles.center]}>
-        <Text style={{ color: '#FFF' }}>Analizando potencial...</Text>
+        <Text style={{ color: colors.text, fontFamily: colors.fonts?.body }}>Analizando potencial...</Text>
       </View>
     );
   }
@@ -39,7 +39,7 @@ export const StatsScreen = () => {
       <StatusBar style="light" />
       
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>PARAMETERS</Text>
+        <Text style={[styles.headerTitle, { color: colors.text, fontFamily: colors.fonts?.title, textTransform: 'uppercase', letterSpacing: 1.5 }]}>PARAMETERS</Text>
         <View style={[styles.headerLine, { backgroundColor: colors.primary }]} />
       </View>
 
@@ -51,7 +51,7 @@ export const StatsScreen = () => {
                 {stats.length > 5 && (
               <View style={{ alignItems: 'flex-end', paddingRight: 20 }}>
                 <TouchableOpacity onPress={() => setGraphModalVisible(true)}>
-                  <Text style={{ color: colors.primary, fontSize: 10, textDecorationLine: 'underline' }}>
+                            <Text style={{ color: colors.primary, fontSize: 10, textDecorationLine: 'underline', fontFamily: colors.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }}>
                     ⚙ CONFIGURAR GRÁFICO
                   </Text>
                 </TouchableOpacity>
@@ -64,7 +64,7 @@ export const StatsScreen = () => {
                color={colors.primary} 
                size={280} 
             />
-            <Text style={styles.listLabel}>DETALLE DE HABILIDADES</Text>
+            <Text style={[styles.listLabel, { color: colors.textDim, fontFamily: colors.fonts?.bold, textTransform: 'uppercase' }]}>DETALLE DE HABILIDADES</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
   listLabel: {
     color: '#666',
     fontSize: 12,
-    fontWeight: 'bold',
     marginLeft: 20,
     marginBottom: 10,
     marginTop: 10,

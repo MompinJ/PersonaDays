@@ -20,7 +20,20 @@ export interface ThemeColors {
 
     // Opcional pero recomendado para P3R
     shadow: string;        // Para dar ese efecto "pop" 3D en los menús
+
+    // Tipografía (nombre de las familias cargadas por expo-font)
+    fonts?: {
+        title: string;
+        body: string;
+        bold: string;
+    };
 }
+// Tipografías por defecto (se referencian por nombre de familia una vez cargadas)
+export const DEFAULT_FONTS = {
+    title: 'Anton_400Regular',
+    body: 'Exo2_400Regular',
+    bold: 'Exo2_700Bold'
+};
 // Todo AGREGAR MAS O CAMBIAR SI ES NECESARIO
 
 export const PALETTES: Record<CharacterTheme, ThemeColors> = {

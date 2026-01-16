@@ -46,9 +46,9 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          <Text style={styles.title}>CONFIGURAR GRÁFICO</Text>
-          <Text style={styles.subtitle}>Selecciona 5 stats para visualizar ({selected.length}/5)</Text>
+        <View style={[styles.container, { backgroundColor: colors.background, borderColor: colors.primary }]}>
+          <Text style={[styles.title, { color: colors.text }]}>CONFIGURAR GRÁFICO</Text>
+          <Text style={[styles.subtitle, { color: colors.textDim }]}>Selecciona 5 stats para visualizar ({selected.length}/5)</Text>
           
           <FlatList
             data={allStats}
@@ -58,10 +58,10 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
               const isSelected = selected.includes(item.id_stat);
               return (
                 <TouchableOpacity 
-                  style={[styles.item, isSelected && { backgroundColor: colors.primary }]}
+                  style={[styles.item, isSelected && { backgroundColor: colors.primary }, { borderBottomColor: colors.border }]}
                   onPress={() => toggleStat(item.id_stat)}
                 >
-                  <Text style={[styles.text, isSelected && { color: colors.background, fontWeight: 'bold' }]}>
+                  <Text style={[styles.text, isSelected ? { color: colors.background, fontWeight: 'bold' } : { color: colors.text }]}>
                     {item.nombre_stat}
                   </Text>
                   {isSelected && <Text style={{color: colors.background}}>✓</Text>}
@@ -71,8 +71,8 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
           />
 
           <View style={styles.buttons}>
-            <TouchableOpacity onPress={onClose} style={styles.btnCancel}><Text style={styles.txtCancel}>CANCELAR</Text></TouchableOpacity>
-            <TouchableOpacity onPress={handleSave} style={styles.btnSave}><Text style={styles.txtSave}>APLICAR</Text></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={styles.btnCancel}><Text style={[styles.txtCancel, { color: colors.textDim }]}>CANCELAR</Text></TouchableOpacity>
+            <TouchableOpacity onPress={handleSave} style={[styles.btnSave, { backgroundColor: colors.primary }]}><Text style={[styles.txtSave, { color: colors.background }]}>APLICAR</Text></TouchableOpacity>
           </View>
         </View>
       </View>
@@ -82,16 +82,16 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  container: { backgroundColor: '#0A1628', borderWidth: 1, borderColor: '#00D4FF', padding: 20 },
-  title: { color: '#FFF', fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
-  subtitle: { color: '#888', marginBottom: 15, fontSize: 12 },
-  item: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#222', flexDirection: 'row', justifyContent: 'space-between' },
-  itemSelected: { backgroundColor: '#00D4FF' },
-  text: { color: '#FFF' },
-  textSelected: { color: '#000', fontWeight: 'bold' },
+  container: { borderWidth: 1, padding: 20 },
+  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
+  subtitle: { marginBottom: 15, fontSize: 12 },
+  item: { padding: 12, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between' },
+  itemSelected: {},
+  text: {  },
+  textSelected: {  },
   buttons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 10 },
   btnCancel: { padding: 10 },
-  txtCancel: { color: '#888' },
-  btnSave: { backgroundColor: '#00D4FF', padding: 10, borderRadius: 2 },
-  txtSave: { color: '#000', fontWeight: 'bold' }
+  txtCancel: {  },
+  btnSave: { padding: 10, borderRadius: 2 },
+  txtSave: { fontWeight: 'bold' }
 });

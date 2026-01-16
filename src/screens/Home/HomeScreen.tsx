@@ -1,14 +1,16 @@
-import React, {useEffect, useState} from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import React from 'react';
+import { View, Text } from 'react-native';
+import { useTheme } from '../../themes/useTheme';
 
 import { PlayerHeader } from '../../components/Home/PlayerHeader';
-import { Jugador } from '../../types';
 
 export const HomeScreen = () => {
+  const theme = useTheme();
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Pantalla: HOME (Resumen del día)</Text>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+      <Text style={{ color: theme.text, fontFamily: theme.fonts?.title, textTransform: 'uppercase', fontSize: 18, letterSpacing: 1.5 }}>
+        PANTALLA: HOME (Resumen del día)
+      </Text>
     </View>
   );
 };

@@ -13,21 +13,24 @@ import { CHARACTERS } from '../data/characters';
 import { PALETTES } from '../themes/palettes';
 import { db } from '../database';
 import { CharacterTheme } from '../types';
+import { useGame } from '../context/GameContext';
+import { useTheme } from '../themes/useTheme';
 
 const { width, height } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.8;
 
 interface Props {
   navigation: any;
-  onAuthentication?: () => void;
 }
 
-export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props) => {
+export const CharacterSelectionScreen = ({ navigation }: Props) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const currentCharacter = CHARACTERS[currentIndex];
   const currentTheme = PALETTES[currentCharacter.id as CharacterTheme];
+  const { refreshUser } = useGame();
+  const appTheme = useTheme();
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -51,11 +54,7 @@ export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props
         await db.runAsync(`INSERT INTO jugadores (nombre_jugador, nivel_jugador, vida, yenes, character_theme, created_at) VALUES (?, ?, ?, ?, ?, ?)`, ['Invitado', 1, 10, 5000, currentCharacter.id, fecha]);
       }
 
-      if (onAuthentication) {
-        onAuthentication();
-      } else {
-        navigation.replace('MainTabs');
-      }
+      await refreshUser();
     } catch (error) {
       console.error('Error guardando personaje', error);
     }
@@ -94,10 +93,10 @@ export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props
           <Image source={item.image} style={styles.characterImage} resizeMode="contain" />
 
           <View style={[styles.infoContainer, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.characterName, { color: theme.primary }]}>{item.name.toUpperCase()}</Text>
+            <Text style={[styles.characterName, { color: theme.primary, fontFamily: appTheme.fonts?.title, textTransform: 'uppercase' }]}>{item.name.toUpperCase()}</Text>
             <View style={[styles.separator, { backgroundColor: theme.border }]} />
-            <Text style={[styles.quote, { color: theme.text }]}>{`"${item.quote}"`}</Text>
-            <Text style={[styles.description, { color: theme.textDim }]}>{item.description}</Text>
+            <Text style={[styles.quote, { color: theme.text, fontFamily: appTheme.fonts?.body, fontStyle: 'italic' }]}>{`"${item.quote}"`}</Text>
+            <Text style={[styles.description, { color: theme.textDim, fontFamily: appTheme.fonts?.body }]}>{item.description}</Text>
           </View>
         </Animated.View>
       </View>
@@ -109,8 +108,8 @@ export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props
       <StatusBar barStyle="light-content" backgroundColor={currentTheme.background} />
 
       <View style={styles.header}>
-        <Text style={[styles.headerText, { color: currentTheme.textDim }]}>CHOOSE YOUR</Text>
-        <Text style={[styles.headerTitle, { color: currentTheme.text, transform: [{ skewX: '-15deg' }] }]}>DESTINY</Text>
+        <Text style={[styles.headerText, { color: currentTheme.textDim, fontFamily: appTheme.fonts?.title, textTransform: 'uppercase', letterSpacing: 1 }]}>CHOOSE YOUR</Text>
+        <Text style={[styles.headerTitle, { color: currentTheme.text, transform: [{ skewX: '-15deg' }], fontFamily: appTheme.fonts?.title, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: 1.5 }]}>DESTINY</Text>
       </View>
 
       <Animated.FlatList
@@ -126,7 +125,7 @@ export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props
       />
 
       <TouchableOpacity activeOpacity={0.8} onPress={handleSelect} style={[styles.button, { backgroundColor: currentTheme.primary }]}>
-        <Text style={[styles.buttonText, { color: currentTheme.textInverse }]}>I AM THOU</Text>
+        <Text style={[styles.buttonText, { color: currentTheme.textInverse, fontFamily: appTheme.fonts?.bold, textTransform: 'uppercase' }]}>I AM THOU</Text>
       </TouchableOpacity>
     </View>
   );
@@ -135,7 +134,7 @@ export const CharacterSelectionScreen = ({ navigation, onAuthentication }: Props
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { position: 'absolute', top: 60, alignItems: 'center', zIndex: 10 },
-  headerText: { fontSize: 16, letterSpacing: 4, fontWeight: 'bold' },
+  headerText: { fontSize: 16, letterSpacing: 4 },
   headerTitle: { fontSize: 42, fontWeight: '900', fontStyle: 'italic', letterSpacing: 2 },
   cardContainer: {
     width: ITEM_WIDTH,
@@ -151,10 +150,10 @@ const styles = StyleSheet.create({
   },
   characterImage: { width: '100%', height: '75%' },
   infoContainer: { height: '25%', padding: 15, justifyContent: 'center', alignItems: 'center' },
-  characterName: { fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
+  characterName: { fontSize: 22, letterSpacing: 1 },
   separator: { width: 40, height: 2, marginVertical: 8 },
   quote: { fontSize: 16, fontStyle: 'italic', textAlign: 'center', marginBottom: 5, fontWeight: '600' },
   description: { fontSize: 12, textAlign: 'center' },
   button: { position: 'absolute', bottom: 50, paddingVertical: 15, paddingHorizontal: 60, borderRadius: 30, elevation: 5, transform: [{ skewX: '-10deg' }] },
-  buttonText: { fontSize: 18, fontWeight: 'bold', letterSpacing: 2 }
+  buttonText: { fontSize: 18, letterSpacing: 2 }
 });
