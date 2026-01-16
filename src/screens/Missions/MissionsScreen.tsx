@@ -1,49 +1,105 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useIsFocused } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType } from '../../types'; // Tus tipos
 import { MissionItem } from '../../components/Missions/MissionItem';
+import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useGame } from '../../context/GameContext';
+import { usePlayerStats } from '../../hooks/usePlayerStats';
 
 export const MissionsScreen = () => {
   // 1. Estado para guardar la lista de misiones que vienen de la BD
   const [misiones, setMisiones] = useState<Mision[]>([]);
   const [filtroActual, setFiltroActual] = useState<MissionType>(MissionType.DIARIA);
-  const isFocused = useIsFocused();
+  const [selectedMission, setSelectedMission] = useState<Mision | null>(null);
+
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { theme } = useGame();
+  const { theme, player, refreshUser } = useGame();
+  const { refreshStats } = usePlayerStats();
 
  // Mostrar misiones
   const cargarMisiones = async () => {
     try {
-      const query = 'SELECT * FROM misiones WHERE tipo = ? ORDER BY completada ASC, id_mision DESC';
-      const resultados = await db.getAllAsync<Mision>(query, [filtroActual]);
-      setMisiones(resultados);
+      // Seleccionar misiones con posible impacto y nombre de stat
+      const query = `SELECT m.*, s.nombre as nombre_stat, im.valor_impacto FROM misiones m LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision LEFT JOIN stats s ON im.id_stat = s.id_stat WHERE m.activa = 1 AND m.tipo = ? AND m.completada = 0 ORDER BY m.id_mision DESC`;
+      const resultados = await db.getAllAsync<any>(query, [filtroActual]);
+      setMisiones(resultados as Mision[]);
+      console.log('Misiones cargadas con stats:', resultados ? resultados.length : 0);
     } catch (error) {
       console.error('Error al cargar misiones:', error);
     }
   };
 
-  // Marcar como completada una mision
+  // Marcar como completada una mision (con logs y desaparición suave)
   const toogleMission = async (id: number) => {
     try {
       const mision = misiones.find(m => m.id_mision === id);
       if (!mision) return;
 
-      const nuevoEstado = mision.completada ? 0 : 1;
-      await db.runAsync(
-        'UPDATE misiones SET completada = ? WHERE id_mision = ?',
-        [nuevoEstado, id]
-      );
-      cargarMisiones();
+      // Evitar doble-toggle
+      if (mision.completada) {
+        console.log('Misión ya completada (en memoria):', id);
+        return;
+      }
 
-      // TODO: Aquí en el futuro llamaremos a "Sumar Experiencia"
+      // Marcar como completada en la BD
+      await db.runAsync('UPDATE misiones SET completada = ? WHERE id_mision = ?', [1, id]);
+      console.log('Misión marcada como completada en BD:', id);
+
+      // Obtener y aplicar impactos
+      try {
+        const impactos: any[] = await db.getAllAsync('SELECT * FROM impacto_mision WHERE id_mision = ?', [id]);
+        if (!impactos || impactos.length === 0) {
+          console.log('No hay impacto para la misión:', id);
+        } else {
+          for (const impacto of impactos) {
+            console.log('Impacto encontrado:', impacto);
+            const valor = impacto.valor_impacto || 0;
+            const statId = impacto.id_stat;
+            console.log('Sumando XP:', valor, 'al stat:', statId);
+
+            await db.runAsync(
+              'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
+              [valor, statId, player?.id_jugador]
+            );
+
+            // Verificar si subió de nivel
+            const rows: any[] = await db.getAllAsync('SELECT * FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [statId, player?.id_jugador]);
+            if (rows && rows.length > 0) {
+              const js = rows[0];
+              const exp = js.experiencia_actual || 0;
+              const max = js.nivel_maximo || 99;
+              if (exp >= max) {
+                console.log('Nuevo Nivel alcanzado en stat:', statId);
+                const nuevaExp = Math.max(0, exp - max);
+                const nuevoNivel = (js.nivel_actual || 1) + 1;
+                const nuevoMax = Math.max(max + Math.floor(max * 0.2), max + 1);
+                await db.runAsync(
+                  'UPDATE jugador_stat SET nivel_actual = ?, experiencia_actual = ?, nivel_maximo = ? WHERE id_jugador_stat = ?',
+                  [nuevoNivel, nuevaExp, nuevoMax, js.id_jugador_stat]
+                );
+              }
+            }
+          }
+
+          // Refrescar vistas
+          try { refreshStats && refreshStats(); } catch(e) { console.log('refreshStats error', e); }
+          try { refreshUser && refreshUser(); } catch(e) { console.log('refreshUser error', e); }
+        }
+      } catch (impErr) {
+        console.error('Error aplicando impacto de misión:', impErr);
+      }
+
+      // Animación y eliminación local inmediata de la misión
+      try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
+      setMisiones(prev => prev.filter(m => m.id_mision !== id));
+
     } catch (error) {
-      console.error('Error actualizando misión:', error);
+      console.error('Error completando misión:', error);
     }
   };
 
@@ -54,12 +110,42 @@ const irACrearMision = () => {
     navigation.navigate('CreateMission');
   };
 
-  // 4. Cada vez que entres a esta pestaña, recarga los datos
-  useEffect(() => {
-    if (isFocused) {
-      cargarMisiones();
-    }
-  }, [isFocused, filtroActual]);
+
+
+  // 4. Cada vez que entres a esta pestaña, recarga los datos (ejecución única por foco)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('--- PANTALLA MISIONES EN FOCO (Ejecución Única) ---');
+      let isActive = true;
+
+      const fetchByType = async () => {
+        try {
+          const query = `
+  SELECT 
+    m.*, 
+    s.nombre as nombre_stat, 
+    im.valor_impacto 
+  FROM misiones m
+  LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
+  LEFT JOIN stats s ON im.id_stat = s.id_stat
+  WHERE m.activa = 1
+  ORDER BY m.completada ASC, m.fecha_creacion DESC;
+`;
+          const resultados = await db.getAllAsync<Mision>(query);
+          if (isActive) {
+            try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
+            setMisiones(resultados);
+          }
+        } catch (error) {
+          console.error('Error al cargar misiones (focus):', error);
+        }
+      };
+
+      fetchByType();
+
+      return () => { isActive = false; };
+    }, [])
+  );
 
 
   const renderFiltro = (tipo: MissionType) => (
@@ -101,11 +187,10 @@ const irACrearMision = () => {
               // Vibración o sonido aquí quedaría genial
               toogleMission(id);
             }}
-            // Acción al tocar:
+            // Acción al tocar: mostrar modal de detalle
             onPress={(mision) => {
-              console.log("Abrir detalles de:", mision.nombre);
-              // AQUÍ NAVEGAREMOS A LA PANTALLA DETALLE EN EL FUTURO
-              // navigation.navigate('MissionDetail', { id: mision.id_mision });
+              console.log('Item seleccionado para modal:', mision);
+              setSelectedMission(mision);
             }}
           />
         )}
@@ -119,6 +204,8 @@ const irACrearMision = () => {
       <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
           <Text style={[styles.fabText, { color: theme.textInverse, fontFamily: theme.fonts?.title }]}>+</Text>
         </TouchableOpacity>
+
+        <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
     </View>
   );
 };

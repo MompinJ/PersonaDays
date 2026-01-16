@@ -1,4 +1,4 @@
-import { db } from './base_de_datos';
+import { db } from './database';
 
 export const createCustomStat = async (
   nombre: string,

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
-import { StatRow } from '../../components/StatRow';
-import { StatRadarChart } from '../../components/StatRadarChart';
-import { AddStatButton } from '../../components/AddStatButton';
-import { CreateStatModalNew as CreateStatModal } from '../../components/CreateStatModalNew';
-import { SelectGraphStatsModal } from '../../components/SelectGraphStatsModal';
+import { StatRow } from '../../components/Stats/StatRow';
+import { StatRadarChart } from '../../components/Stats/StatRadarChart';
+import { AddStatButton } from '../../components/Stats/AddStatButton';
+import { CreateStatModalNew as CreateStatModal } from '../../components/Stats/CreateStatModalNew';
+import { SelectGraphStatsModal } from '../../components/Stats/SelectGraphStatsModal';
 
 export const StatsScreen = () => {
   const { stats, loading, refreshStats } = usePlayerStats();
@@ -17,6 +18,16 @@ export const StatsScreen = () => {
   const [graphStatsIds, setGraphStatsIds] = useState<number[]>([]); // Vacío = default
 
   const colors = useTheme();
+
+
+
+  useFocusEffect(
+    useCallback(() => {
+      try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
+      refreshStats && refreshStats();
+      return () => { /* cleanup if needed */ };
+    }, [refreshStats])
+  );
 
   const handleCreateStat = () => {
     setModalVisible(true);

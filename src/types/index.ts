@@ -124,6 +124,9 @@ export interface Mision {
 	fecha_creacion: string;
 	fecha_expiracion?: string;
 	fecha_completada?: string;
+	// Campos opcionales traídos por joins
+	nombre_stat?: string;
+	valor_impacto?: number;
 }
 
 // Tabla impacto_mision

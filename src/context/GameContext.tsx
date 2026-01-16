@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Jugador, CharacterTheme } from '../types';
-import { db } from '../database/base_de_datos';
+import { db } from '../database/database';
 import { PALETTES, ThemeColors, DEFAULT_FONTS } from '../themes/palettes';
 
 type GameContextType = {

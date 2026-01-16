@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { StatViewData } from '../hooks/usePlayerStats';
+import { StatViewData } from '../../hooks/usePlayerStats';
 
 interface Props {
   visible: boolean;
@@ -12,7 +12,7 @@ interface Props {
 
 
 
-import { useTheme } from '../themes/useTheme';
+import { useTheme } from '../../themes/useTheme';
 
 export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onClose, onSave }: Props) => {
   const [selected, setSelected] = useState<number[]>([]);

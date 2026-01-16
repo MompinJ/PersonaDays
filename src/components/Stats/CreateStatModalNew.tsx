@@ -3,8 +3,8 @@ import {
   Modal, View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
-import { createCustomStat } from '../database/statsHelpers';
-import { useTheme } from '../themes/useTheme';
+import { createCustomStat } from '../../database/statsHelpers';
+import { useTheme } from '../../themes/useTheme';
 
 interface Props {
   visible: boolean;

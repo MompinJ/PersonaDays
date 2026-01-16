@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Polygon, Line, Text as SvgText, Circle } from 'react-native-svg';
-import { StatViewData } from '../hooks/usePlayerStats';
-import { useTheme } from '../themes/useTheme';
+import { StatViewData } from '../../hooks/usePlayerStats';
+import { useTheme } from '../../themes/useTheme';
 
 interface Props {
   stats: StatViewData[]; // La lista COMPLETA de stats

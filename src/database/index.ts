@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { checkAndSeedData } from './base_de_datos';
+import { checkAndSeedData } from './database';
 export const db = SQLite.openDatabaseSync('personadays.db');
 export const initDatabase = async () => {
   try {

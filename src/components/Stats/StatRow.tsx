@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { StatViewData } from '../hooks/usePlayerStats';
-import { useTheme } from '../themes/useTheme';
+import { StatViewData } from '../../hooks/usePlayerStats';
+import { useTheme } from '../../themes/useTheme';
 
 interface Props {
   data: StatViewData;

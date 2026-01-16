@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker'; // <--- IMPORTANTE
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../database';
-import { MissionType, MissionFrequency } from '../../types'; // Asegúrate de tener MissionFrequency en types
+import { MissionType, MissionFrequency, Stat } from '../../types'; // Asegúrate de tener MissionFrequency en types
 import { DaySelector } from '../../components/Missions/DaySelector';
 import { useTheme } from '../../themes/useTheme';
 
@@ -26,6 +26,10 @@ export const CreateMissionScreen = () => {
   // Nuevo: Fecha
   const [tieneExpiracion, setTieneExpiracion] = useState(false);
 
+  // Stats disponibles y selección
+  const [availableStats, setAvailableStats] = useState<Stat[]>([]);
+  const [selectedStatId, setSelectedStatId] = useState<number | null>(null);
+
   // 2. EFECTO: sugerir yenes al cambiar dificultad (pero es editable por el usuario)
   useEffect(() => {
     switch (dificultad) {
@@ -34,6 +38,22 @@ export const CreateMissionScreen = () => {
       case 'HARD': setYenes('5000'); break;
     }
   }, [dificultad]);
+
+  // 3. Cargar stats disponibles
+  useEffect(() => {
+    let mounted = true;
+    const loadStats = async () => {
+      try {
+        const rows: any = await db.getAllAsync('SELECT * FROM stats ORDER BY nombre ASC');
+        if (mounted) setAvailableStats(rows || []);
+      } catch (err) {
+        console.error('Error cargando stats:', err);
+      }
+    };
+    loadStats();
+    return () => { mounted = false; };
+  }, []);
+
   const [fechaExpiracion, setFechaExpiracion] = useState(new Date());
   const [mostrarPicker, setMostrarPicker] = useState(false);
 
@@ -47,6 +67,8 @@ export const CreateMissionScreen = () => {
   };
 
   const guardarMision = async () => {
+    console.log('--- INICIO CREACIÓN MISIÓN ---');
+    console.log('Datos:', { nombre, tipo, recompensa: getRecompensas(), selectedStatId });
     if (!nombre.trim()) {
       Alert.alert("Atención", "Escribe el nombre del encargo.");
       return;
@@ -63,16 +85,36 @@ export const CreateMissionScreen = () => {
       const frecuenciaVal = diasSeleccionados.length > 0 ? 'REPEATING' : 'ONE_OFF';
       const diasString = diasSeleccionados.join(',');
 
-      await db.runAsync(
-        `INSERT INTO misiones (
-          nombre, tipo, fecha_creacion, activa, completada,
-          fecha_expiracion, recompensa_exp, recompensa_yenes,
-          frecuencia_repeticion, dias_repeticion
-        ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
-        [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
-      );
+      // Usar transacción para asegurar integridad
+      try {
+        await db.execAsync('BEGIN TRANSACTION;');
+        const res: any = await db.runAsync(
+          `INSERT INTO misiones (
+            nombre, tipo, fecha_creacion, activa, completada,
+            fecha_expiracion, recompensa_exp, recompensa_yenes,
+            frecuencia_repeticion, dias_repeticion
+          ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
+          [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
+        );
 
-      navigation.goBack();
+        const insertId = res && (res.lastInsertRowId || res.insertId) ? (res.lastInsertRowId || res.insertId) : null;
+        console.log('EXITO. ID Insertado:', insertId, 'res:', res);
+
+        if (insertId && selectedStatId) {
+          const impactoVal = xp;
+          await db.runAsync(
+            `INSERT INTO impacto_mision (id_mision, id_stat, valor_impacto) VALUES (?, ?, ?);`,
+            [insertId, selectedStatId, impactoVal]
+          );
+        }
+
+        await db.execAsync('COMMIT;');
+        navigation.goBack();
+      } catch (txErr) {
+        console.error('ERROR SQL:', txErr);
+        try { await db.execAsync('ROLLBACK;'); } catch(e){/* ignore*/}
+        Alert.alert('Error', 'Falló al guardar la misión y su impacto.');
+      }
 
     } catch (error) {
       console.error(error);
@@ -143,15 +185,35 @@ export const CreateMissionScreen = () => {
                 dificultad === dif && { backgroundColor: `${colors.primary}20` }
               ]}
             >
-              <Text style={{ color: dificultad === dif ? colors.primary : colors.textDim, fontWeight: 'bold' }}>
+              <Text style={{ color: dificultad === dif ? colors.primary : colors.textDim, fontFamily: colors.fonts?.bold }}>
                 {dif}
               </Text>
-              <Text style={{ fontSize: 10, color: colors.textDim, marginTop: 4 }}>
+              <Text style={{ fontSize: 10, color: colors.textDim, marginTop: 4, fontFamily: colors.fonts?.body }}>
                 {dif === 'EASY' ? '+10 XP' : dif === 'MEDIUM' ? '+30 XP' : '+60 XP'}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* 3.5 IMPACTO EN ATRIBUTO */}
+        <Text style={[styles.sectionLabel, { color: colors.textDim, fontFamily: colors.fonts?.bold }]}>IMPACTO EN ATRIBUTO</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          {availableStats.map((s) => (
+            <TouchableOpacity
+              key={s.id_stat}
+              style={[
+                styles.chip,
+                { borderColor: colors.text, backgroundColor: 'transparent' },
+                selectedStatId === s.id_stat && { backgroundColor: colors.primary, borderColor: colors.primary }
+              ]}
+              onPress={() => setSelectedStatId(s.id_stat)}
+            >
+              <Text style={{ color: selectedStatId === s.id_stat ? colors.textInverse : colors.text, fontFamily: colors.fonts?.bold, textTransform: 'uppercase' }}>
+                {s.nombre}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* 4. REPETICIÓN (Selector de Días) */}
         <Text style={[styles.sectionLabel, { color: colors.textDim }]}>REPETICIÓN {diasSeleccionados.length === 0 && "(Una sola vez)"}{diasSeleccionados.length === 7 && "(Todos los días)"}</Text>
