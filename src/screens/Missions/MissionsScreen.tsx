@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
-import { Mision, MissionType } from '../../types'; // Tus tipos
+import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { useNavigation } from '@react-navigation/native';
@@ -46,9 +47,9 @@ export const MissionsScreen = () => {
         return;
       }
 
-      // Marcar como completada en la BD
-      await db.runAsync('UPDATE misiones SET completada = ? WHERE id_mision = ?', [1, id]);
-      console.log('Misión marcada como completada en BD:', id);
+      // Marcar como completada en la BD (guardar fecha de completado)
+      await db.runAsync("UPDATE misiones SET completada = ?, fecha_completada = datetime('now') WHERE id_mision = ?", [1, id]);
+      console.log('Misión marcada como completada en BD (con fecha):', id);
 
       // Obtener y aplicar impactos
       try {
@@ -112,6 +113,32 @@ const irACrearMision = () => {
 
 
 
+  // Función para revisar y reiniciar recurrencias vencidas
+  const checkAndResetRecurrence = async () => {
+    try {
+      // DIARIAS: si completada y fecha_completada < hoy -> reset
+      const resDiarias: any = await db.runAsync(
+        "UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = 'DIARIA' AND completada = 1 AND date(fecha_completada) < date('now', 'localtime')"
+      );
+      console.log('Misiones diarias reiniciadas:', resDiarias && (resDiarias.changes || resDiarias.rowsAffected || 0));
+
+      // SEMANALES: calcular inicio de semana (Lunes) en local
+      const today = new Date();
+      const day = today.getDay(); // 0..6
+      const deltaSinceMonday = (day + 6) % 7; // 0 if Monday
+      const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - deltaSinceMonday);
+      const mondayStr = monday.toISOString().split('T')[0];
+
+      const resSem: any = await db.runAsync(
+        'UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = ? AND completada = 1 AND date(fecha_completada) < ?',
+        [MissionType.SEMANAL, mondayStr]
+      );
+      console.log('Misiones semanales reiniciadas:', resSem && (resSem.changes || resSem.rowsAffected || 0));
+    } catch (e) {
+      console.error('Error reseteando recurrencias:', e);
+    }
+  };
+
   // 4. Cada vez que entres a esta pestaña, recarga los datos (ejecución única por foco)
   useFocusEffect(
     useCallback(() => {
@@ -120,6 +147,9 @@ const irACrearMision = () => {
 
       const fetchByType = async () => {
         try {
+          // Antes de cargar, revisar recurrencias
+          await checkAndResetRecurrence();
+
           const query = `
   SELECT 
     m.*, 
@@ -128,7 +158,7 @@ const irACrearMision = () => {
   FROM misiones m
   LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
   LEFT JOIN stats s ON im.id_stat = s.id_stat
-  WHERE m.activa = 1
+  WHERE m.activa = 1 AND m.completada = 0
   ORDER BY m.completada ASC, m.fecha_creacion DESC;
 `;
           const resultados = await db.getAllAsync<Mision>(query);
@@ -147,6 +177,38 @@ const irACrearMision = () => {
     }, [])
   );
 
+
+  const filteredMissions = useMemo(() => {
+    if (!misiones) return [];
+    const todayIndex = new Date().getDay(); // 0=Dom,1=Lun...
+    try {
+      return misiones.filter(m => {
+        // type must match current tab
+        if (m.tipo !== filtroActual) return false;
+
+        // If we're on DIARIA tab, enforce day recurrence
+        if (filtroActual === MissionType.DIARIA) {
+          const diasRaw = m.dias_repeticion;
+          if (diasRaw && String(diasRaw).trim().length > 0) {
+            const diasArray = String(diasRaw).split(',').map((d: string) => d.trim()).filter(Boolean);
+            return diasArray.includes(String(todayIndex));
+          }
+          // fallback: if no explicit days, or marked EVERY_DAY, show
+          if (m.frecuencia_repeticion === MissionFrequency.EVERY_DAY || !diasRaw || String(diasRaw).trim() === '') return true;
+          return false;
+        }
+
+        // If we're on SEMANAL tab, show all weekly active missions
+        if (filtroActual === MissionType.SEMANAL) return true;
+
+        // default: show if type matches
+        return true;
+      });
+    } catch (e) {
+      console.error('Error filtrando misiones por tipo/día:', e);
+      return misiones;
+    }
+  }, [misiones, filtroActual]);
 
   const renderFiltro = (tipo: MissionType) => (
     <TouchableOpacity
@@ -177,7 +239,7 @@ const irACrearMision = () => {
 
       {/* Lista de Misiones */}
       <FlatList
-        data={misiones}
+        data={filteredMissions}
         keyExtractor={(item) => item.id_mision.toString()}
         renderItem={({ item }) => (
           <MissionItem 
@@ -200,10 +262,16 @@ const irACrearMision = () => {
         contentContainerStyle={{ paddingBottom: 80 }} // Espacio para que no se corte abajo
       />
 
-      {/* Botón Flotante para añadir (Temporal) */}
+      {/* Botones flotantes: gestionar y añadir */}
+      <TouchableOpacity style={[styles.secondaryFab, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('ManageMissions')}>
+          <Ionicons name="cog" size={20} color={theme.text} />
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.secondaryFabSmall, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('CompletedMissions')}>
+          <Ionicons name="time-outline" size={18} color={theme.text} />
+      </TouchableOpacity>
       <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
           <Text style={[styles.fabText, { color: theme.textInverse, fontFamily: theme.fonts?.title }]}>+</Text>
-        </TouchableOpacity>
+      </TouchableOpacity>
 
         <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
     </View>
@@ -249,6 +317,30 @@ const styles = StyleSheet.create({
     shadowColor: '#00D4FF',
     shadowOpacity: 0.5,
     shadowRadius: 10,
+  },
+  secondaryFab: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1A2639',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  secondaryFabSmall: {
+    position: 'absolute',
+    bottom: 140,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1A2639',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   fabText: { fontSize: 30, color: '#fff', marginTop: -4 }
 });

@@ -12,5 +12,7 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList>;
-  CreateMission: undefined;
+  CreateMission: { missionToEdit?: any } | undefined;
+  ManageMissions: undefined;
+  CompletedMissions: undefined;
 };

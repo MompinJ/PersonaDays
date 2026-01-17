@@ -3,16 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 // Usamos el Swipeable Clásico (Estable)
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { Mision, MissionFrequency } from '../../types';
+import { Mision, MissionFrequency, MissionType } from '../../types';
 import { useTheme } from '../../themes/useTheme';
 
 interface Props {
   mision: Mision;
   onSwipeLeft: (id: number) => void;
   onPress: (mision: Mision) => void;
+  // Label for the left swipe action (default: 'COMPLETAR')
+  leftActionLabel?: string;
 }
 
-export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
+export const MissionItem = ({ mision, onSwipeLeft, onPress, leftActionLabel }: Props) => {
   const colors = useTheme();
 
   const getExpirationColor = () => {
@@ -38,10 +40,11 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
       extrapolate: 'clamp',
     });
 
+    const label = leftActionLabel || 'COMPLETAR';
     return (
       <View style={[styles.actionContainer, { backgroundColor: colors.primary }]}>
         <Animated.Text style={[styles.actionText, { color: colors.textInverse, transform: [{ scale }], fontFamily: colors.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }]}>
-          COMPLETAR
+          {label}
         </Animated.Text>
         <Ionicons name="checkmark-circle" size={30} color={colors.textInverse} />
       </View>
@@ -72,6 +75,27 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress }: Props) => {
                <Ionicons name="repeat" size={14} color={colors.textDim} style={{ marginLeft: 8 }} />
             )}
           </View>
+
+          {/* Feedback visual para misiones no-diarias con dias_repeticion */}
+          {mision.tipo !== MissionType.DIARIA && mision.dias_repeticion ? (
+            (() => {
+              const map = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+              const diasArray = String(mision.dias_repeticion).split(',').map((d: string) => d.trim()).filter(Boolean);
+              const todayIndex = new Date().getDay();
+              const isToday = diasArray.includes(String(todayIndex));
+              const formatted = diasArray.map((d: string) => map[Number(d)]).filter(Boolean).join(', ');
+              return (
+                <View style={{ marginTop: 8 }}>
+                  {isToday ? (
+                    <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>⚡ RECOMENDADO PARA HOY</Text>
+                  ) : (
+                    <Text style={{ color: colors.textDim, fontSize: 12 }}>📅 Planificado: {formatted}</Text>
+                  )}
+                </View>
+              );
+            })()
+          ) : null}
+
         </View>
 
         <View style={styles.rewardContainer}>

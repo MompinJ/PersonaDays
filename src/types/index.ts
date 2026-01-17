@@ -124,7 +124,9 @@ export interface Mision {
 	fecha_creacion: string;
 	fecha_expiracion?: string;
 	fecha_completada?: string;
+	dias_repeticion?: string | null;
 	// Campos opcionales traídos por joins
+	id_stat?: number;
 	nombre_stat?: string;
 	valor_impacto?: number;
 }

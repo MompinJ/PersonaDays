@@ -8,8 +8,8 @@ import { MissionType, MissionFrequency, Stat } from '../../types'; // Asegúrate
 import { DaySelector } from '../../components/Missions/DaySelector';
 import { useTheme } from '../../themes/useTheme';
 
-export const CreateMissionScreen = () => {
-  const navigation = useNavigation();
+export const CreateMissionScreen = ({ route, navigation }: any) => {
+  const missionToEdit = route?.params?.missionToEdit || null;
   const colors = useTheme();
 
   // Estados del formulario
@@ -54,6 +54,36 @@ export const CreateMissionScreen = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Si llegamos en modo edición, rellenar estados con la misión
+  useEffect(() => {
+    if (!missionToEdit) return;
+    try {
+      setNombre(missionToEdit.nombre || '');
+      setTipo(missionToEdit.tipo || MissionType.DIARIA);
+      const xpVal = missionToEdit.recompensa_exp || 0;
+      if (xpVal <= 10) setDificultad('EASY'); else if (xpVal <= 30) setDificultad('MEDIUM'); else setDificultad('HARD');
+      setYenes((missionToEdit.recompensa_yenes || 0).toString());
+      const dias = missionToEdit.dias_repeticion ? String(missionToEdit.dias_repeticion).split(',').filter(Boolean).map((d: string) => parseInt(d, 10)) : [];
+      setDiasSeleccionados(dias);
+      setTieneExpiracion(!!missionToEdit.fecha_expiracion);
+      if (missionToEdit.fecha_expiracion) setFechaExpiracion(new Date(missionToEdit.fecha_expiracion));
+
+      // Traer impacto_mision para conocer el id_stat
+      (async () => {
+        try {
+          const im: any[] = await db.getAllAsync('SELECT * FROM impacto_mision WHERE id_mision = ?', [missionToEdit.id_mision]);
+          if (im && im.length > 0) {
+            setSelectedStatId(im[0].id_stat);
+          }
+        } catch (e) {
+          console.error('Error cargando impacto_mision al editar:', e);
+        }
+      })();
+    } catch (e) {
+      console.error('Error prellenando misión:', e);
+    }
+  }, [missionToEdit]);
+
   const [fechaExpiracion, setFechaExpiracion] = useState(new Date());
   const [mostrarPicker, setMostrarPicker] = useState(false);
 
@@ -67,7 +97,8 @@ export const CreateMissionScreen = () => {
   };
 
   const guardarMision = async () => {
-    console.log('--- INICIO CREACIÓN MISIÓN ---');
+    const editing = !!missionToEdit;
+    console.log(editing ? '--- INICIO EDICIÓN MISIÓN ---' : '--- INICIO CREACIÓN MISIÓN ---');
     console.log('Datos:', { nombre, tipo, recompensa: getRecompensas(), selectedStatId });
     if (!nombre.trim()) {
       Alert.alert("Atención", "Escribe el nombre del encargo.");
@@ -78,34 +109,64 @@ export const CreateMissionScreen = () => {
       const { xp } = getRecompensas();
       const recompensaYenes = parseInt(yenes) || 0;
       const fechaCreacion = new Date().toISOString();
-      // Si tiene fecha límite, usamos la seleccionada, si no, null
       const fechaFinal = tieneExpiracion ? fechaExpiracion.toISOString() : null;
 
       // Determinar frecuencia y días
       const frecuenciaVal = diasSeleccionados.length > 0 ? 'REPEATING' : 'ONE_OFF';
       const diasString = diasSeleccionados.join(',');
 
-      // Usar transacción para asegurar integridad
       try {
         await db.execAsync('BEGIN TRANSACTION;');
-        const res: any = await db.runAsync(
-          `INSERT INTO misiones (
-            nombre, tipo, fecha_creacion, activa, completada,
-            fecha_expiracion, recompensa_exp, recompensa_yenes,
-            frecuencia_repeticion, dias_repeticion
-          ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
-          [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
-        );
 
-        const insertId = res && (res.lastInsertRowId || res.insertId) ? (res.lastInsertRowId || res.insertId) : null;
-        console.log('EXITO. ID Insertado:', insertId, 'res:', res);
+        if (editing) {
+          // Actualizar misión existente
+          try {
+            const updateParams = [nombre, tipo, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, missionToEdit.id_mision];
+            console.log('SQL UPDATE misiones -> id:', missionToEdit.id_mision, 'params:', updateParams);
+            const resUpdate: any = await db.runAsync(
+              `UPDATE misiones SET nombre = ?, tipo = ?, fecha_expiracion = ?, recompensa_exp = ?, recompensa_yenes = ?, frecuencia_repeticion = ?, dias_repeticion = ? WHERE id_mision = ?`,
+              updateParams
+            );
+            console.log('UPDATE result:', resUpdate);
+          } catch (updErr) {
+            console.error('Error ejecutando UPDATE misiones:', updErr);
+            throw updErr;
+          }
 
-        if (insertId && selectedStatId) {
-          const impactoVal = xp;
-          await db.runAsync(
-            `INSERT INTO impacto_mision (id_mision, id_stat, valor_impacto) VALUES (?, ?, ?);`,
-            [insertId, selectedStatId, impactoVal]
+          // Reiniciar impacto y volver a insertar si corresponde
+          try {
+            console.log('Eliminando impacto_mision previo para id_mision:', missionToEdit.id_mision);
+            await db.runAsync('DELETE FROM impacto_mision WHERE id_mision = ?', [missionToEdit.id_mision]);
+            if (selectedStatId) {
+              console.log('Insertando nuevo impacto_mision:', { id_mision: missionToEdit.id_mision, id_stat: selectedStatId, valor: xp });
+              await db.runAsync(
+                `INSERT INTO impacto_mision (id_mision, id_stat, valor_impacto) VALUES (?, ?, ?);`,
+                [missionToEdit.id_mision, selectedStatId, xp]
+              );
+            }
+          } catch (impErr) {
+            console.error('Error actualizando impacto_mision:', impErr);
+            throw impErr;
+          }
+
+        } else {
+          // Crear nueva misión
+          const res: any = await db.runAsync(
+            `INSERT INTO misiones (
+              nombre, tipo, fecha_creacion, activa, completada,
+              fecha_expiracion, recompensa_exp, recompensa_yenes,
+              frecuencia_repeticion, dias_repeticion
+            ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
+            [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
           );
+
+          const insertId = res && (res.lastInsertRowId || res.insertId) ? (res.lastInsertRowId || res.insertId) : null;
+          if (insertId && selectedStatId) {
+            await db.runAsync(
+              `INSERT INTO impacto_mision (id_mision, id_stat, valor_impacto) VALUES (?, ?, ?);`,
+              [insertId, selectedStatId, xp]
+            );
+          }
         }
 
         await db.execAsync('COMMIT;');

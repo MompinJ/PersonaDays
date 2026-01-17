@@ -42,8 +42,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Exposed to consumers
+  // refreshUser debe actualizar los datos silenciosamente SIN alterar isLoading
   const refreshUser = async () => {
-    await loadPlayerData();
+    try {
+      const result: any = await db.getAllAsync('SELECT * FROM jugadores LIMIT 1');
+      if (result && Array.isArray(result) && result.length > 0) {
+        const p = result[0] as Jugador;
+        setPlayer(p);
+        const base = PALETTES[(p.character_theme as CharacterTheme)] || PALETTES[CharacterTheme.MAKOTO];
+        setTheme({ ...base, fonts: DEFAULT_FONTS });
+      }
+    } catch (err) {
+      console.error('Error refreshing player data:', err);
+    }
   };
 
   useEffect(() => {

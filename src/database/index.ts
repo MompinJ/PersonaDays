@@ -6,6 +6,9 @@ export const initDatabase = async () => {
 
 
 
+    // WARNING: The DROP TABLE block below was commented out to preserve user data on app restart.
+    // If you need to reset the DB for development, uncomment these lines temporarily.
+    /*
     await db.execAsync(`
       DROP TABLE IF EXISTS logs;
       DROP TABLE IF EXISTS impacto_mision;
@@ -17,6 +20,7 @@ export const initDatabase = async () => {
       DROP TABLE IF EXISTS jugadores;
       DROP TABLE IF EXISTS arcanos;
     `);
+    */
 
     await db.execAsync('PRAGMA foreign_keys = ON;'); //Activa las FK
 
@@ -173,6 +177,8 @@ export const initDatabase = async () => {
     await checkAndSeedData();
 
     // DEV: eliminar jugador al iniciar para forzar setup (borrar jugador y sus referencias)
+    // Commented out to avoid wiping user data on app start. Uncomment only for development resets.
+    /*
     try {
       await db.execAsync('DELETE FROM jugador_stat;');
       await db.execAsync('DELETE FROM jugador_arcanos_slots;');
@@ -181,6 +187,7 @@ export const initDatabase = async () => {
     } catch (e) {
       console.error('Error borrando jugador al iniciar:', e);
     }
+    */
 
     console.log('Base de datos inicializada correctamente');
   } catch (error) {

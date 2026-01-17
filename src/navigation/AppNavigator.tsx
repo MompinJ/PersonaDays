@@ -17,6 +17,8 @@ import { MissionsScreen } from '../screens/Missions/MissionsScreen';
 import { CalendarScreen } from '../screens/Calendar/CalendarScreen';
 import { EconomyScreen } from '../screens/Economy/EconomyScreen';
 import { CreateMissionScreen } from '../screens/Missions/CreateMissionScreen';
+import { ManageMissionsScreen } from '../screens/Missions/ManageMissionsScreen';
+import { CompletedMissionsScreen } from '../screens/Missions/CompletedMissionsScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
@@ -57,8 +59,18 @@ export const AppNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen
+          name="ManageMissions"
+          component={ManageMissionsScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
           name="CreateMission"
           component={CreateMissionScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="CompletedMissions"
+          component={CompletedMissionsScreen}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>

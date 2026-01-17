@@ -3,7 +3,11 @@ import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { db } from './src/database';
+// Fonts
+import { useFonts } from 'expo-font';
+import { Anton_400Regular } from '@expo-google-fonts/anton';
+import { Exo2_400Regular, Exo2_700Bold } from '@expo-google-fonts/exo-2';
+
 // Navegador y Pantallas
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { SetupScreen } from './src/screens/Setup/SetupScreen';
@@ -13,73 +17,79 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Servicios (Lógica)
 import { initDatabase } from './src/database';
-import { checkPlayerExists } from './src/services/playerService';
 
+// Context
+import { GameProvider, useGame } from './src/context/GameContext';
+import { PALETTES } from './src/themes/palettes';
 
-export default function App() {
-  // 1. Estados
-  // isDbReady: Controla si ya terminamos de cargar todo lo inicial (BD + Chequeos)
-  const [isDbReady, setIsDbReady] = useState(false);
-  // hasPlayer: Controla si el usuario ya firmó el contrato antes
-  const [hasPlayer, setHasPlayer] = useState(false);
+const DEFAULT_PALETTE = Object.values(PALETTES)[0] as any;
 
-  // 2. useEffect: Se ejecuta una sola vez al iniciar
-  useEffect(() => {
-    const setup = async () => {
-      try {
-        console.log('🏁 Iniciando configuración...');
+function RootNavigation() {
+  const { player, isLoading } = useGame();
+  const Stack = createNativeStackNavigator();
 
-        // Paso A: Iniciar la base de datos física
-        await initDatabase();
-        console.log('✅ Base de datos lista');
-
-        // Paso B: Preguntar si ya existe un jugador registrado
-        const existeJugador = await checkPlayerExists();
-        setHasPlayer(existeJugador);
-        console.log('👤 ¿Existe jugador?:', existeJugador);
-
-        // Paso C: Todo listo, quitamos el spinner de carga
-        setIsDbReady(true);
-
-      } catch (e) {
-        console.error('❌ Error al iniciar:', e);
-      }
-    };
-
-    setup();
-  }, []);
-
-  if (!isDbReady) {
+  if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00D4FF" />
-        <Text style={styles.loadingText}>Invocando a tu Persona...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: DEFAULT_PALETTE.background }]}> 
+        <ActivityIndicator size="large" color={DEFAULT_PALETTE.primary} />
+        <Text style={[styles.loadingText, { color: DEFAULT_PALETTE.text }]}>Cargando usuario...</Text>
       </View>
     );
   }
 
-  // 4. Lógica Principal (El Semáforo)
-  // Si ya hay jugador, mostramos el stack principal; si no, mostramos una navegación pequeña
-  const Stack = createNativeStackNavigator();
+  if (!player) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Setup" component={SetupScreen} />
+          <Stack.Screen name="CharacterSelection" component={CharacterSelectionScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  return <AppNavigator />;
+}
+
+export default function App() {
+  const [isDbReady, setIsDbReady] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    Anton_400Regular,
+    Exo2_400Regular,
+    Exo2_700Bold,
+  });
+
+  useEffect(() => {
+    const setup = async () => {
+      try {
+        await initDatabase();
+        setIsDbReady(true);
+      } catch (e) {
+        console.error('Error inicializando DB:', e);
+        setIsDbReady(true); // permitimos que la app intente seguir aunque falle
+      }
+    };
+    setup();
+  }, []);
+
+  if (!fontsLoaded) return null;
+
+  if (!isDbReady) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: DEFAULT_PALETTE.background }]}> 
+        <ActivityIndicator size="large" color={DEFAULT_PALETTE.primary} />
+        <Text style={[styles.loadingText, { color: DEFAULT_PALETTE.text }]}>Invocando a tu Persona...</Text>
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
-
-      {hasPlayer ? (
-        <AppNavigator />
-      ) : (
-        <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Setup" component={SetupScreen} />
-            <Stack.Screen name="CharacterSelection">
-              {(props) => (
-                <CharacterSelectionScreen {...props} onAuthentication={() => setHasPlayer(true)} />
-              )}
-            </Stack.Screen>
-          </Stack.Navigator>
-        </NavigationContainer>
-      )}
+      <GameProvider>
+        <RootNavigation />
+      </GameProvider>
     </GestureHandlerRootView>
   );
 }
