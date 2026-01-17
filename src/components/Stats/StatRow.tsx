@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
+import { calculateLevelFromXP } from '../../utils/levelingUtils';
 
 interface Props {
   data: StatViewData;
@@ -10,17 +11,15 @@ interface Props {
 
 export const StatRow = ({ data, colorTema }: Props) => {
   const theme = useTheme();
-  // Calculamos porcentaje para la barra usando experiencia_actual / xpNecesaria
-  // xpNeeded = baseXP (100) * dificultad (si existe)
-  const xpBase = 100;
-  const xpNeeded = Math.max(1, Math.round(xpBase * (data.dificultad || 1)));
-  const xpPercent = Math.min((data.experiencia_actual / xpNeeded) * 100, 100);
+  // Ahora usamos la curva progresiva para calcular nivel y progreso desde la XP total
+  const lvlInfo = calculateLevelFromXP(data.experiencia_actual || 0);
+  const xpPercent = Math.min(Math.max(lvlInfo.progress * 100, 0), 100);
 
   return (
     <View style={styles.container}>
       {/* Círculo del Nivel (Estilo Rank) */}
       <View style={[styles.rankCircle, { borderColor: colorTema, backgroundColor: theme.surface }]}>
-        <Text style={[styles.rankText, { color: colorTema, fontFamily: theme.fonts?.bold }]}>{data.nivel_actual}</Text>
+        <Text style={[styles.rankText, { color: colorTema, fontFamily: theme.fonts?.bold }]}>{lvlInfo.level}</Text>
       </View>
 
       <View style={styles.infoContainer}>
@@ -43,7 +42,7 @@ export const StatRow = ({ data, colorTema }: Props) => {
             ]} 
           />
         </View>
-        <Text style={[styles.xpText, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>{data.experiencia_actual} / {xpNeeded} XP</Text>
+        <Text style={[styles.xpText, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>{lvlInfo.currentLevelXP} / {lvlInfo.xpToNextLevel} XP</Text>
       </View>
     </View>
   );

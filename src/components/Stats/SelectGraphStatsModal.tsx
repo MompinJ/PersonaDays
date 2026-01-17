@@ -19,24 +19,30 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
   const colors = useTheme();
 
   useEffect(() => {
-    if (visible) setSelected(currentSelection && currentSelection.length === 5 ? currentSelection : [1,5,3,4,2]);
-  }, [visible]);
+    if (!visible) return;
+    // Preferir la selección actual si es válida (>=3)
+    if (currentSelection && currentSelection.length >= 3) {
+      setSelected(currentSelection);
+      return;
+    }
+    // Si no, tomar un fallback: los primeros N stats (intentar 5 para compatibilidad)
+    const desired = Math.min(5, Math.max(3, allStats.length));
+    const fallback = allStats.slice(0, desired).map(s => s.id_stat);
+    setSelected(fallback);
+  }, [visible, allStats, currentSelection]);
 
   const toggleStat = (id: number) => {
     if (selected.includes(id)) {
       setSelected(selected.filter(s => s !== id));
     } else {
-      if (selected.length >= 5) {
-        alert('El gráfico pentagonal solo soporta 5 stats.');
-        return;
-      }
+      // No imponemos un tope superior; permitir seleccionar tantos como el usuario desee.
       setSelected([...selected, id]);
     }
   };
 
   const handleSave = () => {
-    if (selected.length !== 5) {
-      alert('Por favor selecciona exactamente 5 stats para formar el pentágono.');
+    if (selected.length < 3) {
+      alert('El gráfico necesita al menos 3 atributos para visualizarse.');
       return;
     }
     onSave(selected);
@@ -48,7 +54,7 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: colors.background, borderColor: colors.primary }]}>
           <Text style={[styles.title, { color: colors.text }]}>CONFIGURAR GRÁFICO</Text>
-          <Text style={[styles.subtitle, { color: colors.textDim }]}>Selecciona 5 stats para visualizar ({selected.length}/5)</Text>
+          <Text style={[styles.subtitle, { color: colors.textDim }]}>Seleccionados: {selected.length} (Mínimo 3)</Text>
           
           <FlatList
             data={allStats}

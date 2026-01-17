@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
 import { StatRow } from '../../components/Stats/StatRow';
@@ -9,13 +10,16 @@ import { StatRadarChart } from '../../components/Stats/StatRadarChart';
 import { AddStatButton } from '../../components/Stats/AddStatButton';
 import { CreateStatModalNew as CreateStatModal } from '../../components/Stats/CreateStatModalNew';
 import { SelectGraphStatsModal } from '../../components/Stats/SelectGraphStatsModal';
+import { StatDetailModal } from '../../components/Stats/StatDetailModal';
+
+const STORAGE_KEY = 'USER_GRAPH_CONFIG';
 
 export const StatsScreen = () => {
   const { stats, loading, refreshStats } = usePlayerStats();
   const [isModalVisible, setModalVisible] = useState(false);
 
   const [isGraphModalVisible, setGraphModalVisible] = useState(false);
-  const [graphStatsIds, setGraphStatsIds] = useState<number[]>([]); // Vacío = default
+  const [visibleStatIds, setVisibleStatIds] = useState<number[]>([]); // Vacío = default
 
   const colors = useTheme();
 
@@ -29,12 +33,54 @@ export const StatsScreen = () => {
     }, [refreshStats])
   );
 
+  // Load persisted graph config on mount or when stats change
+  useEffect(() => {
+    let mounted = true;
+    const loadConfig = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const ids = JSON.parse(raw) as number[];
+          if (mounted && Array.isArray(ids) && ids.length >= 3) {
+            setVisibleStatIds(ids);
+            return;
+          }
+        }
+
+        // No persisted config or invalid: create default from available stats
+        if (mounted && stats && stats.length > 0 && visibleStatIds.length === 0) {
+          const desired = Math.min(5, Math.max(3, stats.length));
+          const fallback = stats.slice(0, desired).map(s => s.id_stat);
+          setVisibleStatIds(fallback);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fallback));
+        }
+      } catch (e) {
+        console.error('Error loading graph config:', e);
+      }
+    };
+    loadConfig();
+    return () => { mounted = false; };
+  }, [stats]);
+
+
+
   const handleCreateStat = () => {
     setModalVisible(true);
   };
 
   const handleSuccess = () => {
     refreshStats();
+  };
+
+  const [selectedStat, setSelectedStat] = useState<any | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+
+  const onDetailSaved = async () => {
+    try {
+      await refreshStats();
+    } catch (e) {
+      console.error('Error refreshing stats after save/delete:', e);
+    }
   };
 
   if (loading && stats.length === 0) {
@@ -71,7 +117,7 @@ export const StatsScreen = () => {
 
             <StatRadarChart 
                stats={stats} 
-               selectedStatsIds={graphStatsIds.length === 5 ? graphStatsIds : undefined}
+               selectedStatsIds={visibleStatIds.length >= 3 ? visibleStatIds : undefined}
                color={colors.primary} 
                size={280} 
             />
@@ -79,7 +125,9 @@ export const StatsScreen = () => {
           </View>
         }
         renderItem={({ item }) => (
-          <StatRow data={item} colorTema={colors.primary} />
+          <TouchableOpacity activeOpacity={0.9} onPress={() => { setSelectedStat(item); setDetailModalVisible(true); }}>
+            <StatRow data={item} colorTema={colors.primary} />
+          </TouchableOpacity>
         )}
         ListFooterComponent={
           <AddStatButton onPress={handleCreateStat} color={colors.primary} />
@@ -98,9 +146,24 @@ export const StatsScreen = () => {
       <SelectGraphStatsModal
         visible={isGraphModalVisible}
         allStats={stats}
-        currentSelection={graphStatsIds.length === 5 ? graphStatsIds : [1,5,3,4,2]}
+        currentSelection={visibleStatIds}
         onClose={() => setGraphModalVisible(false)}
-        onSave={(ids) => setGraphStatsIds(ids)}
+        onSave={async (ids) => {
+          try {
+            setVisibleStatIds(ids);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+            setGraphModalVisible(false);
+          } catch (e) {
+            console.error('Error saving graph config:', e);
+          }
+        }}
+      />
+
+      <StatDetailModal
+        visible={detailModalVisible}
+        stat={selectedStat}
+        onClose={() => { setDetailModalVisible(false); setSelectedStat(null); }}
+        onSaved={onDetailSaved}
       />
 
     </View>

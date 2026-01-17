@@ -7,6 +7,7 @@ import { useGame } from '../../context/GameContext';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
+import { calculateLevelFromXP } from '../../utils/levelingUtils';
 
 export const CompletedMissionsScreen = () => {
   const colors = useTheme();
@@ -102,6 +103,50 @@ export const CompletedMissionsScreen = () => {
               'UPDATE jugador_stat SET experiencia_actual = MAX(0, experiencia_actual - ?) WHERE id_stat = ? AND id_jugador = ?',
               [valor, statId, player.id_jugador]
             );
+
+            // Recalcular nivel tras la resta del hijo
+            try {
+              const rowsAfter: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [statId, player.id_jugador]);
+              if (rowsAfter && rowsAfter.length > 0) {
+                const totalXPAfter = rowsAfter[0].experiencia_actual || 0;
+                const lvlInfoAfter = calculateLevelFromXP(totalXPAfter);
+                await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlInfoAfter.level, statId, player.id_jugador]);
+              }
+            } catch (e) {
+              console.error('Error recalculando nivel tras revert (hijo):', e);
+              throw e;
+            }
+
+            // --- Revertir XP heredada al stat padre, si existe ---
+            try {
+              const parentRow: any[] = await db.getAllAsync('SELECT id_stat_padre FROM stats WHERE id_stat = ?', [statId]);
+              if (parentRow && parentRow.length > 0 && parentRow[0].id_stat_padre) {
+                const idPadre = parentRow[0].id_stat_padre;
+                const xpPadreToRemove = Math.floor((valor || 0) / 2);
+                if (xpPadreToRemove > 0) {
+                  console.log('Restando XP heredada al stat padre:', { idPadre, xpPadreToRemove });
+                  await db.runAsync(
+                    'UPDATE jugador_stat SET experiencia_actual = MAX(0, experiencia_actual - ?) WHERE id_stat = ? AND id_jugador = ?',
+                    [xpPadreToRemove, idPadre, player.id_jugador]
+                  );
+
+                  // Recalcular nivel del padre
+                  const parentAfter: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
+                  if (parentAfter && parentAfter.length > 0) {
+                    const totalParentXPAfter = parentAfter[0].experiencia_actual || 0;
+                    const lvlParent = calculateLevelFromXP(totalParentXPAfter);
+                    await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlParent.level, idPadre, player.id_jugador]);
+                  }
+
+                  console.log('XP Heredada revertida:', xpPadreToRemove, 'del stat padre:', idPadre);
+                }
+              } else {
+                // No tiene padre -> nada que revertir
+              }
+            } catch (erp) {
+              console.error('Error restando XP heredada al padre durante revert:', erp);
+              throw erp;
+            }
           }
         } else {
           console.log('No impact found for mission, skipping XP revert');

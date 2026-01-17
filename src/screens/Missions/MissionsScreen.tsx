@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
+import { calculateLevelFromXP } from '../../utils/levelingUtils';
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { useNavigation } from '@react-navigation/native';
@@ -63,27 +64,59 @@ export const MissionsScreen = () => {
             const statId = impacto.id_stat;
             console.log('Sumando XP:', valor, 'al stat:', statId);
 
+            // 1) Añadir XP total
             await db.runAsync(
               'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
               [valor, statId, player?.id_jugador]
             );
 
-            // Verificar si subió de nivel
-            const rows: any[] = await db.getAllAsync('SELECT * FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [statId, player?.id_jugador]);
-            if (rows && rows.length > 0) {
-              const js = rows[0];
-              const exp = js.experiencia_actual || 0;
-              const max = js.nivel_maximo || 99;
-              if (exp >= max) {
-                console.log('Nuevo Nivel alcanzado en stat:', statId);
-                const nuevaExp = Math.max(0, exp - max);
-                const nuevoNivel = (js.nivel_actual || 1) + 1;
-                const nuevoMax = Math.max(max + Math.floor(max * 0.2), max + 1);
-                await db.runAsync(
-                  'UPDATE jugador_stat SET nivel_actual = ?, experiencia_actual = ?, nivel_maximo = ? WHERE id_jugador_stat = ?',
-                  [nuevoNivel, nuevaExp, nuevoMax, js.id_jugador_stat]
-                );
+            console.log('XP Principal aplicada:', valor, 'al stat:', statId);
+
+            // 2) Obtener el nuevo total y recalcular nivel de forma pura
+            try {
+              const rows: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [statId, player?.id_jugador]);
+              if (rows && rows.length > 0) {
+                const totalXP = rows[0].experiencia_actual || 0;
+                const lvlInfo = calculateLevelFromXP(totalXP);
+                console.log('Nivel recalculado:', lvlInfo.level, 'XP en nivel:', lvlInfo.currentLevelXP, 'meta:', lvlInfo.xpToNextLevel);
+                await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlInfo.level, statId, player?.id_jugador]);
+
+                // --- HERENCIA: comprobar si el stat tiene padre y aplicar XP heredada ---
+                try {
+                  const pr: any[] = await db.getAllAsync('SELECT id_stat_padre FROM stats WHERE id_stat = ?', [statId]);
+                  if (pr && pr.length > 0 && pr[0].id_stat_padre) {
+                    const idPadre = pr[0].id_stat_padre;
+                    const xpPadre = Math.floor((valor || 0) / 2);
+                    if (xpPadre > 0 && player && player.id_jugador) {
+                      console.log('XP Principal aplicada:', valor, 'al stat:', statId);
+
+                      // Verificar si existe jugador_stat para el padre
+                      const parentJs: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
+                      if (parentJs && parentJs.length > 0) {
+                        await db.runAsync('UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?', [xpPadre, idPadre, player.id_jugador]);
+                      } else {
+                        // Insertar registro si no existe
+                        await db.runAsync('INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, ?, ?, ?)', [player.id_jugador, idPadre, 1, xpPadre, 99]);
+                      }
+
+                      // Recalcular nivel del padre
+                      const rowsParent: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
+                      if (rowsParent && rowsParent.length > 0) {
+                        const totalXPPadre = rowsParent[0].experiencia_actual || 0;
+                        const lvlPadre = calculateLevelFromXP(totalXPPadre);
+                        await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlPadre.level, idPadre, player.id_jugador]);
+                        console.log('XP Heredada aplicada:', xpPadre, 'al stat padre:', idPadre);
+                      }
+                    }
+                  } else {
+                    console.log('Stat no tiene padre, omitiendo herencia para stat:', statId);
+                  }
+                } catch (erp) {
+                  console.error('Error aplicando herencia de XP:', erp);
+                }
               }
+            } catch (e) {
+              console.error('Error recalculando nivel desde XP total:', e);
             }
           }
 

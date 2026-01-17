@@ -250,7 +250,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
                 {dif}
               </Text>
               <Text style={{ fontSize: 10, color: colors.textDim, marginTop: 4, fontFamily: colors.fonts?.body }}>
-                {dif === 'EASY' ? '+10 XP' : dif === 'MEDIUM' ? '+30 XP' : '+60 XP'}
+                {dif === 'EASY' ? '+10 XP' : dif === 'MEDIUM' ? '+30 XP' : '+50 XP'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -352,6 +352,31 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
           <Text style={{ color: colors.textDim }}>CANCELAR</Text>
         </TouchableOpacity>
 
+        {/* Delete button in edit mode */}
+        {missionToEdit && (
+          <TouchableOpacity
+            style={[styles.deleteBtn, { borderColor: colors.error }]}
+            onPress={async () => {
+              try {
+                await db.execAsync('BEGIN TRANSACTION;');
+                // Optionally delete impacto_mision first to avoid FK issues
+                try {
+                  await db.runAsync('DELETE FROM impacto_mision WHERE id_mision = ?', [missionToEdit.id_mision]);
+                } catch (e) { /* ignore if not exists */ }
+                await db.runAsync('DELETE FROM misiones WHERE id_mision = ?', [missionToEdit.id_mision]);
+                await db.execAsync('COMMIT;');
+                navigation.goBack();
+              } catch (err) {
+                console.error('Error borrando misión:', err);
+                try { await db.execAsync('ROLLBACK;'); } catch(e){/* ignore */}
+                Alert.alert('Error', 'No se pudo eliminar la misión.');
+              }
+            }}
+          >
+            <Text style={{ color: colors.error, fontWeight: 'bold' }}>ELIMINAR</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={[styles.saveBtn, { backgroundColor: colors.primary }]}
           onPress={guardarMision}
@@ -388,5 +413,6 @@ const styles = StyleSheet.create({
 
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: 'auto' },
   cancelBtn: { padding: 15, marginRight: 20 },
+  deleteBtn: { padding: 12, marginRight: 10, borderWidth: 1, borderRadius: 6, justifyContent: 'center', alignItems: 'center' },
   saveBtn: { flex: 1, padding: 18, borderRadius: 50, alignItems: 'center', elevation: 5 }
 });
