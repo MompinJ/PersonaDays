@@ -13,22 +13,29 @@ interface Props {
 
 
 import { useTheme } from '../../themes/useTheme';
+import { useAlert } from '../../context/AlertContext';
 
 export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onClose, onSave }: Props) => {
   const [selected, setSelected] = useState<number[]>([]);
   const colors = useTheme();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     if (!visible) return;
-    // Preferir la selección actual si es válida (>=3)
-    if (currentSelection && currentSelection.length >= 3) {
-      setSelected(currentSelection);
+
+    // 1. Sanitizar: Filtrar IDs que ya no existen en allStats
+    const validSelection = currentSelection ? currentSelection.filter(id => allStats.some(s => s.id_stat === id)) : [];
+
+    // 2. Aplicar lógica de selección
+    if (validSelection.length >= 3) {
+      setSelected(validSelection);
       return;
+    } else {
+      // Fallback: Si después de limpiar quedan menos de 3, selecciona los primeros disponibles
+      const desired = Math.min(5, Math.max(3, allStats.length));
+      const fallback = allStats.slice(0, desired).map(s => s.id_stat);
+      setSelected(fallback);
     }
-    // Si no, tomar un fallback: los primeros N stats (intentar 5 para compatibilidad)
-    const desired = Math.min(5, Math.max(3, allStats.length));
-    const fallback = allStats.slice(0, desired).map(s => s.id_stat);
-    setSelected(fallback);
   }, [visible, allStats, currentSelection]);
 
   const toggleStat = (id: number) => {
@@ -42,7 +49,7 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
 
   const handleSave = () => {
     if (selected.length < 3) {
-      alert('El gráfico necesita al menos 3 atributos para visualizarse.');
+      showAlert('Atención', 'El gráfico necesita al menos 3 atributos para visualizarse.');
       return;
     }
     onSave(selected);

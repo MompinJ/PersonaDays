@@ -20,6 +20,7 @@ import { initDatabase } from './src/database';
 
 // Context
 import { GameProvider, useGame } from './src/context/GameContext';
+import { AlertProvider } from './src/context/AlertContext';
 import { PALETTES } from './src/themes/palettes';
 
 const DEFAULT_PALETTE = Object.values(PALETTES)[0] as any;
@@ -88,7 +89,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       <GameProvider>
-        <RootNavigation />
+        <AlertProvider>
+          <RootNavigation />
+        </AlertProvider>
       </GameProvider>
     </GestureHandlerRootView>
   );

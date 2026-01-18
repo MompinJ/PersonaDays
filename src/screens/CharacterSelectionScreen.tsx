@@ -21,10 +21,11 @@ const ITEM_WIDTH = width * 0.8;
 
 interface Props {
   navigation: any;
+  route?: any;
 }
 
-export const CharacterSelectionScreen = ({ navigation }: Props) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
+  const isEditing = route?.params?.isEditing;  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const currentCharacter = CHARACTERS[currentIndex];
@@ -55,6 +56,10 @@ export const CharacterSelectionScreen = ({ navigation }: Props) => {
       }
 
       await refreshUser();
+      if (isEditing) {
+        // Volver a Settings si venimos en modo edición
+        navigation.goBack();
+      }
     } catch (error) {
       console.error('Error guardando personaje', error);
     }

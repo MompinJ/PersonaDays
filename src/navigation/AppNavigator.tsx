@@ -7,6 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../themes/useTheme';
 
 //Pantallas de la app
@@ -20,6 +21,11 @@ import { CreateMissionScreen } from '../screens/Missions/CreateMissionScreen';
 import { ManageMissionsScreen } from '../screens/Missions/ManageMissionsScreen';
 import { CompletedMissionsScreen } from '../screens/Missions/CompletedMissionsScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
+import { SettingsScreen } from '../screens/Profile/SettingsScreen';
+import { CharacterSelectionScreen } from '../screens/CharacterSelectionScreen';
+import { SetupScreen } from '../screens/Setup/SetupScreen';
+import { ArcsScreen } from '../screens/Arcs/ArcsScreen';
+import { ArcDetailScreen } from '../screens/Arcs/ArcDetailScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
 // Ademas genera la barra visual por defecto
@@ -30,7 +36,7 @@ const MainTabs = () => {
   const theme = useTheme();
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.background,
@@ -40,9 +46,21 @@ const MainTabs = () => {
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textDim,
         tabBarShowLabel: true,
-      }}
+        tabBarIcon: ({ color, size }) => {
+          const name = route.name;
+          if (name === 'Home') return <Ionicons name="home" size={size} color={color} />;
+          if (name === 'Arcs') return <MaterialCommunityIcons name="book-open-variant" size={size} color={color} />;
+          if (name === 'Stats') return <Ionicons name="bar-chart" size={size} color={color} />;
+          if (name === 'Missions') return <Ionicons name="list" size={size} color={color} />;
+          if (name === 'Calendar') return <Ionicons name="calendar" size={size} color={color} />;
+          if (name === 'Economy') return <Ionicons name="cash" size={size} color={color} />;
+          if (name === 'Profile') return <Ionicons name="person-circle" size={size} color={color} />;
+          return null;
+        }
+      })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Arcs" component={ArcsScreen} />
       <Tab.Screen name="Stats" component={StatsScreen} />
       <Tab.Screen name="Missions" component={MissionsScreen} />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
@@ -58,6 +76,7 @@ export const AppNavigator = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen name="ArcDetail" component={ArcDetailScreen} />
         <Stack.Screen
           name="ManageMissions"
           component={ManageMissionsScreen}
@@ -72,6 +91,18 @@ export const AppNavigator = () => {
           name="CompletedMissions"
           component={CompletedMissionsScreen}
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+        />
+        <Stack.Screen
+          name="CharacterSelection"
+          component={CharacterSelectionScreen}
+        />
+        <Stack.Screen
+          name="Setup"
+          component={SetupScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

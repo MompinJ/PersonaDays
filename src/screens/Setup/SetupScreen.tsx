@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { createPlayer } from '../../services/playerService';
 import { CharacterTheme } from '../../types';
 import { useTheme } from '../../themes/useTheme';
+import { useAlert } from '../../context/AlertContext';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useGame } from '../../context/GameContext';
+import { db } from '../../database';
 
 interface Props {
   onFinishSetup?: () => void;
@@ -10,22 +14,45 @@ interface Props {
 
 export const SetupScreen = ({ onFinishSetup }: Props) => {
   const [nombre, setNombre] = useState('');
-  const navigation: any = require('@react-navigation/native').useNavigation();
+  const navigation: any = useNavigation();
+  const route: any = useRoute();
   const colors = useTheme();
+  const { showAlert } = useAlert();
+  const { player, refreshUser } = useGame();
+  const isEditing = route?.params?.isEditing;
+
+  useEffect(() => {
+    if (isEditing && player) {
+      setNombre(player.nombre_jugador || '');
+    }
+  }, [isEditing, player]);
 
   const handleFirmarContrato = async () => {
     if (nombre.trim().length === 0) {
-      Alert.alert("Error", "El contrato requiere un nombre.");
+      showAlert("Error", "El contrato requiere un nombre.");
       return;
     }
-      // TODO Sustituir por selector de temas
-      const exito = await createPlayer(nombre);
+
+    if (isEditing && player && player.id_jugador) {
+      try {
+        await db.runAsync('UPDATE jugadores SET nombre_jugador = ? WHERE id_jugador = ?', [nombre, player.id_jugador]);
+        try { await refreshUser(); } catch(e){/* ignore */}
+        navigation.goBack();
+      } catch (e) {
+        console.error('Error actualizando jugador:', e);
+        showAlert("Error", "No se pudo guardar el contrato.");
+      }
+      return;
+    }
+
+    // Nuevo jugador (flujo existente)
+    const exito = await createPlayer(nombre);
 
     if (exito) {
       // Navegar al selector de personaje inmediatamente
       navigation.navigate('CharacterSelection');
     } else {
-      Alert.alert("Error", "No se pudo guardar el contrato.");
+      showAlert("Error", "No se pudo guardar el contrato.");
     }
   };
 

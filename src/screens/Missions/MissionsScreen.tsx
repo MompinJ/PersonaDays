@@ -38,6 +38,10 @@ export const MissionsScreen = () => {
 
   // Marcar como completada una mision (con logs y desaparición suave)
   const toogleMission = async (id: number) => {
+    // acumuladores fuera del try para que estén disponibles en todo el handler
+    let totalExpGained = 0; // acumulador para el log
+    let logInserted = false;
+
     try {
       const mision = misiones.find(m => m.id_mision === id);
       if (!mision) return;
@@ -70,6 +74,8 @@ export const MissionsScreen = () => {
               [valor, statId, player?.id_jugador]
             );
 
+            totalExpGained += valor;
+
             console.log('XP Principal aplicada:', valor, 'al stat:', statId);
 
             // 2) Obtener el nuevo total y recalcular nivel de forma pura
@@ -99,6 +105,8 @@ export const MissionsScreen = () => {
                         await db.runAsync('INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, ?, ?, ?)', [player.id_jugador, idPadre, 1, xpPadre, 99]);
                       }
 
+                      totalExpGained += xpPadre;
+
                       // Recalcular nivel del padre
                       const rowsParent: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
                       if (rowsParent && rowsParent.length > 0) {
@@ -123,9 +131,22 @@ export const MissionsScreen = () => {
           // Refrescar vistas
           try { refreshStats && refreshStats(); } catch(e) { console.log('refreshStats error', e); }
           try { refreshUser && refreshUser(); } catch(e) { console.log('refreshUser error', e); }
+
         }
       } catch (impErr) {
         console.error('Error aplicando impacto de misión:', impErr);
+      }
+
+      // Asegurar que exista un log aunque no hubiera impactos
+      try {
+        const totalYenes = (mision && mision.recompensa_yenes) ? mision.recompensa_yenes : 0;
+        await db.runAsync(
+          `INSERT INTO logs (id_mision, fecha_completada, exp_ganada, yenes_ganados) VALUES (?, datetime('now', 'localtime'), ?, ?);`,
+          [id, totalExpGained, totalYenes]
+        );
+        console.log('Log insertado (fallback) para misión:', id, 'exp:', totalExpGained, 'yenes:', totalYenes);
+      } catch (logErr) {
+        console.error('Error insertando log de misión (fallback):', logErr);
       }
 
       // Animación y eliminación local inmediata de la misión

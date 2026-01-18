@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useGame } from '../../context/GameContext';
+import { useAlert } from '../../context/AlertContext';
 
 interface Props {
   visible: boolean;
@@ -14,6 +15,7 @@ interface Props {
 
 export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
   const colors = useTheme();
+  const { showAlert } = useAlert();
   const [descripcion, setDescripcion] = useState<string>('');
   const [nivelMeta, setNivelMeta] = useState<number>(1);
   const [children, setChildren] = useState<any[]>([]);
@@ -74,7 +76,7 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
       onClose();
     } catch (e) {
       console.error('Error guardando stat:', e);
-      Alert.alert('Error', 'No se pudo guardar el stat.');
+      showAlert('Error', 'No se pudo guardar el stat.');
     }
   };
 
@@ -88,7 +90,7 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
       const rowsCheck: any[] = await db.getAllAsync('SELECT COUNT(*) as c FROM impacto_mision WHERE id_stat = ?', [stat.id_stat]);
       const count = (rowsCheck && rowsCheck.length > 0) ? (rowsCheck[0].c || rowsCheck[0].count || 0) : 0;
       if (count > 0) {
-        Alert.alert('No se puede eliminar', 'Hay misiones activas vinculadas a este atributo. Por favor, elimina o edita esas misiones antes de borrar el atributo.');
+        showAlert('No se puede eliminar', 'Hay misiones activas vinculadas a este atributo. Por favor, elimina o edita esas misiones antes de borrar el atributo.');
         return;
       }
 
@@ -106,15 +108,15 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
         const msg = (innerErr && (innerErr.message || innerErr.toString())) || String(innerErr);
         console.error('Error during deletion transaction:', innerErr);
         if (msg.toLowerCase().includes('foreign key') || msg.toLowerCase().includes('constraint')) {
-          Alert.alert('No se puede eliminar', 'Este atributo está vinculado a misiones activas. Por favor, elimina o edita esas misiones antes de borrar el atributo.');
+          showAlert('No se puede eliminar', 'Este atributo está vinculado a misiones activas. Por favor, elimina o edita esas misiones antes de borrar el atributo.');
         } else {
-          Alert.alert('Error', msg);
+          showAlert('Error', msg);
         }
       }
     } catch (e: any) {
       const msg = (e && (e.message || e.toString())) || String(e);
       console.error('Error comprobando impacto_mision antes de eliminar stat:', e);
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 

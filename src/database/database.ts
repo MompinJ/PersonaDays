@@ -128,7 +128,7 @@ export const initDatabase = async () => {
         fecha_expiracion TEXT,
         fecha_completada TEXT,
         dias_repeticion TEXT,
-        FOREIGN KEY (id_arco) REFERENCES arcos(id_arcano)
+        FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
       );
 
       -- TABLA IMPACTO_MISION

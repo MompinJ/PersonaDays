@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker'; // <--- IMPORTANTE
 import { Ionicons } from '@expo/vector-icons';
@@ -7,10 +7,12 @@ import { db } from '../../database';
 import { MissionType, MissionFrequency, Stat } from '../../types'; // Asegúrate de tener MissionFrequency en types
 import { DaySelector } from '../../components/Missions/DaySelector';
 import { useTheme } from '../../themes/useTheme';
+import { useAlert } from '../../context/AlertContext';
 
 export const CreateMissionScreen = ({ route, navigation }: any) => {
   const missionToEdit = route?.params?.missionToEdit || null;
   const colors = useTheme();
+  const { showAlert } = useAlert();
 
   // Estados del formulario
   const [nombre, setNombre] = useState('');
@@ -101,7 +103,16 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
     console.log(editing ? '--- INICIO EDICIÓN MISIÓN ---' : '--- INICIO CREACIÓN MISIÓN ---');
     console.log('Datos:', { nombre, tipo, recompensa: getRecompensas(), selectedStatId });
     if (!nombre.trim()) {
-      Alert.alert("Atención", "Escribe el nombre del encargo.");
+      showAlert("Atención", "Escribe el nombre del encargo.");
+      return;
+    }
+
+    // Validación UX: Misiones DIARIAS requieren al menos un día seleccionado
+    if (tipo === 'DIARIA' && (!diasSeleccionados || diasSeleccionados.length === 0)) {
+      showAlert(
+        'Faltan días asignados',
+        'Las misiones DIARIAS requieren al menos un día de la semana. Si es una tarea eventual sin día fijo, por favor cámbiala a categoría EXTRA.'
+      );
       return;
     }
 
@@ -174,12 +185,12 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       } catch (txErr) {
         console.error('ERROR SQL:', txErr);
         try { await db.execAsync('ROLLBACK;'); } catch(e){/* ignore*/}
-        Alert.alert('Error', 'Falló al guardar la misión y su impacto.');
+        showAlert('Error', 'Falló al guardar la misión y su impacto.');
       }
 
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Falló al guardar la misión");
+      showAlert("Error", "Falló al guardar la misión");
     }
   };
 
@@ -369,7 +380,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
               } catch (err) {
                 console.error('Error borrando misión:', err);
                 try { await db.execAsync('ROLLBACK;'); } catch(e){/* ignore */}
-                Alert.alert('Error', 'No se pudo eliminar la misión.');
+                showAlert('Error', 'No se pudo eliminar la misión.');
               }
             }}
           >

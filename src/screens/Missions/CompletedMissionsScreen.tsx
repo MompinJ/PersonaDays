@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, Alert, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { db } from '../../database';
 import { useTheme } from '../../themes/useTheme';
 import { useGame } from '../../context/GameContext';
+import { useAlert } from '../../context/AlertContext';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
@@ -11,6 +12,7 @@ import { calculateLevelFromXP } from '../../utils/levelingUtils';
 
 export const CompletedMissionsScreen = () => {
   const colors = useTheme();
+  const { showAlert } = useAlert();
   const navigation = useNavigation<any>();
   const { player, refreshUser } = useGame();
   const { refreshStats } = usePlayerStats();
@@ -61,11 +63,11 @@ export const CompletedMissionsScreen = () => {
   const handleRevertMission = async (mision: any) => {
     // Keep for manual restore via dialog (triggered elsewhere if needed)
     if (!player) {
-      Alert.alert('Error', 'No hay jugador cargado.');
+      showAlert('Error', 'No hay jugador cargado.');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Restaurar misión',
       `¿Deseas restaurar la misión "${mision.nombre}" a pendientes? Se restará ${mision.valor_impacto || mision.recompensa_exp || 0} XP y ¥${mision.recompensa_yenes || 0}.`,
       [
@@ -73,9 +75,7 @@ export const CompletedMissionsScreen = () => {
         {
           text: 'Restaurar',
           style: 'destructive',
-          onPress: async () => {
-            await revertNow(mision);
-          }
+          onPress: () => { revertNow(mision); }
         }
       ]
     );
@@ -84,7 +84,7 @@ export const CompletedMissionsScreen = () => {
   // Revert without confirmation (used on swipe)
   const revertNow = async (mision: any) => {
     if (!player) {
-      Alert.alert('Error', 'No hay jugador cargado.');
+      showAlert('Error', 'No hay jugador cargado.');
       return;
     }
 
@@ -189,7 +189,7 @@ export const CompletedMissionsScreen = () => {
     } catch (err) {
       console.error('Error en transacción de revert:', err);
       try { await db.execAsync('ROLLBACK;'); } catch(e){/* ignore */}
-      Alert.alert('Error', 'No se pudo restaurar la misión.');
+      showAlert('Error', 'No se pudo restaurar la misión.');
     }
   };
 

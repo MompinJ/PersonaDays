@@ -3,6 +3,7 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 
 export type RootTabParamList = {
   Home: undefined;      // Pantalla Principal
+  Arcs: undefined;      // Pantalla de Arcos (Story Arcs)
   Stats: undefined;     // Pantalla de Estadísticas
   Missions: undefined;  // Pantalla de Misiones
   Calendar: undefined;  // Pantalla de Calendario
@@ -15,4 +16,9 @@ export type RootStackParamList = {
   CreateMission: { missionToEdit?: any } | undefined;
   ManageMissions: undefined;
   CompletedMissions: undefined;
+  Settings: undefined;
+  CharacterSelection: { isEditing?: boolean } | undefined;
+  Setup: { isEditing?: boolean } | undefined;
+  Arcs: undefined;
+  ArcDetail: { arc: any } | undefined;
 };
