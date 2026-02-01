@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker'; // <--- IMPORTANTE
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../database';
@@ -13,6 +13,8 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
   const missionToEdit = route?.params?.missionToEdit || null;
   const colors = useTheme();
   const { showAlert } = useAlert();
+  const [activeArc, setActiveArc] = useState<any | null>(null);
+  const [missionArcId, setMissionArcId] = useState<number | null>(null);
 
   // Estados del formulario
   const [nombre, setNombre] = useState('');
@@ -40,6 +42,37 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       case 'HARD': setYenes('5000'); break;
     }
   }, [dificultad]);
+
+  // 1. EFECTO: cargar arco activo (si existe) — usar useFocusEffect para reactividad
+  useFocusEffect(useCallback(() => {
+    let mounted = true;
+    const loadActiveArc = async () => {
+      try {
+        // SQL a prueba de balas: obtener solo el arco estrictamente ACTIVO más reciente
+        const result: any = await db.getFirstAsync(
+          `SELECT * FROM arcos WHERE estado = 'ACTIVO' ORDER BY id_arco DESC LIMIT 1;`
+        );
+
+        if (!mounted) return;
+
+        // Doble verificación defensiva
+        if (result && result.estado === 'ACTIVO') {
+          console.log('✅ Arco Activo encontrado:', result.nombre);
+          setActiveArc(result);
+        } else {
+          console.log('🚫 Sin Arco Activo (Limpiando estado)');
+          setActiveArc(null);
+          setMissionArcId(null);
+        }
+      } catch (e) {
+        console.error('Error cargando arco activo:', e);
+        setActiveArc(null);
+        setMissionArcId(null);
+      }
+    };
+    loadActiveArc();
+    return () => { mounted = false; };
+  }, []));
 
   // 3. Cargar stats disponibles
   useEffect(() => {
@@ -70,6 +103,9 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       setTieneExpiracion(!!missionToEdit.fecha_expiracion);
       if (missionToEdit.fecha_expiracion) setFechaExpiracion(new Date(missionToEdit.fecha_expiracion));
 
+      // Mantener id_arco del edit si existe
+      setMissionArcId(missionToEdit.id_arco || null);
+
       // Traer impacto_mision para conocer el id_stat
       (async () => {
         try {
@@ -96,6 +132,22 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       case 'MEDIUM': return { xp: 30, yenes: 1000 };
       case 'HARD': return { xp: 50, yenes: 1500 };
     }
+  };
+
+  const handleSelectTipo = (t: MissionType) => {
+    if (t === MissionType.ARCO) {
+      if (!activeArc) {
+        showAlert('SIN ARCO ACTIVO', 'Debes iniciar un Arco en la pestaña correspondiente para crear misiones de trama.');
+        return;
+      }
+      setTipo(t);
+      setMissionArcId(activeArc.id_arco || null);
+      if (activeArc.id_stat_relacionado) setSelectedStatId(activeArc.id_stat_relacionado);
+      return;
+    }
+    // switching away from ARCO clears linkage
+    setTipo(t);
+    setMissionArcId(null);
   };
 
   const guardarMision = async () => {
@@ -132,10 +184,11 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
         if (editing) {
           // Actualizar misión existente
           try {
-            const updateParams = [nombre, tipo, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, missionToEdit.id_mision];
+            const idArcVal = (tipo === MissionType.ARCO) ? missionArcId : null;
+            const updateParams = [nombre, tipo, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal, missionToEdit.id_mision];
             console.log('SQL UPDATE misiones -> id:', missionToEdit.id_mision, 'params:', updateParams);
             const resUpdate: any = await db.runAsync(
-              `UPDATE misiones SET nombre = ?, tipo = ?, fecha_expiracion = ?, recompensa_exp = ?, recompensa_yenes = ?, frecuencia_repeticion = ?, dias_repeticion = ? WHERE id_mision = ?`,
+              `UPDATE misiones SET nombre = ?, tipo = ?, fecha_expiracion = ?, recompensa_exp = ?, recompensa_yenes = ?, frecuencia_repeticion = ?, dias_repeticion = ?, id_arco = ? WHERE id_mision = ?`,
               updateParams
             );
             console.log('UPDATE result:', resUpdate);
@@ -162,13 +215,14 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
 
         } else {
           // Crear nueva misión
+          const idArcVal = (tipo === MissionType.ARCO) ? missionArcId : null;
           const res: any = await db.runAsync(
             `INSERT INTO misiones (
               nombre, tipo, fecha_creacion, activa, completada,
               fecha_expiracion, recompensa_exp, recompensa_yenes,
-              frecuencia_repeticion, dias_repeticion
-            ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?)`,
-            [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString]
+              frecuencia_repeticion, dias_repeticion, id_arco
+            ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)`,
+            [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal]
           );
 
           const insertId = res && (res.lastInsertRowId || res.insertId) ? (res.lastInsertRowId || res.insertId) : null;
@@ -232,7 +286,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
                 { borderColor: colors.primary },
                 tipo === t && { backgroundColor: colors.primary }
               ]}
-              onPress={() => setTipo(t)}
+              onPress={() => handleSelectTipo(t as MissionType)}
             >
               <Text style={{
                 color: tipo === t ? colors.background : colors.text,
@@ -243,6 +297,10 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {tipo === MissionType.ARCO && activeArc ? (
+          <Text style={{ color: colors.primary, fontSize: 12, marginTop: 6 }}>🔗 Vinculado a: {activeArc.nombre}</Text>
+        ) : null}
 
         {/* 3. DIFICULTAD (Recompensas) */}
         <Text style={[styles.sectionLabel, { color: colors.textDim }]}>DIFICULTAD & RECOMPENSA</Text>

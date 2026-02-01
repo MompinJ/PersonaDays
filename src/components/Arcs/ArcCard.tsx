@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 
-const ArcCard = ({ arc, onPress, containerStyle }: { arc: any; onPress?: () => void; containerStyle?: any }) => {
+const ArcCard = ({ arc, onPress, containerStyle, style, mode }: { arc: any; onPress?: () => void; containerStyle?: any; style?: any; mode?: 'HERO' | 'DEFAULT' }) => {
   const theme = useTheme();
   const [progress, setProgress] = useState(0);
 
@@ -37,14 +37,18 @@ const ArcCard = ({ arc, onPress, containerStyle }: { arc: any; onPress?: () => v
 
   const formattedDates = `${arc.fecha_inicio} ${arc.fecha_fin ? '- ' + arc.fecha_fin : ''}`;
 
+  const combinedStyle = [
+    styles.card,
+    state === 'ACTIVO' && { borderColor: theme.primary, shadowColor: theme.primary, elevation: 12 },
+    { backgroundColor: state === 'COMPLETADO' ? `${theme.surface}88` : theme.surface },
+    mode === 'HERO' ? styles.heroCard : null,
+    containerStyle,
+    style
+  ];
+
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        state === 'ACTIVO' && { borderColor: theme.primary, shadowColor: theme.primary, elevation: 12 },
-        { backgroundColor: state === 'COMPLETADO' ? `${theme.surface}88` : theme.surface },
-        containerStyle
-      ]}
+      style={combinedStyle}
       onPress={onPress}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -68,6 +72,7 @@ const ArcCard = ({ arc, onPress, containerStyle }: { arc: any; onPress?: () => v
 
 const styles = StyleSheet.create({
   card: { height: 200, padding: 20, borderWidth: 2, borderRadius: 14, marginBottom: 18, justifyContent: 'space-between', overflow: 'hidden' },
+  heroCard: { flex: 1, width: '100%', justifyContent: 'space-between' },
   title: { fontSize: 24, fontWeight: '900' },
   dates: { fontSize: 12, marginTop: 6 },
   heroSpace: { flex: 1 },

@@ -7,7 +7,7 @@ import { db } from '../../database';
 
 const COLORS = ['#00D4FF', '#FF4D4F', '#28A745', '#FFC107', '#7B2CBF'];
 
-const ManageArcModal = ({ visible, arc, parentArc, forcedSubArc, onClose, onSaved }: { visible: boolean; arc: any | null; parentArc?: any | null; forcedSubArc?: boolean; onClose: () => void; onSaved?: () => void }) => {
+const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; arc: any | null; onClose: () => void; onSaved?: () => void }) => {
   const theme = useTheme();
   const { showAlert } = useAlert();
   const [nombre, setNombre] = useState('');
@@ -45,18 +45,7 @@ const ManageArcModal = ({ visible, arc, parentArc, forcedSubArc, onClose, onSave
       setNombre(''); setDescripcion(''); setFechaInicio(''); setFechaFin(''); setColor(COLORS[0]); setStatRel(null); setIsSubArc(false);
     }
 
-    // If parentArc is provided (creating a sub-arc), preset fields
-    if (!arc && parentArc) {
-      setIsSubArc(true);
-      setStatRel(parentArc.id_stat_relacionado || null);
-    }
-
-    // If forcedSubArc is true, enforce sub-arc constraints
-    if (forcedSubArc && parentArc) {
-      setIsSubArc(true);
-      setStatRel(parentArc.id_stat_relacionado || null);
-    }
-  }, [arc, visible, parentArc, forcedSubArc]);
+  }, [arc, visible]);
 
   const save = async () => {
     if (arc && arc.estado === 'COMPLETADO') {
@@ -71,10 +60,10 @@ const ManageArcModal = ({ visible, arc, parentArc, forcedSubArc, onClose, onSave
 
     try {
       if (arc && arc.id_arco) {
-        const parentId = isSubArc ? parentArc?.id_arco || null : null;
+        const parentId = null;
         await db.runAsync('UPDATE arcos SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, color_hex = ?, id_stat_relacionado = ?, id_arco_padre = ? WHERE id_arco = ?', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel, parentId, arc.id_arco]);
       } else {
-        const parentId = isSubArc ? parentArc?.id_arco || null : null;
+        const parentId = null;
         await db.runAsync('INSERT INTO arcos (nombre, descripcion, fecha_inicio, fecha_fin, color_hex, id_stat_relacionado, id_arco_padre) VALUES (?, ?, ?, ?, ?, ?, ?)', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel, parentId]);
       }
       if (onSaved) onSaved();
@@ -117,33 +106,16 @@ const ManageArcModal = ({ visible, arc, parentArc, forcedSubArc, onClose, onSave
 
             <Text style={{ color: theme.text, marginTop: 12 }}>Stat Relacionado (opcional)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              { (forcedSubArc || isSubArc) ? (
-                <View style={[styles.statBtn, { backgroundColor: '#333', borderColor: '#333' }]}>
-                  <Text style={{ color: '#bbb' }}>{ statsOptions.find(s => s.id_stat === (parentArc?.id_stat_relacionado || statRel))?.nombre || 'Stat del padre' }</Text>
-                </View>
-              ) : (
-                <>
-                  <TouchableOpacity onPress={() => setStatRel(null)} style={[styles.statBtn, { borderColor: statRel === null ? theme.primary : theme.border }]}> 
-                    <Text style={{ color: theme.text }}>Ninguno</Text>
-                  </TouchableOpacity>
-                  {statsOptions.map(s => (
-                    <TouchableOpacity key={s.id_stat} onPress={() => setStatRel(s.id_stat)} style={[styles.statBtn, { borderColor: statRel === s.id_stat ? theme.primary : theme.border }]}> 
-                      <Text style={{ color: theme.text }}>{s.nombre}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </>
-              )}
+              <TouchableOpacity onPress={() => setStatRel(null)} style={[styles.statBtn, { borderColor: statRel === null ? theme.primary : theme.border }]}> 
+                <Text style={{ color: theme.text }}>Ninguno</Text>
+              </TouchableOpacity>
+              {statsOptions.map(s => (
+                <TouchableOpacity key={s.id_stat} onPress={() => setStatRel(s.id_stat)} style={[styles.statBtn, { borderColor: statRel === s.id_stat ? theme.primary : theme.border }]}> 
+                  <Text style={{ color: theme.text }}>{s.nombre}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
-            {/* Parent/sub-arc toggle */}
-            {parentArc && !arc && !forcedSubArc && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-                <TouchableOpacity onPress={() => setIsSubArc(!isSubArc)} style={{ padding: 8 }}>
-                  <Text style={{ color: isSubArc ? theme.primary : theme.text }}>{isSubArc ? '☑' : '☐'}</Text>
-                </TouchableOpacity>
-                <Text style={{ color: theme.text, marginLeft: 8 }}>Es un sub-arco de "{parentArc.nombre}"</Text>
-              </View>
-            )}
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 }}>
               <TouchableOpacity onPress={onClose} style={{ padding: 10, marginRight: 10 }}><Text style={{ color: theme.textDim }}>CANCELAR</Text></TouchableOpacity>

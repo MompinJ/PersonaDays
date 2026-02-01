@@ -55,7 +55,9 @@ export const ArcDetailScreen = ({ route, navigation }: Props) => {
       { text: 'FINALIZAR', onPress: async () => {
         try {
           await db.execAsync('BEGIN TRANSACTION;');
-          await db.runAsync('UPDATE arcos SET estado = ?, fecha_fin = date("now") WHERE id_arco = ?', ['COMPLETADO', arc.id_arco]);
+          await db.runAsync('UPDATE arcos SET estado = ?, fecha_fin = date("now", "localtime") WHERE id_arco = ?', ['COMPLETADO', arc.id_arco]);
+          console.log('✅ Arco finalizado. ID:', arc.id_arco);
+          showAlert('CAPÍTULO CERRADO', 'El arco ha sido completado y movido al historial. ¡Buen trabajo!');
           await db.execAsync('COMMIT;');
           try { refreshStats && refreshStats(); } catch(e){}
           try { refreshUser && refreshUser(); } catch(e){}
@@ -95,7 +97,7 @@ export const ArcDetailScreen = ({ route, navigation }: Props) => {
         </View>
       )}
 
-      <ManageArcModal visible={showModal} arc={arc} parentArc={null} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); }} />
+      <ManageArcModal visible={showModal} arc={arc} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); }} />
     </View>
   );
 };
