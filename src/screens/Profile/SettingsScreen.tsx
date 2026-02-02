@@ -52,6 +52,29 @@ export const SettingsScreen = () => {
     ]);
   };
 
+  const handleDeleteDuplicateStats = () => {
+    showAlert('Confirmar', '¿Eliminar stats duplicados? Esto mantendrá la instancia más antigua de cada stat y limpiará jugador_stat.', [
+      { text: 'CANCELAR', style: 'cancel' },
+      { text: 'ELIMINAR', style: 'destructive', onPress: async () => {
+          try {
+            await db.execAsync('BEGIN TRANSACTION;');
+            // Eliminar stats duplicados (mantener la instancia más antigua)
+            await db.runAsync(`DELETE FROM stats WHERE id_stat NOT IN (SELECT MIN(id_stat) FROM stats GROUP BY nombre);`);
+            // Eliminar entradas en jugador_stat que referencien stats eliminados
+            await db.runAsync(`DELETE FROM jugador_stat WHERE id_stat NOT IN (SELECT id_stat FROM stats);`);
+            // Eliminar duplicados en jugador_stat dejando la entrada más antigua por jugador+stat
+            await db.runAsync(`DELETE FROM jugador_stat WHERE id_jugador_stat NOT IN (SELECT MIN(id_jugador_stat) FROM jugador_stat GROUP BY id_jugador, id_stat);`);
+            await db.execAsync('COMMIT;');
+            showAlert('Hecho', 'Stats duplicados y entradas de jugador_stat limpiadas. Reinicia la app si es necesario.');
+          } catch (err) {
+            console.error('Error eliminando stats duplicados:', err);
+            try { await db.execAsync('ROLLBACK;'); } catch(e){}
+            showAlert('Error', 'No se pudo eliminar stats duplicados.');
+          }
+        } }
+    ]);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
       <Text style={[styles.header, { color: theme.text, fontFamily: theme.fonts?.title }]}>AJUSTES</Text>
@@ -76,6 +99,13 @@ export const SettingsScreen = () => {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="trash" size={22} color={theme.error} style={{ marginRight: 12 }} />
           <Text style={[styles.optionText, { color: theme.error }]}>Borrar Todos los Arcos (Debug)</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.option, { borderColor: theme.primary, marginTop: 10 }]} onPress={handleDeleteDuplicateStats}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="layers" size={22} color={theme.primary} style={{ marginRight: 12 }} />
+          <Text style={[styles.optionText, { color: theme.primary }]}>Eliminar Stats Duplicados</Text>
         </View>
       </TouchableOpacity>
 

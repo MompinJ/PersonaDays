@@ -161,6 +161,25 @@ export const initDatabase = async () => {
         yenes_ganados INTEGER NOT NULL,
         FOREIGN KEY (id_mision) REFERENCES misiones(id_mision)
       );
+
+      -- TABLA FINANCIAL_CATEGORIES (Categorías personalizables para finanzas)
+      CREATE TABLE IF NOT EXISTS financial_categories (
+        id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        icono TEXT,
+        color TEXT,
+        tipo TEXT
+      );
+
+      -- TABLA FINANZAS
+      CREATE TABLE IF NOT EXISTS finanzas (
+        id_finanza INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT CHECK(tipo IN ('INGRESO', 'GASTO')),
+        monto REAL NOT NULL,
+        categoria TEXT,
+        descripcion TEXT,
+        fecha TEXT
+      );
     `);
 
     // Insertar arcanos base (usamos INSERT OR REPLACE para garantizar id fijo)
@@ -189,6 +208,26 @@ export const initDatabase = async () => {
       (20, 'XX', 'El Juicio', 'Gentileza', 'Ganas un 5% más de XP en misiones relacionadas con Gentileza, Conocimiento y Carisma'),
       (21, 'XXI', 'El Mundo', 'Todos', 'Tu decides tu futuro...');
     `);
+
+    // Inicializar categorías financieras por defecto si no existen
+    try {
+      const catCount: any[] = await db.getAllAsync('SELECT count(*) as c FROM financial_categories');
+      const count = catCount && catCount[0] ? catCount[0].c : 0;
+      if (!count || count === 0) {
+        await db.execAsync(`
+          INSERT INTO financial_categories (nombre, icono, color, tipo) VALUES
+          ('Comida', 'food', '#FF5252', 'GASTO'),
+          ('Transporte', 'bus', '#448AFF', 'GASTO'),
+          ('Ocio', 'gamepad-variant', '#FFC107', 'GASTO'),
+          ('Salud', 'heart-pulse', '#E91E63', 'GASTO'),
+          ('Otros', 'circle-outline', '#9E9E9E', 'GASTO'),
+          ('Salario', 'cash', '#4CAF50', 'INGRESO'),
+          ('Regalo', 'gift', '#9C27B0', 'INGRESO');
+        `);
+      }
+    } catch (e) {
+      console.error('Error inicializando categorías financieras:', e);
+    }
 
     // Llamada al seed para poblar jugador y stats si está vacío
     await checkAndSeedData();

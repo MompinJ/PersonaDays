@@ -26,6 +26,7 @@ import { CharacterSelectionScreen } from '../screens/CharacterSelectionScreen';
 import { SetupScreen } from '../screens/Setup/SetupScreen';
 import { ArcsScreen } from '../screens/Arcs/ArcsScreen';
 import { ArcDetailScreen } from '../screens/Arcs/ArcDetailScreen';
+import ManageCategoriesScreen from '../screens/Economy/ManageCategoriesScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
 // Ademas genera la barra visual por defecto
@@ -95,6 +96,10 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
+        />
+        <Stack.Screen
+          name="ManageCategories"
+          component={ManageCategoriesScreen}
         />
         <Stack.Screen
           name="CharacterSelection"

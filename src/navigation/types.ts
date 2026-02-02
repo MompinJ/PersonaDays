@@ -21,4 +21,5 @@ export type RootStackParamList = {
   Setup: { isEditing?: boolean } | undefined;
   Arcs: undefined;
   ArcDetail: { arc: any } | undefined;
+  ManageCategories: undefined;
 };
