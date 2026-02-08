@@ -6,6 +6,7 @@ export interface ThemeColors {
     secondary: string;     // Un color de apoyo para contrastes
     background: string;    // Fondo de pantalla
     surface: string;       // Fondo de tarjetas/menús
+    card?: string;         // Color de tarjetas/elementos (alias opcional para compatibilidad)
 
     // Texto
     text: string;          // Texto principal
