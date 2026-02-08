@@ -23,6 +23,8 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
 
   // 1. NUEVO ESTADO PARA YENES (editable)
   const [yenes, setYenes] = useState('500');
+  // Estado para detectar si el usuario editó manualmente el valor de Yenes
+  const [precioManual, setPrecioManual] = useState(false);
 
   // NUEVO: Días seleccionados para repetición
   const [diasSeleccionados, setDiasSeleccionados] = useState<number[]>([]);
@@ -36,12 +38,13 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
 
   // 2. EFECTO: sugerir yenes al cambiar dificultad (pero es editable por el usuario)
   useEffect(() => {
+    if (precioManual) return;
     switch (dificultad) {
       case 'EASY': setYenes('500'); break;
       case 'MEDIUM': setYenes('1500'); break;
       case 'HARD': setYenes('5000'); break;
     }
-  }, [dificultad]);
+  }, [dificultad, precioManual]);
 
   // 1. EFECTO: cargar arco activo (si existe) — usar useFocusEffect para reactividad
   useFocusEffect(useCallback(() => {
@@ -299,7 +302,9 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
         </ScrollView>
 
         {tipo === MissionType.ARCO && activeArc ? (
-          <Text style={{ color: colors.primary, fontSize: 12, marginTop: 6 }}>🔗 Vinculado a: {activeArc.nombre}</Text>
+          <View style={{ backgroundColor: `${colors.primary}15`, padding: 8, borderRadius: 8, marginTop: 8 }}>
+            <Text style={{ color: colors.text, fontSize: 12 }}>🔗 Vinculado a: {activeArc.nombre}</Text>
+          </View>
         ) : null}
 
         {/* 3. DIFICULTAD (Recompensas) */}
@@ -356,7 +361,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
             <TextInput
                 style={{ color: colors.secondary, fontSize: 18, fontWeight: 'bold', flex: 1 }}
                 value={yenes}
-                onChangeText={setYenes}
+                onChangeText={(t) => { setYenes(t); setPrecioManual(true); }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={colors.textDim}

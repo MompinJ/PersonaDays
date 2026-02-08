@@ -140,11 +140,20 @@ export const MissionsScreen = () => {
       // Asegurar que exista un log aunque no hubiera impactos
       try {
         const totalYenes = (mision && mision.recompensa_yenes) ? mision.recompensa_yenes : 0;
+        // Obtener el id del arco activo en el momento de completado (si existe)
+        let activeArcId: number | null = null;
+        try {
+          const arcRows: any[] = await db.getAllAsync("SELECT id_arco FROM arcos WHERE estado = 'ACTIVO' LIMIT 1;");
+          if (arcRows && arcRows.length > 0) activeArcId = arcRows[0].id_arco;
+        } catch (arcErr) {
+          console.error('Error consultando arco activo para logs:', arcErr);
+        }
+
         await db.runAsync(
-          `INSERT INTO logs (id_mision, fecha_completada, exp_ganada, yenes_ganados) VALUES (?, datetime('now', 'localtime'), ?, ?);`,
-          [id, totalExpGained, totalYenes]
+          `INSERT INTO logs (id_mision, fecha_completada, exp_ganada, yenes_ganados, id_arco) VALUES (?, datetime('now', 'localtime'), ?, ?, ?);`,
+          [id, totalExpGained, totalYenes, activeArcId]
         );
-        console.log('Log insertado (fallback) para misión:', id, 'exp:', totalExpGained, 'yenes:', totalYenes);
+        console.log('Log insertado (fallback) para misión:', id, 'exp:', totalExpGained, 'yenes:', totalYenes, 'id_arco:', activeArcId);
       } catch (logErr) {
         console.error('Error insertando log de misión (fallback):', logErr);
       }

@@ -182,6 +182,19 @@ export const initDatabase = async () => {
       );
     `);
 
+    // Asegurar que la tabla logs tenga columna id_arco (migración ligera)
+    try {
+      const cols: any[] = await db.getAllAsync("PRAGMA table_info('logs');");
+      const hasIdArco = cols && Array.isArray(cols) && cols.some((c: any) => c.name === 'id_arco');
+      if (!hasIdArco) {
+        console.log('Migración: agregando columna id_arco a logs');
+        await db.execAsync('ALTER TABLE logs ADD COLUMN id_arco INTEGER;');
+      }
+    } catch (e) {
+      console.error('Error comprobando/creando columna id_arco en logs:', e);
+    }
+
+
     // Insertar arcanos base (usamos INSERT OR REPLACE para garantizar id fijo)
     await db.execAsync(`
       INSERT OR REPLACE INTO arcanos (id_arcano, simbolo, nombre_arcano, stat_asociado, efecto_descripcion) VALUES
