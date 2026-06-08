@@ -1,9 +1,11 @@
-import React, { useCallback, useState, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../database';
 import { useTheme } from '../../themes/useTheme';
 import { MissionType } from '../../types';
+import { PressableScale } from '../../components/UI/PressableScale';
 
 export const ManageMissionsScreen = () => {
   const navigation = useNavigation<any>();
@@ -13,6 +15,12 @@ export const ManageMissionsScreen = () => {
   const [filterType, setFilterType] = useState<string>('TODAS');
   const [filterStat, setFilterStat] = useState<number | null>(null);
   const [filterDay, setFilterDay] = useState<number | null>(null);
+
+  // Animacion de entrada (una sola vez)
+  const intro = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
 
   // Cargar cada vez que la pantalla entra en foco para evitar datos cacheados
   useFocusEffect(
@@ -74,93 +82,137 @@ export const ManageMissionsScreen = () => {
     });
   }, [misiones, filterType, filterStat, filterDay]);
 
-  const onSelectType = (t: string) => {
-    console.log('ManageMissionsScreen: set filterType ->', t);
-    setFilterType(t);
-  };
-  const onSelectStat = (id: number | null) => {
-    console.log('ManageMissionsScreen: set filterStat ->', id);
-    setFilterStat(id);
-  };
+  const onSelectType = (t: string) => setFilterType(t);
+  const onSelectStat = (id: number | null) => setFilterStat(id);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={[styles.item, { borderColor: colors.primary }]} onPress={() => {
-      console.log('ManageMissionsScreen: navegando a CreateMission con missionToEdit id:', item.id_mision);
-      navigation.navigate('CreateMission', { missionToEdit: item });
-    }}>
-      <View style={styles.row}>
-        <Text style={[styles.title, { color: colors.text }]}>{item.nombre}</Text>
-        <View style={[styles.chip, { borderColor: colors.primary }]}>
-          <Text style={{ color: colors.text, fontSize: 12 }}>{item.tipo}</Text>
-        </View>
-      </View>
-      <Text style={{ color: colors.textDim, fontSize: 12 }}>{item.frecuencia_repeticion || item.frecuencia || 'Una vez'}</Text>
+  // Chip inclinado reutilizable (estilo Persona)
+  const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={[styles.chip, { borderColor: colors.primary, backgroundColor: active ? colors.primary : colors.surface }]}
+    >
+      <Text style={[styles.chipText, { color: active ? colors.textInverse : colors.textDim, fontFamily: colors.fonts?.heading }]}>{label}</Text>
     </TouchableOpacity>
   );
 
+  const renderItem = ({ item }: { item: any }) => {
+    const repite = item.frecuencia_repeticion && item.frecuencia_repeticion !== 'ONE_OFF';
+    return (
+      <PressableScale
+        containerStyle={styles.itemWrap}
+        style={[styles.item, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        scaleTo={0.97}
+        onPress={() => navigation.navigate('CreateMission', { missionToEdit: item })}
+      >
+        <View style={[styles.itemAccent, { backgroundColor: colors.primary }]} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.itemTitle, { color: colors.text, fontFamily: colors.fonts?.title }]} numberOfLines={1}>{item.nombre}</Text>
+          <View style={styles.itemMeta}>
+            <Ionicons name={repite ? 'repeat' : 'flash-outline'} size={13} color={colors.textDim} />
+            <Text style={{ color: colors.textDim, fontSize: 12, marginLeft: 4 }}>{repite ? 'Repetida' : 'Una vez'}</Text>
+          </View>
+        </View>
+        <View style={[styles.typeChip, { borderColor: colors.primary }]}>
+          <Text style={[styles.typeChipText, { color: colors.primary, fontFamily: colors.fonts?.heading }]}>{item.tipo}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textDim} style={{ marginLeft: 6 }} />
+      </PressableScale>
+    );
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <Text style={[styles.header, { color: colors.primary }]}>GESTIONAR MISIONES</Text>
-
-      {/* Fila 1: Tipos */}
-      <View style={{ paddingHorizontal: 12, marginBottom: 8 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
-          <TouchableOpacity onPress={() => onSelectType('TODAS')} style={[styles.chip, filterType === 'TODAS' ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-            <Text style={[styles.chipText, filterType === 'TODAS' && { color: colors.textInverse }]}>TODAS</Text>
-          </TouchableOpacity>
-          {Object.values(MissionType).map((t) => (
-            <TouchableOpacity key={t} onPress={() => onSelectType(t)} style={[styles.chip, filterType === t ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-              <Text style={[styles.chipText, filterType === t && { color: colors.textInverse }]}>{t}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.headerRow}>
+        <View style={[styles.titleAccent, { backgroundColor: colors.primary }]} />
+        <Text style={[styles.header, { color: colors.text, fontFamily: colors.fonts?.title }]}>GESTIONAR</Text>
       </View>
 
-      {/* Fila 2: Stats */}
-      <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
-          <TouchableOpacity onPress={() => onSelectStat(null)} style={[styles.chip, filterStat === null ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-            <Text style={[styles.chipText, filterStat === null && { color: colors.textInverse }]}>TODAS</Text>
-          </TouchableOpacity>
-          {availableStats.map((s) => (
-            <TouchableOpacity key={s.id_stat} onPress={() => onSelectStat(s.id_stat)} style={[styles.chip, filterStat === s.id_stat ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-              <Text style={[styles.chipText, filterStat === s.id_stat && { color: colors.textInverse }]}>{s.nombre}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: intro,
+          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+        }}
+      >
+        {/* Fila 1: Tipos */}
+        <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+            <Chip label="TODAS" active={filterType === 'TODAS'} onPress={() => onSelectType('TODAS')} />
+            {Object.values(MissionType).map((t) => (
+              <Chip key={t} label={t} active={filterType === t} onPress={() => onSelectType(t)} />
+            ))}
+          </ScrollView>
+        </View>
 
-      {/* Fila 3: Días de la semana */}
-      <View style={{ paddingHorizontal: 12, marginBottom: 12 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8, alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => setFilterDay(null)} style={[styles.chip, filterDay === null ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-            <Text style={[styles.chipText, filterDay === null && { color: colors.textInverse }]}>TODAS</Text>
-          </TouchableOpacity>
-          {['D','L','M','M','J','V','S'].map((label, idx) => (
-            <TouchableOpacity key={idx} onPress={() => setFilterDay(idx)} style={[styles.dayBtn, filterDay === idx ? { backgroundColor: colors.primary } : { borderColor: colors.text }]}>
-              <Text style={[{ color: filterDay === idx ? colors.textInverse : colors.text, fontWeight: '700' }]}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+        {/* Fila 2: Stats */}
+        <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+            <Chip label="TODAS" active={filterStat === null} onPress={() => onSelectStat(null)} />
+            {availableStats.map((s) => (
+              <Chip key={s.id_stat} label={String(s.nombre).toUpperCase()} active={filterStat === s.id_stat} onPress={() => onSelectStat(s.id_stat)} />
+            ))}
+          </ScrollView>
+        </View>
 
-      <FlatList
-        data={filteredMissions}
-        keyExtractor={(i) => i.id_mision ? i.id_mision.toString() : Math.random().toString()}
-        renderItem={renderItem}
-        contentContainerStyle={{ padding: 16 }}
-      />
+        {/* Fila 3: Días de la semana */}
+        <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterContent, { alignItems: 'center' }]}>
+            <Chip label="TODOS" active={filterDay === null} onPress={() => setFilterDay(null)} />
+            {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((label, idx) => {
+              const active = filterDay === idx;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.85}
+                  onPress={() => setFilterDay(idx)}
+                  style={[styles.dayBtn, { borderColor: colors.primary, backgroundColor: active ? colors.primary : colors.surface }]}
+                >
+                  <Text style={{ color: active ? colors.textInverse : colors.textDim, fontWeight: '700', fontFamily: colors.fonts?.heading }}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <FlatList
+          data={filteredMissions}
+          keyExtractor={(i) => (i.id_mision ? i.id_mision.toString() : Math.random().toString())}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16, paddingTop: 8 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="file-tray-outline" size={48} color={colors.textDim} />
+              <Text style={{ color: colors.textDim, marginTop: 12, fontFamily: colors.fonts?.bold }}>Sin misiones con esos filtros</Text>
+            </View>
+          }
+        />
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 50 },
-  header: { fontSize: 20, fontWeight: '900', textAlign: 'center', marginBottom: 10 },
-  item: { padding: 12, borderWidth: 1, borderRadius: 8, marginBottom: 10, backgroundColor: 'transparent' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontWeight: '700', fontSize: 16 },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 10, backgroundColor: 'transparent' },
-  chipText: { color: '#fff', fontWeight: '700' },
-  dayBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, justifyContent: 'center', alignItems: 'center', marginRight: 8 }
+
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 12 },
+  titleAccent: { width: 7, height: 28, marginRight: 12, transform: [{ skewX: '-20deg' }] },
+  header: { fontSize: 26, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2 },
+
+  filterRow: { paddingHorizontal: 12, marginBottom: 6 },
+  filterContent: { paddingVertical: 6, paddingHorizontal: 4 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1.5, marginRight: 10, transform: [{ skewX: '-12deg' }] },
+  chipText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, transform: [{ skewX: '12deg' }] },
+  dayBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+
+  itemWrap: { marginBottom: 12 },
+  item: { flexDirection: 'row', alignItems: 'center', padding: 14, paddingLeft: 20, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
+  itemAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
+  itemTitle: { fontWeight: '700', fontSize: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+  itemMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  typeChip: { paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderRadius: 4, marginLeft: 8 },
+  typeChipText: { fontSize: 10, letterSpacing: 0.5 },
+
+  empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
 });

@@ -5,9 +5,9 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
   StatusBar,
-  Animated
+  Animated,
+  Pressable
 } from 'react-native';
 import { CHARACTERS } from '../data/characters';
 import { PALETTES } from '../themes/palettes';
@@ -32,6 +32,7 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
   const currentTheme = PALETTES[currentCharacter.id as CharacterTheme];
   const { refreshUser } = useGame();
   const appTheme = useTheme();
+  const btnScale = useRef(new Animated.Value(1)).current;
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -113,7 +114,7 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
       <StatusBar barStyle="light-content" backgroundColor={currentTheme.background} />
 
       <View style={styles.header}>
-        <Text style={[styles.headerText, { color: currentTheme.textDim, fontFamily: appTheme.fonts?.title, textTransform: 'uppercase', letterSpacing: 1 }]}>CHOOSE YOUR</Text>
+        <Text style={[styles.headerText, { color: currentTheme.textDim, fontFamily: appTheme.fonts?.condensed, textTransform: 'uppercase', letterSpacing: 1 }]}>CHOOSE YOUR</Text>
         <Text style={[styles.headerTitle, { color: currentTheme.text, transform: [{ skewX: '-15deg' }], fontFamily: appTheme.fonts?.title, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: 1.5 }]}>DESTINY</Text>
       </View>
 
@@ -129,9 +130,16 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
         contentContainerStyle={{ alignItems: 'center' }}
       />
 
-      <TouchableOpacity activeOpacity={0.8} onPress={handleSelect} style={[styles.button, { backgroundColor: currentTheme.primary }]}>
-        <Text style={[styles.buttonText, { color: currentTheme.textInverse, fontFamily: appTheme.fonts?.bold, textTransform: 'uppercase' }]}>I AM THOU</Text>
-      </TouchableOpacity>
+      <Pressable
+        onPress={handleSelect}
+        onPressIn={() => Animated.spring(btnScale, { toValue: 0.92, useNativeDriver: true }).start()}
+        onPressOut={() => Animated.spring(btnScale, { toValue: 1, friction: 4, useNativeDriver: true }).start()}
+        style={styles.buttonWrap}
+      >
+        <Animated.View style={[styles.button, { backgroundColor: currentTheme.primary, transform: [{ skewX: '-10deg' }, { scale: btnScale }] }]}>
+          <Text style={[styles.buttonText, { color: currentTheme.textInverse, fontFamily: appTheme.fonts?.heading, textTransform: 'uppercase' }]}>I AM THOU</Text>
+        </Animated.View>
+      </Pressable>
     </View>
   );
 };
@@ -159,6 +167,7 @@ const styles = StyleSheet.create({
   separator: { width: 40, height: 2, marginVertical: 8 },
   quote: { fontSize: 16, fontStyle: 'italic', textAlign: 'center', marginBottom: 5, fontWeight: '600' },
   description: { fontSize: 12, textAlign: 'center' },
-  button: { position: 'absolute', bottom: 50, paddingVertical: 15, paddingHorizontal: 60, borderRadius: 30, elevation: 5, transform: [{ skewX: '-10deg' }] },
+  buttonWrap: { position: 'absolute', bottom: 50, alignSelf: 'center' },
+  button: { paddingVertical: 15, paddingHorizontal: 60, borderRadius: 30, elevation: 5 },
   buttonText: { fontSize: 18, letterSpacing: 2 }
 });

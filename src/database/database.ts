@@ -44,6 +44,42 @@ export const initDatabase = async () => {
   try {
     await db.execAsync('PRAGMA foreign_keys = ON;');
 
+    // --- Migración segura para Notas ---
+    // IMPORTANTE: NO usar DROP incondicional aquí. initDatabase() corre en cada
+    // arranque, así que un DROP borraría todas las notas del usuario cada vez.
+    try {
+      // list_items es una tabla legacy que ya no se usa: eliminarla es seguro.
+      await db.execAsync(`DROP TABLE IF EXISTS list_items;`);
+
+      // Crear custom_lists solo si no existe (preserva las notas existentes).
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS custom_lists (
+          id_list INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT DEFAULT '',
+          updated_at TEXT NOT NULL
+        );
+      `);
+
+      // Si existiera una versión antigua de custom_lists sin la columna 'content'
+      // (esquema viejo incompatible), recrearla una sola vez.
+      const cols: any[] = await db.getAllAsync(`PRAGMA table_info(custom_lists);`);
+      const hasContent = Array.isArray(cols) && cols.some((c: any) => c.name === 'content');
+      if (!hasContent) {
+        await db.execAsync(`
+          DROP TABLE IF EXISTS custom_lists;
+          CREATE TABLE custom_lists (
+            id_list INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT DEFAULT '',
+            updated_at TEXT NOT NULL
+          );
+        `);
+        console.log('✅ custom_lists migrada desde esquema antiguo');
+      }
+    } catch (e) { console.error('Error custom_lists:', e); }
+    // ----------------------------------------
+
     // Creamos tablas necesarias (asegurarse de que coincidan con el esquema usado en el proyecto)
     await db.execAsync(`
       -- TABLA ARCANOS
@@ -162,6 +198,7 @@ export const initDatabase = async () => {
         FOREIGN KEY (id_mision) REFERENCES misiones(id_mision)
       );
 
+
       -- TABLA FINANCIAL_CATEGORIES (Categorías personalizables para finanzas)
       CREATE TABLE IF NOT EXISTS financial_categories (
         id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,6 +230,7 @@ export const initDatabase = async () => {
     } catch (e) {
       console.error('Error comprobando/creando columna id_arco en logs:', e);
     }
+
 
 
     // Insertar arcanos base (usamos INSERT OR REPLACE para garantizar id fijo)

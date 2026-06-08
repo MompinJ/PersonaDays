@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, Animated, Easing } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { db } from '../../database';
 import { useTheme } from '../../themes/useTheme';
@@ -195,22 +196,47 @@ export const CompletedMissionsScreen = () => {
 
   const [selectedMission, setSelectedMission] = useState<any | null>(null);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={{ opacity: 0.8 }}>
-      <MissionItem mision={item} leftActionLabel={"RESTAURAR"} onSwipeLeft={() => revertNow(item)} onPress={() => setSelectedMission(item)} />
+  // Animacion de entrada (una sola vez)
+  const intro = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
+
+  const renderItem = ({ item, index }: { item: any; index: number }) => (
+    <View style={{ opacity: 0.85 }}>
+      <MissionItem mision={item} index={index} leftActionLabel={"RESTAURAR"} onSwipeLeft={() => revertNow(item)} onPress={() => setSelectedMission(item)} />
     </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <Text style={[styles.header, { color: colors.primary }]}>HISTORIAL DE HOY</Text>
-      <FlatList
-        data={completed}
-        keyExtractor={(i) => i.id_mision ? i.id_mision.toString() : Math.random().toString()}
-        renderItem={renderItem}
-        contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={<Text style={{ color: colors.textDim, textAlign: 'center', marginTop: 40 }}>No hay misiones completadas hoy.</Text>}
-      />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.headerRow}>
+        <View style={[styles.titleAccent, { backgroundColor: colors.primary }]} />
+        <Text style={[styles.header, { color: colors.text, fontFamily: colors.fonts?.title }]}>HISTORIAL DE HOY</Text>
+      </View>
+
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: intro,
+          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+        }}
+      >
+        <FlatList
+          data={completed}
+          keyExtractor={(i) => i.id_mision ? i.id_mision.toString() : Math.random().toString()}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="moon-outline" size={48} color={colors.textDim} />
+              <Text style={{ color: colors.textDim, marginTop: 12, fontFamily: colors.fonts?.bold }}>Nada completado hoy</Text>
+              <Text style={{ color: colors.textDim, marginTop: 4, fontSize: 13, fontFamily: colors.fonts?.body }}>Ve a por tu primera misión del día</Text>
+            </View>
+          }
+        />
+      </Animated.View>
 
       {/* Modal de detalle similar a MissionsScreen */}
       <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
@@ -220,5 +246,8 @@ export const CompletedMissionsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 50 },
-  header: { fontSize: 20, fontWeight: '900', textAlign: 'center', marginBottom: 10 }
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 12 },
+  titleAccent: { width: 7, height: 28, marginRight: 12, transform: [{ skewX: '-20deg' }] },
+  header: { fontSize: 24, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
 });

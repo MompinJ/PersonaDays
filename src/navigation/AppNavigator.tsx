@@ -15,7 +15,7 @@ import { RootTabParamList, RootStackParamList } from './types';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { StatsScreen } from '../screens/Stats/StatsScreen';
 import { MissionsScreen } from '../screens/Missions/MissionsScreen';
-import { CalendarScreen } from '../screens/Calendar/CalendarScreen';
+import { CalendarScreen } from '../screens/Phone/Calendar/CalendarScreen';
 import { EconomyScreen } from '../screens/Economy/EconomyScreen';
 import { CreateMissionScreen } from '../screens/Missions/CreateMissionScreen';
 import { ManageMissionsScreen } from '../screens/Missions/ManageMissionsScreen';
@@ -24,9 +24,12 @@ import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 import { SettingsScreen } from '../screens/Profile/SettingsScreen';
 import { CharacterSelectionScreen } from '../screens/CharacterSelectionScreen';
 import { SetupScreen } from '../screens/Setup/SetupScreen';
-import { ArcsScreen } from '../screens/Arcs/ArcsScreen';
-import { ArcDetailScreen } from '../screens/Arcs/ArcDetailScreen';
+import { ArcsScreen } from '../screens/Phone/Arcs/ArcsScreen';
+import { ArcDetailScreen } from '../screens/Phone/Arcs/ArcDetailScreen';
 import ManageCategoriesScreen from '../screens/Economy/ManageCategoriesScreen';
+import PhoneMenuScreen from '../screens/Phone/Phone';
+import ListsMenuScreen from '../screens/Phone/ListsMenuScreen';
+import ListDetailScreen from '../screens/Phone/ListDetailScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
 // Ademas genera la barra visual por defecto
@@ -50,10 +53,9 @@ const MainTabs = () => {
         tabBarIcon: ({ color, size }) => {
           const name = route.name;
           if (name === 'Home') return <Ionicons name="home" size={size} color={color} />;
-          if (name === 'Arcs') return <MaterialCommunityIcons name="book-open-variant" size={size} color={color} />;
+          if (name === 'Phone') return <MaterialCommunityIcons name="cellphone" size={size} color={color} />;
           if (name === 'Stats') return <Ionicons name="bar-chart" size={size} color={color} />;
           if (name === 'Missions') return <Ionicons name="list" size={size} color={color} />;
-          if (name === 'Calendar') return <Ionicons name="calendar" size={size} color={color} />;
           if (name === 'Economy') return <Ionicons name="cash" size={size} color={color} />;
           if (name === 'Profile') return <Ionicons name="person-circle" size={size} color={color} />;
           return null;
@@ -61,10 +63,9 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Arcs" component={ArcsScreen} />
+      <Tab.Screen name="Phone" component={PhoneMenuScreen} />
       <Tab.Screen name="Stats" component={StatsScreen} />
       <Tab.Screen name="Missions" component={MissionsScreen} />
-      <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="Economy" component={EconomyScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -77,6 +78,10 @@ export const AppNavigator = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} />
+        <Stack.Screen name="Arcs" component={ArcsScreen} />
+        <Stack.Screen name="ListsMenuScreen" component={ListsMenuScreen} />
+        <Stack.Screen name="ListDetailScreen" component={ListDetailScreen} />
         <Stack.Screen name="ArcDetail" component={ArcDetailScreen} />
         <Stack.Screen
           name="ManageMissions"

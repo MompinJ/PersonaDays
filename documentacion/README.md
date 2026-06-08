@@ -91,3 +91,14 @@ El esquema relacional en SQLite conecta todos los módulos:
 * `impacto_mision`: Tabla puente que define (Misión -> da XP a -> Stat).
 * `finanzas` / `financial_categories`: Módulo económico independiente pero gamificado.
 * `logs`: Historial inmutable de acciones.
+
+---
+
+## 🎭 Sistema de Diseño (estilo Persona 3 Reload)
+
+El lenguaje visual de la app —colores por personaje, tipografía por roles, componentes
+angulados (shards, chips en cascada), animaciones y la "regla de oro" de variación—
+está documentado en **[`Sistema_de_Diseno_P3R.md`](./Sistema_de_Diseno_P3R.md)**.
+
+La **pantalla modelo / master class** es `src/screens/Missions/CreateMissionScreen.tsx`.
+**Léelo antes de crear o modificar cualquier UI.**

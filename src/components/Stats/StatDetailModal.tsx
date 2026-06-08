@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 import { StatViewData } from '../../hooks/usePlayerStats';
@@ -15,10 +15,30 @@ interface Props {
 
 export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
   const colors = useTheme();
+  const { player } = useGame();
   const { showAlert } = useAlert();
   const [descripcion, setDescripcion] = useState<string>('');
   const [nivelMeta, setNivelMeta] = useState<number>(1);
   const [children, setChildren] = useState<any[]>([]);
+
+  // Animacion de entrada/salida (pop)
+  const [show, setShow] = useState(false);
+  const [displayStat, setDisplayStat] = useState<StatViewData | null>(stat);
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      if (stat) setDisplayStat(stat);
+      setShow(true);
+      anim.setValue(0);
+      Animated.spring(anim, { toValue: 1, friction: 7, tension: 90, useNativeDriver: true }).start();
+    } else if (show) {
+      Animated.timing(anim, { toValue: 0, duration: 150, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
+        if (finished) setShow(false);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   useEffect(() => {
     if (!stat) return;
@@ -63,8 +83,8 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
     loadFull();
   }, [stat]);
 
-
-  const isBaseStat = !!stat && stat.id_stat >= 1 && stat.id_stat <= 5;
+  const ds = displayStat;
+  const isBaseStat = !!ds && ds.id_stat >= 1 && ds.id_stat <= 5;
 
   const handleSave = async () => {
     if (!stat) return;
@@ -79,8 +99,6 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
       showAlert('Error', 'No se pudo guardar el stat.');
     }
   };
-
-  const { player } = useGame();
 
   const handleDelete = async () => {
     if (!stat) return;
@@ -120,80 +138,82 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
     }
   };
 
-  if (!stat) return null;
-
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.backdrop}>
-        <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.primary }] }>
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <Text style={[styles.title, { color: colors.text }]}>{(stat.nombre_stat || 'SIN NOMBRE').toUpperCase()}</Text>
+    <Modal visible={show} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View style={[styles.backdrop, { opacity: anim }]}>
+        <Animated.View style={{ transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}>
+          <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.primary }]}>
+            <View style={[styles.topAccent, { backgroundColor: colors.primary }]} />
+            <ScrollView contentContainerStyle={{ padding: 18 }}>
+              <Text style={[styles.title, { color: colors.text, fontFamily: colors.fonts?.title }]}>{(ds?.nombre_stat || 'SIN NOMBRE').toUpperCase()}</Text>
 
-            <Text style={[styles.label, { color: colors.textDim }]}>Descripción</Text>
-            {isBaseStat ? (
-              <Text style={{ color: colors.textDim, marginBottom: 8 }}>{descripcion || 'Sin descripción disponible.'}</Text>
-            ) : (
-              <TextInput
-                multiline
-                value={descripcion}
-                onChangeText={setDescripcion}
-                placeholder="Descripción del stat"
-                placeholderTextColor={colors.textDim}
-                style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
-              />
-            )}
+              <Text style={[styles.label, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>DESCRIPCIÓN</Text>
+              {isBaseStat ? (
+                <Text style={{ color: colors.textDim, marginBottom: 8, fontFamily: colors.fonts?.body }}>{descripcion || 'Sin descripción disponible.'}</Text>
+              ) : (
+                <TextInput
+                  multiline
+                  value={descripcion}
+                  onChangeText={setDescripcion}
+                  placeholder="Descripción del stat"
+                  placeholderTextColor={colors.textDim}
+                  style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
+                />
+              )}
 
-            <Text style={[styles.label, { color: colors.textDim, marginTop: 12 }]}>Meta de Nivel (dificultad)</Text>
-            {isBaseStat ? (
-              <Text style={{ color: colors.textDim }}>{`Meta: ${nivelMeta} (Fijo)`}</Text>
-            ) : (
-              <TextInput
-                keyboardType="number-pad"
-                value={String(nivelMeta)}
-                onChangeText={(t) => setNivelMeta(Math.max(1, parseInt(t || '1')))}
-                style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
-              />
-            )}
+              <Text style={[styles.label, { color: colors.textDim, marginTop: 14, fontFamily: colors.fonts?.condensed }]}>META DE NIVEL</Text>
+              {isBaseStat ? (
+                <Text style={{ color: colors.textDim, fontFamily: colors.fonts?.body }}>{`Meta: ${nivelMeta} (Fijo)`}</Text>
+              ) : (
+                <TextInput
+                  keyboardType="number-pad"
+                  value={String(nivelMeta)}
+                  onChangeText={(t) => setNivelMeta(Math.max(1, parseInt(t || '1')))}
+                  style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
+                />
+              )}
 
-            {children && children.length > 0 && (
-              <View style={{ marginTop: 14 }}>
-                <Text style={[styles.label, { color: colors.textDim }]}>Hijos</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-                  {children.map(c => (
-                    <View key={c.id_stat} style={[styles.chip, { borderColor: colors.primary, backgroundColor: 'transparent' }]}>
-                      <Text style={{ color: colors.text }}>{c.nombre}</Text>
-                    </View>
-                  ))}
+              {children && children.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={[styles.label, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>HIJOS</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+                    {children.map(c => (
+                      <View key={c.id_stat} style={[styles.chip, { borderColor: colors.primary }]}>
+                        <Text style={[styles.chipText, { color: colors.primary, fontFamily: colors.fonts?.heading }]}>{String(c.nombre).toUpperCase()}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
 
-          </ScrollView>
+            </ScrollView>
 
-          <View style={styles.footer}>
-            {isBaseStat ? (
-              <TouchableOpacity onPress={onClose} style={[styles.btnSave, { backgroundColor: colors.primary, alignSelf: 'center' }]}>
-                <Text style={{ color: colors.textInverse }}>CERRAR</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <TouchableOpacity onPress={onClose} style={styles.btnCancel}><Text style={{ color: colors.textDim }}>CERRAR</Text></TouchableOpacity>
-                <View style={{ flexDirection: 'row' }}>
-                  {stat.id_stat > 5 && (
-                    <TouchableOpacity onPress={handleDelete} style={[styles.btnDelete, { borderColor: colors.error }]}>
-                      <Text style={{ color: colors.error }}>ELIMINAR</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity onPress={handleSave} style={[styles.btnSave, { backgroundColor: colors.primary }]}>
-                    <Text style={{ color: colors.textInverse }}>GUARDAR</Text>
+            <View style={[styles.footer, { borderTopColor: colors.border }]}>
+              {isBaseStat ? (
+                <TouchableOpacity onPress={onClose} activeOpacity={0.9} style={[styles.skewBtn, { backgroundColor: colors.primary, alignSelf: 'center', paddingHorizontal: 40 }]}>
+                  <Text style={[styles.skewBtnText, { color: colors.textInverse, fontFamily: colors.fonts?.heading }]}>CERRAR</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity onPress={onClose} style={styles.btnCancel}>
+                    <Text style={{ color: colors.textDim, fontFamily: colors.fonts?.bold, letterSpacing: 1 }}>CERRAR</Text>
                   </TouchableOpacity>
-                </View>
-              </>
-            )}
+                  <View style={{ flexDirection: 'row' }}>
+                    {ds && ds.id_stat > 5 && (
+                      <TouchableOpacity onPress={handleDelete} activeOpacity={0.85} style={[styles.skewBtn, { borderColor: colors.error, borderWidth: 1.5, marginRight: 8 }]}>
+                        <Text style={[styles.skewBtnText, { color: colors.error, fontFamily: colors.fonts?.heading }]}>ELIMINAR</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={handleSave} activeOpacity={0.9} style={[styles.skewBtn, { backgroundColor: colors.primary }]}>
+                      <Text style={[styles.skewBtnText, { color: colors.textInverse, fontFamily: colors.fonts?.heading }]}>GUARDAR</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };
@@ -201,12 +221,14 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
   card: { borderWidth: 3, borderRadius: 6, overflow: 'hidden' },
-  title: { fontSize: 20, fontWeight: '900', marginBottom: 8 },
-  label: { fontSize: 12, marginTop: 6 },
-  input: { borderBottomWidth: 1, paddingVertical: 6 },
-  chip: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8, marginBottom: 8 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderTopWidth: 1 },
+  topAccent: { height: 5, width: '100%' },
+  title: { fontSize: 24, fontWeight: '900', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
+  label: { fontSize: 11, marginTop: 6, letterSpacing: 1, textTransform: 'uppercase' },
+  input: { borderBottomWidth: 1, paddingVertical: 6, fontSize: 15 },
+  chip: { borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8, marginBottom: 8, transform: [{ skewX: '-12deg' }] },
+  chipText: { fontSize: 11, letterSpacing: 0.5, transform: [{ skewX: '12deg' }] },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderTopWidth: 1 },
   btnCancel: { padding: 10 },
-  btnSave: { padding: 10, borderRadius: 4, marginLeft: 10 },
-  btnDelete: { padding: 10, borderRadius: 4, marginRight: 8, borderWidth: 1 }
+  skewBtn: { paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', transform: [{ skewX: '-12deg' }] },
+  skewBtnText: { letterSpacing: 1, textTransform: 'uppercase', transform: [{ skewX: '12deg' }] },
 });

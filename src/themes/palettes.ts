@@ -23,8 +23,18 @@ export interface ThemeColors {
     shadow: string;        // Para dar ese efecto "pop" 3D en los menús
 
     // Tipografía (nombre de las familias cargadas por expo-font)
+    // Las fuentes son globales (iguales para todos los personajes); el COLOR es lo
+    // que cambia por personaje. Roles:
+    //   title     -> Anton: headers de pantalla
+    //   display   -> Big Shoulders Display: numeros grandes (balance, XP, nivel)
+    //   heading   -> Bebas Neue: tags inclinados y chips
+    //   condensed -> Barlow Condensed: etiquetas/meta pequeñas
+    //   body/bold -> Exo 2: texto normal
     fonts?: {
         title: string;
+        display: string;
+        heading: string;
+        condensed: string;
         body: string;
         bold: string;
     };
@@ -32,6 +42,9 @@ export interface ThemeColors {
 // Tipografías por defecto (se referencian por nombre de familia una vez cargadas)
 export const DEFAULT_FONTS = {
     title: 'Anton_400Regular',
+    display: 'BigShouldersDisplay_800ExtraBold',
+    heading: 'BebasNeue_400Regular',
+    condensed: 'BarlowCondensed_600SemiBold',
     body: 'Exo2_400Regular',
     bold: 'Exo2_700Bold'
 };

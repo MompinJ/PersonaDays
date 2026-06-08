@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
 import Svg, { Polygon, Line, Text as SvgText, Circle } from 'react-native-svg';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
@@ -14,6 +14,13 @@ interface Props {
 export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: Props) => {
   const theme = useTheme();
   const strokeColor = color || theme.primary;
+
+  // Animacion de entrada: el radar se expande (scale + fade) al montar
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.spring(anim, { toValue: 1, friction: 6, tension: 55, useNativeDriver: true }).start();
+  }, []);
 
   // 1. DEFINIR QUÉ MOSTRAR (Lógica Dinámica)
   const statsToShow = useMemo(() => {
@@ -119,7 +126,7 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
   if (totalVars === 0) return <View style={styles.container} />;
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}>
       <Svg height={size} width={size}>
         {/* 1. Grilla de Fondo */}
         {renderGrid()}
@@ -171,7 +178,7 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
         {/* 5. Etiquetas */}
         {renderLabels()}
       </Svg>
-    </View>
+    </Animated.View>
   );
 };
 

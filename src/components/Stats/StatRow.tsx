@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
 import { calculateLevelFromXP } from '../../utils/levelingUtils';
@@ -15,34 +15,46 @@ export const StatRow = ({ data, colorTema }: Props) => {
   const lvlInfo = calculateLevelFromXP(data.experiencia_actual || 0);
   const xpPercent = Math.min(Math.max(lvlInfo.progress * 100, 0), 100);
 
+  // Barra de XP animada: crece desde 0 hasta el porcentaje actual (y re-anima si cambia)
+  const fill = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fill, {
+      toValue: xpPercent,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false, // width en % no soporta native driver
+    }).start();
+  }, [xpPercent]);
+  const fillWidth = fill.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
+
   return (
     <View style={styles.container}>
       {/* Círculo del Nivel (Estilo Rank) */}
       <View style={[styles.rankCircle, { borderColor: colorTema, backgroundColor: theme.surface }]}>
-        <Text style={[styles.rankText, { color: colorTema, fontFamily: theme.fonts?.bold }]}>{lvlInfo.level}</Text>
+        <Text style={[styles.rankText, { color: colorTema, fontFamily: theme.fonts?.display }]}>{lvlInfo.level}</Text>
       </View>
 
       <View style={styles.infoContainer}>
         <View style={styles.headerRow}>
-          <Text style={[styles.statName, { color: theme.text, fontFamily: theme.fonts?.bold }]}>{data.nombre_stat}</Text>
+          <Text style={[styles.statName, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{data.nombre_stat}</Text>
           {data.cuenta_prestigio > 0 && (
             <Text style={[styles.prestige, { color: theme.primary, fontFamily: theme.fonts?.bold }]}>★ {data.cuenta_prestigio}</Text>
           )}
         </View>
 
         {/* Barra de Progreso "Inclinada" estilo Persona */}
-        <View style={[styles.progressBarBackground, { backgroundColor: theme.surface }]}> 
-          <View 
+        <View style={[styles.progressBarBackground, { backgroundColor: theme.surface }]}>
+          <Animated.View
             style={[
-              styles.progressBarFill, 
-              { 
-                width: `${xpPercent}%`, 
+              styles.progressBarFill,
+              {
+                width: fillWidth,
                 backgroundColor: colorTema || theme.primary
               }
-            ]} 
+            ]}
           />
         </View>
-        <Text style={[styles.xpText, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>{lvlInfo.currentLevelXP} / {lvlInfo.xpToNextLevel} XP</Text>
+        <Text style={[styles.xpText, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{lvlInfo.currentLevelXP} / {lvlInfo.xpToNextLevel} XP</Text>
       </View>
     </View>
   );

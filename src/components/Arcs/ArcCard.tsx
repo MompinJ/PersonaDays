@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
+import { getContrastText } from '../../utils/colorUtils';
+import { PersonaCount } from '../UI/PersonaCount';
 
 const ArcCard = ({ arc, onPress, containerStyle, style, mode }: { arc: any; onPress?: () => void; containerStyle?: any; style?: any; mode?: 'HERO' | 'DEFAULT' }) => {
   const theme = useTheme();
   const [progress, setProgress] = useState(0);
+  const isHero = mode === 'HERO';
 
   useEffect(() => {
     let mounted = true;
@@ -35,51 +38,61 @@ const ArcCard = ({ arc, onPress, containerStyle, style, mode }: { arc: any; onPr
   if (end && now > end) state = 'COMPLETADO';
   else if (now >= start && (!end || now <= end)) state = 'ACTIVO';
 
-  const formattedDates = `${arc.fecha_inicio} ${arc.fecha_fin ? '- ' + arc.fecha_fin : ''}`;
-
-  const combinedStyle = [
-    styles.card,
-    state === 'ACTIVO' && { borderColor: theme.primary, shadowColor: theme.primary, elevation: 12 },
-    { backgroundColor: state === 'COMPLETADO' ? `${theme.surface}88` : theme.surface },
-    mode === 'HERO' ? styles.heroCard : null,
-    containerStyle,
-    style
-  ];
+  const stateColor = state === 'ACTIVO' ? theme.primary : state === 'COMPLETADO' ? theme.success : theme.secondary;
+  const stateLabel = state === 'ACTIVO' ? 'EN CURSO' : state === 'COMPLETADO' ? 'COMPLETADO' : 'PROGRAMADO';
+  const formattedDates = `${arc.fecha_inicio}${arc.fecha_fin ? '  →  ' + arc.fecha_fin : ''}`;
 
   return (
     <TouchableOpacity
-      style={combinedStyle}
+      activeOpacity={0.9}
       onPress={onPress}
+      style={[styles.card, isHero && styles.heroCard, { backgroundColor: theme.surface, borderColor: stateColor }, containerStyle, style]}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={[styles.title, { color: theme.text }]}>{arc.nombre}</Text>
-        {state === 'ACTIVO' && <Text style={[styles.badge, { backgroundColor: theme.primary, color: theme.textInverse }]}>EN CURSO</Text>}
-        {state === 'PENDIENTE' && <Text style={[styles.badgePending]}>PROGRAMADO</Text>}
+      {/* Acento inclinado segun estado */}
+      <View style={[styles.accent, { backgroundColor: stateColor }]} />
+
+      <View style={styles.headerRow}>
+        <Text style={[styles.title, { color: theme.text, fontFamily: theme.fonts?.title, fontSize: isHero ? 30 : 22 }]} numberOfLines={2}>
+          {arc.nombre}
+        </Text>
+        <View style={[styles.badge, { backgroundColor: stateColor }]}>
+          <Text style={[styles.badgeText, { color: getContrastText(stateColor), fontFamily: theme.fonts?.heading }]}>{stateLabel}</Text>
+        </View>
       </View>
 
-
-      <Text style={[styles.dates, { color: theme.textDim }]}>{formattedDates}</Text>
+      <Text style={[styles.dates, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{formattedDates}</Text>
 
       <View style={styles.heroSpace} />
 
-      <View style={styles.progressBarBackground}>
-        <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
+      {/* Progreso: numero grande estilo "01" + barra inclinada */}
+      <View style={styles.progressRow}>
+        <PersonaCount value={progress} pad={2} color={stateColor} fontSize={isHero ? 60 : 42} />
+        <Text style={[styles.pct, { color: stateColor, fontFamily: theme.fonts?.display, fontSize: isHero ? 30 : 22 }]}>%</Text>
+        <Text style={[styles.pctLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>COMPLETADO</Text>
       </View>
-      <Text style={{ color: theme.textDim, marginTop: 10 }}>{progress}% completado</Text>
+
+      <View style={[styles.progressBarBackground, { backgroundColor: theme.inactive }]}>
+        <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: stateColor }]} />
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { height: 200, padding: 20, borderWidth: 2, borderRadius: 14, marginBottom: 18, justifyContent: 'space-between', overflow: 'hidden' },
-  heroCard: { flex: 1, width: '100%', justifyContent: 'space-between' },
-  title: { fontSize: 24, fontWeight: '900' },
-  dates: { fontSize: 12, marginTop: 6 },
-  heroSpace: { flex: 1 },
-  progressBarBackground: { height: 18, backgroundColor: '#192028', borderRadius: 10, marginTop: 12, overflow: 'hidden' },
-  progressBarFill: { height: '100%', borderRadius: 10 },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, fontWeight: '700' },
-  badgePending: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#444', color: '#ccc' }
+  card: { minHeight: 190, padding: 20, paddingLeft: 26, borderWidth: 2, borderRadius: 10, marginBottom: 18, justifyContent: 'space-between', overflow: 'hidden' },
+  heroCard: { flex: 1, width: '100%' },
+  accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 9, transform: [{ skewX: '-12deg' }], marginLeft: -3 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  title: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1, marginRight: 10 },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, transform: [{ skewX: '-12deg' }] },
+  badgeText: { fontSize: 11, letterSpacing: 1, transform: [{ skewX: '12deg' }] },
+  dates: { fontSize: 12, marginTop: 8, letterSpacing: 0.5 },
+  heroSpace: { flex: 1, minHeight: 12 },
+  progressRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 8 },
+  pct: { marginLeft: 2, marginBottom: 4 },
+  pctLabel: { fontSize: 11, letterSpacing: 1, marginLeft: 10, marginBottom: 8 },
+  progressBarBackground: { height: 14, transform: [{ skewX: '-20deg' }], borderRadius: 2, overflow: 'hidden' },
+  progressBarFill: { height: '100%' },
 });
 
 export default ArcCard;

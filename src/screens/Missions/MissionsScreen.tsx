@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation } from 'react-native';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PressableScale } from '../../components/UI/PressableScale';
+import { PersonaShard } from '../../components/UI/PersonaShard';
 import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
@@ -22,6 +24,12 @@ export const MissionsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { theme, player, refreshUser } = useGame();
   const { refreshStats } = usePlayerStats();
+
+  // Animacion de entrada (una sola vez al montar)
+  const intro = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
 
  // Mostrar misiones
   const cargarMisiones = async () => {
@@ -273,25 +281,34 @@ const irACrearMision = () => {
     }
   }, [misiones, filtroActual]);
 
-  const renderFiltro = (tipo: MissionType) => (
-    <TouchableOpacity
-      style={[styles.filterChip, { backgroundColor: theme.surface, borderColor: theme.primary },
-        filtroActual === tipo && { backgroundColor: theme.primary, borderColor: theme.primary }
-      ]}
-      onPress={() => setFiltroActual(tipo)}
-    >
-      <Text style={[styles.filterText, { color: theme.text, fontFamily: theme.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }, filtroActual === tipo && { color: theme.textInverse }] }>
-        {tipo}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderFiltro = (tipo: MissionType) => {
+    const active = filtroActual === tipo;
+    return (
+      <TouchableOpacity
+        key={tipo}
+        activeOpacity={0.85}
+        style={[
+          styles.filterChip,
+          { backgroundColor: active ? theme.primary : theme.surface, borderColor: theme.primary },
+        ]}
+        onPress={() => setFiltroActual(tipo)}
+      >
+        <Text style={[styles.filterText, { color: active ? theme.textInverse : theme.textDim, fontFamily: theme.fonts?.heading }]}>
+          {tipo}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <Text style={[styles.headerTitle, { color: theme.text, fontFamily: theme.fonts?.title, textTransform: 'uppercase', letterSpacing: 1.5 }]}>REQUESTS</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.headerWrap}>
+        <PersonaShard label="REQUESTS" height={54} fontSize={30} font={theme.fonts?.title} />
+      </View>
 
       {/* Zona de Filtros (Scroll Horizontal) */}
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
           {renderFiltro(MissionType.DIARIA)}
           {renderFiltro(MissionType.SEMANAL)}
           {renderFiltro(MissionType.ARCO)}
@@ -301,109 +318,86 @@ const irACrearMision = () => {
       </View>
 
       {/* Lista de Misiones */}
-      <FlatList
-        data={filteredMissions}
-        keyExtractor={(item) => item.id_mision.toString()}
-        renderItem={({ item }) => (
-          <MissionItem 
-            mision={item} 
-            // Accion al deslizar:
-            onSwipeLeft={(id) => {
-              // Vibración o sonido aquí quedaría genial
-              toogleMission(id);
-            }}
-            // Acción al tocar: mostrar modal de detalle
-            onPress={(mision) => {
-              console.log('Item seleccionado para modal:', mision);
-              setSelectedMission(mision);
-            }}
-          />
-        )}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: theme.text, fontFamily: theme.fonts?.body, letterSpacing: 0.25 }]}>No hay misiones de tipo {filtroActual}.</Text>
-        }
-        contentContainerStyle={{ paddingBottom: 80 }} // Espacio para que no se corte abajo
-      />
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: intro,
+          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+        }}
+      >
+        <FlatList
+          data={filteredMissions}
+          keyExtractor={(item) => item.id_mision.toString()}
+          renderItem={({ item, index }) => (
+            <MissionItem
+              mision={item}
+              index={index}
+              onSwipeLeft={(id) => toogleMission(id)}
+              onPress={(mision) => setSelectedMission(mision)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="checkmark-done-circle-outline" size={56} color={theme.textDim} />
+              <Text style={[styles.emptyText, { color: theme.textDim, fontFamily: theme.fonts?.bold }]}>
+                Sin misiones {String(filtroActual).toLowerCase()}
+              </Text>
+              <Text style={[styles.emptySub, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>
+                Pulsa + para crear una nueva
+              </Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingBottom: 90, flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+        />
+      </Animated.View>
 
-      {/* Botones flotantes: gestionar y añadir */}
-      <TouchableOpacity style={[styles.secondaryFab, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('ManageMissions')}>
-          <Ionicons name="cog" size={20} color={theme.text} />
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.secondaryFabSmall, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('CompletedMissions')}>
-          <Ionicons name="time-outline" size={18} color={theme.text} />
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
-          <Text style={[styles.fabText, { color: theme.textInverse, fontFamily: theme.fonts?.title }]}>+</Text>
-      </TouchableOpacity>
+      {/* Botones flotantes: historial, gestionar y crear */}
+      <PressableScale containerStyle={styles.fabPosSmall} style={[styles.secondaryFabSmall, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('CompletedMissions')}>
+        <Ionicons name="time-outline" size={18} color={theme.text} />
+      </PressableScale>
+      <PressableScale containerStyle={styles.fabPosMid} style={[styles.secondaryFab, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('ManageMissions')}>
+        <Ionicons name="cog" size={20} color={theme.text} />
+      </PressableScale>
+      <PressableScale containerStyle={styles.fabPos} style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
+        <Ionicons name="add" size={32} color={theme.textInverse} />
+      </PressableScale>
 
-        <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
+      <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A1628', padding: 20, paddingTop: 50 },
-  headerTitle: { color: '#fff', fontSize: 28, marginBottom: 15, fontFamily: 'serif' },
+  container: { flex: 1, padding: 20, paddingTop: 50 },
 
-  // Estilos de los Filtros
-  filterContainer: { marginBottom: 20, height: 40 },
+  headerWrap: { marginBottom: 16, marginTop: 2 },
+
+  // Estilos de los Filtros (tabs inclinadas estilo Persona)
+  filterContainer: { marginBottom: 18, height: 40 },
   filterChip: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#1A2639',
     marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#2D3B55',
+    borderWidth: 1.5,
+    transform: [{ skewX: '-12deg' }],
   },
-  filterChipActive: {
-    backgroundColor: '#00D4FF', // Cyan activo
-    borderColor: '#00D4FF',
-  },
-  filterText: { color: '#8892B0', fontSize: 12 },
-  filterTextActive: { color: '#0A1628' }, // Texto oscuro sobre fondo cyan
+  filterText: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, transform: [{ skewX: '12deg' }] },
 
-  emptyText: { color: '#8892B0', textAlign: 'center', marginTop: 50, fontStyle: 'italic' },
+  // Estado vacio
+  emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 70 },
+  emptyText: { fontSize: 16, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
+  emptySub: { fontSize: 13, marginTop: 4 },
 
-  // Botón Flotante (FAB)
+  // Botones Flotantes (posicion en el Pressable, visual en el inner animado)
+  fabPos: { position: 'absolute', bottom: 20, right: 20 },
+  fabPosMid: { position: 'absolute', bottom: 92, right: 22 },
+  fabPosSmall: { position: 'absolute', bottom: 144, right: 24 },
   fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#00D4FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    width: 60, height: 60, borderRadius: 30,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 8, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
   },
-  secondaryFab: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1A2639',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  secondaryFabSmall: {
-    position: 'absolute',
-    bottom: 140,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1A2639',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  fabText: { fontSize: 30, color: '#fff', marginTop: -4 }
+  secondaryFab: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  secondaryFabSmall: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
 });

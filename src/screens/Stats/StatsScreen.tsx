@@ -1,9 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation, Animated, Easing } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
+import { PressableScale } from '../../components/UI/PressableScale';
+import { PersonaShard } from '../../components/UI/PersonaShard';
 import { useTheme } from '../../themes/useTheme';
 import { StatRow } from '../../components/Stats/StatRow';
 import { StatRadarChart } from '../../components/Stats/StatRadarChart';
@@ -23,7 +26,11 @@ export const StatsScreen = () => {
 
   const colors = useTheme();
 
-
+  // Animacion de entrada (una sola vez al montar)
+  const intro = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,46 +103,57 @@ export const StatsScreen = () => {
       <StatusBar style="light" />
       
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text, fontFamily: colors.fonts?.title, textTransform: 'uppercase', letterSpacing: 1.5 }]}>PARAMETERS</Text>
-        <View style={[styles.headerLine, { backgroundColor: colors.primary }]} />
+        <PersonaShard label="PARAMETERS" height={54} fontSize={30} font={colors.fonts?.title} />
       </View>
 
-      <FlatList
-        data={stats}
-        keyExtractor={(item) => item.id_stat.toString()}
-        ListHeaderComponent={
-          <View>
-                {stats.length > 5 && (
-              <View style={{ alignItems: 'flex-end', paddingRight: 20 }}>
-                <TouchableOpacity onPress={() => setGraphModalVisible(true)}>
-                            <Text style={{ color: colors.primary, fontSize: 10, textDecorationLine: 'underline', fontFamily: colors.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    ⚙ CONFIGURAR GRÁFICO
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: intro,
+          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+        }}
+      >
+        <FlatList
+          data={stats}
+          keyExtractor={(item) => item.id_stat.toString()}
+          ListHeaderComponent={
+            <View>
+              {stats.length > 5 && (
+                <View style={{ alignItems: 'flex-end', paddingRight: 20 }}>
+                  <TouchableOpacity onPress={() => setGraphModalVisible(true)} style={styles.configLink} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="settings-sharp" size={12} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 10, fontFamily: colors.fonts?.bold, textTransform: 'uppercase', letterSpacing: 1, marginLeft: 5 }}>
+                      Configurar gráfico
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-            <StatRadarChart 
-               stats={stats} 
-               selectedStatsIds={visibleStatIds.length >= 3 ? visibleStatIds : undefined}
-               color={colors.primary} 
-               size={280} 
-            />
-            <Text style={[styles.listLabel, { color: colors.textDim, fontFamily: colors.fonts?.bold, textTransform: 'uppercase' }]}>DETALLE DE HABILIDADES</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.9} onPress={() => { setSelectedStat(item); setDetailModalVisible(true); }}>
-            <StatRow data={item} colorTema={colors.primary} />
-          </TouchableOpacity>
-        )}
-        ListFooterComponent={
-          <AddStatButton onPress={handleCreateStat} color={colors.primary} />
-        }
-        contentContainerStyle={styles.listContent}
-        onRefresh={refreshStats}
-        refreshing={loading}
-      />
+              <StatRadarChart
+                stats={stats}
+                selectedStatsIds={visibleStatIds.length >= 3 ? visibleStatIds : undefined}
+                color={colors.primary}
+                size={280}
+              />
+              <View style={{ marginLeft: 20, marginTop: 10, marginBottom: 10 }}>
+                <PersonaShard label="DETALLE DE HABILIDADES" variant="ghost" fontSize={12} />
+              </View>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <PressableScale scaleTo={0.98} onPress={() => { setSelectedStat(item); setDetailModalVisible(true); }}>
+              <StatRow data={item} colorTema={colors.primary} />
+            </PressableScale>
+          )}
+          ListFooterComponent={
+            <AddStatButton onPress={handleCreateStat} color={colors.primary} />
+          }
+          contentContainerStyle={styles.listContent}
+          onRefresh={refreshStats}
+          refreshing={loading}
+          showsVerticalScrollIndicator={false}
+        />
+      </Animated.View>
 
       <CreateStatModal 
         visible={isModalVisible} 
@@ -196,6 +214,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
     transform: [{ skewX: '-45deg' }]
   }, 
+  configLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
   listLabel: {
     color: '#666',
     fontSize: 12,

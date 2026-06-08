@@ -1,6 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
+import { PressableScale } from '../UI/PressableScale';
 
 interface Props {
   onPress: () => void;
@@ -9,14 +11,12 @@ interface Props {
 
 export const AddStatButton = ({ onPress, color }: Props) => {
   const theme = useTheme();
-  const textColor = color || theme.text;
+  const accent = color || theme.primary;
   return (
-    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.wrapper}>
-      <View style={[styles.container, { borderColor: color, backgroundColor: theme.surface }]}>
-        <Text style={[styles.plus, { color: textColor }]}>+</Text>
-        <Text style={[styles.text, { color: textColor }]}>NUEVO STAT</Text>
-      </View>
-    </TouchableOpacity>
+    <PressableScale containerStyle={styles.wrapper} style={[styles.container, { borderColor: accent, backgroundColor: theme.surface }]} onPress={onPress}>
+      <Ionicons name="add" size={20} color={accent} style={{ marginRight: 8 }} />
+      <Text style={[styles.text, { color: accent, fontFamily: theme.fonts?.heading }]}>NUEVO STAT</Text>
+    </PressableScale>
   );
 };
 
@@ -34,15 +34,9 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', // Estilo técnico/blueprint
     borderRadius: 4,
   },
-  plus: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginRight: 10,
-    lineHeight: 26,
-  },
   text: {
     fontSize: 14,
     fontWeight: 'bold',
     letterSpacing: 1,
-  }
+  },
 });

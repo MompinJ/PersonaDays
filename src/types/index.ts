@@ -131,6 +131,14 @@ export interface Mision {
 	valor_impacto?: number;
 }
 
+// Interfaces para Notas (Sistema simplificado de texto libre)
+export interface CustomList {
+  id_list: number;
+  title: string;
+  content: string;
+  updated_at: string;
+}
+
 // Tabla impacto_mision
 export interface ImpactoMision {
 	id_impacto: number;

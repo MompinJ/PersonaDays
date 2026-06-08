@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../themes/useTheme';
-import { db } from '../../database';
+import { db, initDatabase } from '../../database';
 import { useAlert } from '../../context/AlertContext';
 
 export const SettingsScreen = () => {
@@ -75,6 +75,41 @@ export const SettingsScreen = () => {
     ]);
   };
 
+  // DEV: Reset Database (Danger Zone)
+  const resetDatabase = () => {
+    showAlert('CONFIRMAR RESET', '¿Estás seguro? Esto borrará TODO el progreso y datos de la app de forma permanente.', [
+      { text: 'CANCELAR', style: 'cancel' },
+      { text: 'SÍ, REINICIAR', style: 'destructive', onPress: async () => {
+        try {
+          await db.execAsync('BEGIN TRANSACTION;');
+          const tables = [
+            'jugadores','stats','jugador_stat','misiones','impacto_mision','arcos','logs',
+            'finanzas','financial_categories','arcanos','custom_lists','list_items','jugador_arcanos_slots'
+          ];
+          for (const t of tables) {
+            try { await db.runAsync(`DROP TABLE IF EXISTS ${t};`); } catch(e) { console.warn('No se pudo dropear', t, e); }
+          }
+          try { await db.runAsync("DELETE FROM sqlite_sequence;" ); } catch(e) { /* ignore */ }
+          await db.execAsync('COMMIT;');
+
+          // Recreate schema
+          try {
+            await initDatabase();
+            showAlert('Éxito', 'Base de datos reiniciada. Por favor recarga la app si es necesario.');
+          } catch (e) {
+            console.error('Error recreando DB:', e);
+            showAlert('Error', 'Ocurrió un error al recrear la base de datos. Revisa logs.');
+          }
+        } catch (err) {
+          console.error('Error reseteando DB:', err);
+          try { await db.execAsync('ROLLBACK;'); } catch(e){}
+          showAlert('Error', 'No se pudo resetear la base de datos.');
+        }
+      } }
+    ]);
+  };
+
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
       <Text style={[styles.header, { color: theme.text, fontFamily: theme.fonts?.title }]}>AJUSTES</Text>
@@ -106,6 +141,14 @@ export const SettingsScreen = () => {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="layers" size={22} color={theme.primary} style={{ marginRight: 12 }} />
           <Text style={[styles.optionText, { color: theme.primary }]}>Eliminar Stats Duplicados</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Danger Zone: Reset DB */}
+      <TouchableOpacity style={[styles.option, { borderColor: theme.error, marginTop: 16, backgroundColor: theme.error + '06' }]} onPress={resetDatabase}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="warning" size={22} color={theme.error} style={{ marginRight: 12 }} />
+          <Text style={[styles.optionText, { color: theme.error }]}>⚠ RESET DATA (DEV ONLY)</Text>
         </View>
       </TouchableOpacity>
 

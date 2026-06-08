@@ -5,6 +5,9 @@ import {
 } from 'react-native';
 import { createCustomStat } from '../../database/statsHelpers';
 import { useTheme } from '../../themes/useTheme';
+import { PersonaModal } from '../UI/PersonaModal';
+import { PersonaShard } from '../UI/PersonaShard';
+import { getContrastText } from '../../utils/colorUtils';
 
 interface Props {
   visible: boolean;
@@ -57,64 +60,61 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
   };
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
-          <View style={[styles.modalContainer, { borderColor: colors.primary, backgroundColor: colors.background }]}> 
-            <View style={[styles.headerDecoration, { backgroundColor: colors.primary }]} />
-            <Text style={[styles.title, { color: colors.text }]}>NUEVO HÁBITO</Text>
-
-            <ScrollView style={{ maxHeight: 500 }}>
-              <Text style={[styles.label, { color: colors.primary }]}>NOMBRE DEL HÁBITO</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderBottomColor: colors.border, color: colors.text }]}
-                placeholder="Ej: Tocar Piano, Leer, Gym..."
-                placeholderTextColor={colors.textDim}
-                value={nombre}
-                onChangeText={setNombre}
-              />
-
-              <Text style={[styles.label, { color: colors.primary }]}>¿A QUÉ STAT PERTENECE?</Text>
-              <View style={styles.parentSelector}>
-                {MAIN_STATS.map((stat) => (
-                  <TouchableOpacity
-                    key={stat.id}
-                    style={[
-                      styles.parentButton,
-                      selectedParentId === stat.id && { backgroundColor: colors.primary, borderColor: colors.primary }
-                    ]}
-                    onPress={() => setSelectedParentId(stat.id)}
-                  >
-                    <Text style={[styles.parentButtonText, { color: colors.textDim }, selectedParentId === stat.id && { color: colors.background, fontWeight: 'bold' }]}> 
-                      {stat.nombre}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+    <PersonaModal visible={visible} onClose={onClose} title="NUEVO HÁBITO">
+            <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+              {/* NOMBRE protagonista (banner diagonal) */}
+              <View style={styles.tagWrap}><PersonaShard label="NOMBRE DEL HÁBITO" height={24} fontSize={11} /></View>
+              <View style={[styles.nameCard, { backgroundColor: colors.background, borderColor: colors.primary }]}>
+                <View style={[styles.nameAccent, { backgroundColor: colors.primary }]} />
+                <View style={[styles.nameStripe, { backgroundColor: colors.secondary }]} />
+                <TextInput
+                  style={[styles.nameInput, { color: colors.text }]}
+                  placeholder="EJ: PIANO, LEER, GYM..."
+                  placeholderTextColor={colors.textDim}
+                  value={nombre}
+                  onChangeText={setNombre}
+                />
               </View>
 
-              <Text style={[styles.label, { color: colors.primary }]}>META DE NIVEL (MAX)</Text>
-              <View style={styles.rowInput}>
+              {/* STAT padre - chips en zigzag */}
+              <View style={styles.tagWrap}><PersonaShard label="¿A QUÉ STAT PERTENECE?" height={24} fontSize={11} /></View>
+              <View style={styles.parentSelector}>
+                {MAIN_STATS.map((stat, i) => {
+                  const active = selectedParentId === stat.id;
+                  const sk = [-14, 11, -16, 10, -12][i % 5];
+                  const st = [0, 14, 4, 12, 2][i % 5];
+                  const cc = i % 2 === 0 ? colors.primary : colors.secondary;
+                  return (
+                    <TouchableOpacity
+                      key={stat.id}
+                      activeOpacity={0.85}
+                      style={[styles.parentButton, { marginTop: st, borderColor: cc, backgroundColor: active ? cc : colors.surface, transform: [{ skewX: `${sk}deg` }] }]}
+                      onPress={() => setSelectedParentId(stat.id)}
+                    >
+                      <Text style={[styles.parentButtonText, { color: active ? getContrastText(cc) : colors.textDim, fontFamily: colors.fonts?.heading, transform: [{ skewX: `${-sk}deg` }] }]}>
+                        {stat.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* META DE NIVEL - numero grande */}
+              <View style={styles.tagWrap}><PersonaShard label="META DE NIVEL" height={24} fontSize={11} /></View>
+              <View style={styles.metaRow}>
                 <TextInput
-                  style={[styles.input, { width: 80, textAlign: 'center' }]}
+                  style={[styles.metaInput, { color: colors.primary, borderBottomColor: colors.primary, fontFamily: colors.fonts?.display }]}
                   value={maxLevel}
                   onChangeText={setMaxLevel}
                   keyboardType="numeric"
                   maxLength={3}
                 />
-                <Text style={styles.helperText}>
-                  (Al llegar a {maxLevel}, harás prestigio)
+                <Text style={[styles.helperText, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>
+                  AL LLEGAR A {maxLevel}, HARÁS PRESTIGIO
                 </Text>
               </View>
 
-              <Text style={[styles.label, { color: colors.primary }]}>DESCRIPCIÓN (Opcional)</Text>
+              <View style={styles.tagWrap}><PersonaShard label="DESCRIPCIÓN" variant="ghost" height={22} fontSize={10} /></View>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderBottomColor: colors.border, color: colors.text }]}
                 placeholder="Detalles..."
@@ -127,7 +127,7 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
 
               <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                  <Text style={styles.cancelText}>CANCELAR</Text>
+                  <Text style={[styles.cancelText, { color: colors.textDim }]}>CANCELAR</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -135,16 +135,13 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
                   onPress={handleSave}
                   disabled={loading}
                 >
-                  <Text style={[styles.saveText, { color: colors.background }]}>
+                  <Text style={[styles.saveText, { color: colors.textInverse, fontFamily: colors.fonts?.heading }]}>
                     {loading ? '...' : 'CREAR'}
                   </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+    </PersonaModal>
   );
 };
 
@@ -179,19 +176,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   textArea: { height: 60, textAlignVertical: 'top' },
+  tagWrap: { marginTop: 16, marginBottom: 10 },
+  nameCard: { borderRadius: 4, borderWidth: 2, paddingVertical: 14, paddingHorizontal: 16, paddingLeft: 24, minHeight: 56, justifyContent: 'center', overflow: 'hidden' },
+  nameAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, transform: [{ skewX: '-14deg' }], marginLeft: -3 },
+  nameStripe: { position: 'absolute', left: -20, right: -20, bottom: 7, height: 4, transform: [{ skewX: '-20deg' }], opacity: 0.85 },
+  nameInput: { fontSize: 20, fontWeight: 'bold', letterSpacing: 0.5 },
   parentSelector: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start',
   },
   parentButton: {
-    borderWidth: 1,
-    paddingVertical: 6, paddingHorizontal: 12,
-    borderRadius: 20,
+    borderWidth: 1.5,
+    paddingVertical: 7, paddingHorizontal: 14,
   },
   parentButtonSelected: {},
   parentButtonText: { fontSize: 12, fontWeight: 'bold' },
   parentButtonTextSelected: {},
-  rowInput: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  helperText: { fontSize: 12, fontStyle: 'italic' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  metaInput: { fontSize: 40, fontWeight: '900', borderBottomWidth: 2, minWidth: 72, textAlign: 'center', padding: 0, includeFontPadding: false },
+  helperText: { flex: 1, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
   buttonRow: {
     flexDirection: 'row', justifyContent: 'flex-end',
     marginTop: 25, gap: 15,

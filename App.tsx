@@ -7,6 +7,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { Exo2_400Regular, Exo2_700Bold } from '@expo-google-fonts/exo-2';
+import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed';
+import { BigShouldersDisplay_700Bold, BigShouldersDisplay_800ExtraBold } from '@expo-google-fonts/big-shoulders-display';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 
 // Navegador y Pantallas
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -59,6 +62,11 @@ export default function App() {
     Anton_400Regular,
     Exo2_400Regular,
     Exo2_700Bold,
+    BarlowCondensed_600SemiBold,
+    BarlowCondensed_700Bold,
+    BigShouldersDisplay_700Bold,
+    BigShouldersDisplay_800ExtraBold,
+    BebasNeue_400Regular,
   });
 
   useEffect(() => {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { PersonaModal } from '../UI/PersonaModal';
 import { StatViewData } from '../../hooks/usePlayerStats';
 
 interface Props {
@@ -57,10 +59,7 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.background, borderColor: colors.primary }]}>
-          <Text style={[styles.title, { color: colors.text }]}>CONFIGURAR GRÁFICO</Text>
+    <PersonaModal visible={visible} onClose={onClose} title="CONFIGURAR GRÁFICO">
           <Text style={[styles.subtitle, { color: colors.textDim }]}>Seleccionados: {selected.length} (Mínimo 3)</Text>
           
           <FlatList
@@ -70,33 +69,33 @@ export const SelectGraphStatsModal = ({ visible, allStats, currentSelection, onC
             renderItem={({ item }) => {
               const isSelected = selected.includes(item.id_stat);
               return (
-                <TouchableOpacity 
+                <TouchableOpacity
+                  activeOpacity={0.85}
                   style={[styles.item, isSelected && { backgroundColor: colors.primary }, { borderBottomColor: colors.border }]}
                   onPress={() => toggleStat(item.id_stat)}
                 >
-                  <Text style={[styles.text, isSelected ? { color: colors.background, fontWeight: 'bold' } : { color: colors.text }]}>
+                  <Text style={[styles.text, { fontFamily: colors.fonts?.bold }, isSelected ? { color: colors.textInverse } : { color: colors.text }]}>
                     {item.nombre_stat}
                   </Text>
-                  {isSelected && <Text style={{color: colors.background}}>✓</Text>}
+                  {isSelected && <Ionicons name="checkmark-circle" size={18} color={colors.textInverse} />}
                 </TouchableOpacity>
               );
             }}
           />
 
           <View style={styles.buttons}>
-            <TouchableOpacity onPress={onClose} style={styles.btnCancel}><Text style={[styles.txtCancel, { color: colors.textDim }]}>CANCELAR</Text></TouchableOpacity>
-            <TouchableOpacity onPress={handleSave} style={[styles.btnSave, { backgroundColor: colors.primary }]}><Text style={[styles.txtSave, { color: colors.background }]}>APLICAR</Text></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={styles.btnCancel}><Text style={[styles.txtCancel, { color: colors.textDim, fontFamily: colors.fonts?.bold, letterSpacing: 1 }]}>CANCELAR</Text></TouchableOpacity>
+            <TouchableOpacity onPress={handleSave} activeOpacity={0.9} style={[styles.btnSave, { backgroundColor: colors.primary }]}><Text style={[styles.txtSave, { color: colors.textInverse, fontFamily: colors.fonts?.heading, transform: [{ skewX: '12deg' }] }]}>APLICAR</Text></TouchableOpacity>
           </View>
-        </View>
-      </View>
-    </Modal>
+    </PersonaModal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  container: { borderWidth: 1, padding: 20 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
+  container: { borderWidth: 2, borderRadius: 6, padding: 20, paddingTop: 24, overflow: 'hidden' },
+  topAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 5 },
+  title: { fontSize: 20, fontWeight: '900', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 1 },
   subtitle: { marginBottom: 15, fontSize: 12 },
   item: { padding: 12, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between' },
   itemSelected: {},
@@ -105,6 +104,6 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 10 },
   btnCancel: { padding: 10 },
   txtCancel: {  },
-  btnSave: { padding: 10, borderRadius: 2 },
-  txtSave: { fontWeight: 'bold' }
+  btnSave: { paddingVertical: 12, paddingHorizontal: 24, transform: [{ skewX: '-12deg' }] },
+  txtSave: { fontWeight: 'bold', letterSpacing: 1 }
 });
