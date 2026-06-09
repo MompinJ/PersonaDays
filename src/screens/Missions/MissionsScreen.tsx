@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, LayoutA
 import { Ionicons } from '@expo/vector-icons';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { PersonaShard } from '../../components/UI/PersonaShard';
+import { getContrastText } from '../../utils/colorUtils';
 import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
@@ -281,19 +282,22 @@ const irACrearMision = () => {
     }
   }, [misiones, filtroActual]);
 
-  const renderFiltro = (tipo: MissionType) => {
+  const renderFiltro = (tipo: MissionType, i: number) => {
     const active = filtroActual === tipo;
+    const sk = [-15, 12, -16, 13, -12][i % 5];
+    const st = [10, 22, 4, 18, 8][i % 5];
+    const accent = tipo === MissionType.BOSS ? theme.error : (i % 2 === 0 ? theme.primary : theme.secondary);
     return (
       <TouchableOpacity
         key={tipo}
         activeOpacity={0.85}
         style={[
           styles.filterChip,
-          { backgroundColor: active ? theme.primary : theme.surface, borderColor: theme.primary },
+          { marginTop: st, backgroundColor: active ? accent : theme.surface, borderColor: accent, transform: [{ skewX: `${sk}deg` }] },
         ]}
         onPress={() => setFiltroActual(tipo)}
       >
-        <Text style={[styles.filterText, { color: active ? theme.textInverse : theme.textDim, fontFamily: theme.fonts?.heading }]}>
+        <Text style={[styles.filterText, { color: active ? getContrastText(accent) : theme.textDim, fontFamily: theme.fonts?.heading, transform: [{ skewX: `${-sk}deg` }] }]}>
           {tipo}
         </Text>
       </TouchableOpacity>
@@ -308,12 +312,12 @@ const irACrearMision = () => {
 
       {/* Zona de Filtros (Scroll Horizontal) */}
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-          {renderFiltro(MissionType.DIARIA)}
-          {renderFiltro(MissionType.SEMANAL)}
-          {renderFiltro(MissionType.ARCO)}
-          {renderFiltro(MissionType.EXTRA)}
-          {renderFiltro(MissionType.BOSS)}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20, alignItems: 'flex-start' }}>
+          {renderFiltro(MissionType.DIARIA, 0)}
+          {renderFiltro(MissionType.SEMANAL, 1)}
+          {renderFiltro(MissionType.ARCO, 2)}
+          {renderFiltro(MissionType.EXTRA, 3)}
+          {renderFiltro(MissionType.BOSS, 4)}
         </ScrollView>
       </View>
 
@@ -373,16 +377,15 @@ const styles = StyleSheet.create({
 
   headerWrap: { marginBottom: 16, marginTop: 2 },
 
-  // Estilos de los Filtros (tabs inclinadas estilo Persona)
-  filterContainer: { marginBottom: 18, height: 40 },
+  // Estilos de los Filtros (tabs inclinadas y escalonadas, disruptivas)
+  filterContainer: { marginBottom: 14, height: 60 },
   filterChip: {
     paddingHorizontal: 18,
-    paddingVertical: 8,
-    marginRight: 10,
+    paddingVertical: 9,
+    marginRight: 12,
     borderWidth: 1.5,
-    transform: [{ skewX: '-12deg' }],
   },
-  filterText: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, transform: [{ skewX: '12deg' }] },
+  filterText: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
   // Estado vacio
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 70 },

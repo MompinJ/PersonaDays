@@ -1,15 +1,22 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../themes/useTheme';
 import { db, initDatabase } from '../../database';
 import { useAlert } from '../../context/AlertContext';
+import { PersonaShard } from '../../components/UI/PersonaShard';
 
 export const SettingsScreen = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const { showAlert } = useAlert();
+
+  const intro = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [intro]);
 
   useEffect(() => {
     const inspectArcos = async () => {
@@ -109,56 +116,114 @@ export const SettingsScreen = () => {
     ]);
   };
 
+  const introStyle = {
+    opacity: intro,
+    transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <Text style={[styles.header, { color: theme.text, fontFamily: theme.fonts?.title }]}>AJUSTES</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.headerWrap}>
+        <PersonaShard label="AJUSTES" height={50} fontSize={28} font={theme.fonts?.title} />
+      </View>
 
-      <TouchableOpacity style={[styles.option, { borderColor: theme.primary }]} onPress={() => navigation.navigate('CharacterSelection', { isEditing: true })}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="person-circle" size={28} color={theme.primary} style={{ marginRight: 12 }} />
-          <Text style={[styles.optionText, { color: theme.text }]}>Configurar Personaje</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={theme.textDim} />
-      </TouchableOpacity>
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* CUENTA */}
+          <View style={styles.sectionTag}><PersonaShard label="CUENTA" height={24} fontSize={11} /></View>
 
-      <TouchableOpacity style={[styles.option, { borderColor: theme.primary, marginTop: 10 }]} onPress={() => navigation.navigate('Setup', { isEditing: true })}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="create" size={24} color={theme.primary} style={{ marginRight: 12 }} />
-          <Text style={[styles.optionText, { color: theme.text }]}>Editar Nombre</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={theme.textDim} />
-      </TouchableOpacity>
+          <OptionRow
+            icon="person-circle"
+            label="CONFIGURAR PERSONAJE"
+            accent={theme.primary}
+            skew={-11}
+            chevron
+            onPress={() => navigation.navigate('CharacterSelection', { isEditing: true })}
+          />
+          <OptionRow
+            icon="create"
+            label="EDITAR NOMBRE"
+            accent={theme.secondary}
+            skew={10}
+            chevron
+            onPress={() => navigation.navigate('Setup', { isEditing: true })}
+          />
 
-      <TouchableOpacity style={[styles.option, { borderColor: theme.error, marginTop: 10 }]} onPress={handleResetArcs}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="trash" size={22} color={theme.error} style={{ marginRight: 12 }} />
-          <Text style={[styles.optionText, { color: theme.error }]}>Borrar Todos los Arcos (Debug)</Text>
-        </View>
-      </TouchableOpacity>
+          {/* MANTENIMIENTO */}
+          <View style={[styles.sectionTag, { marginTop: 26 }]}><PersonaShard label="MANTENIMIENTO" variant="ghost" height={22} fontSize={10} /></View>
 
-      <TouchableOpacity style={[styles.option, { borderColor: theme.primary, marginTop: 10 }]} onPress={handleDeleteDuplicateStats}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="layers" size={22} color={theme.primary} style={{ marginRight: 12 }} />
-          <Text style={[styles.optionText, { color: theme.primary }]}>Eliminar Stats Duplicados</Text>
-        </View>
-      </TouchableOpacity>
+          <OptionRow
+            icon="layers"
+            label="ELIMINAR STATS DUPLICADOS"
+            accent={theme.primary}
+            skew={-13}
+            onPress={handleDeleteDuplicateStats}
+          />
+          <OptionRow
+            icon="trash"
+            label="BORRAR TODOS LOS ARCOS"
+            sublabel="DEBUG"
+            accent={theme.error}
+            skew={12}
+            onPress={handleResetArcs}
+          />
 
-      {/* Danger Zone: Reset DB */}
-      <TouchableOpacity style={[styles.option, { borderColor: theme.error, marginTop: 16, backgroundColor: theme.error + '06' }]} onPress={resetDatabase}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="warning" size={22} color={theme.error} style={{ marginRight: 12 }} />
-          <Text style={[styles.optionText, { color: theme.error }]}>⚠ RESET DATA (DEV ONLY)</Text>
-        </View>
-      </TouchableOpacity>
+          {/* ZONA DE PELIGRO */}
+          <View style={[styles.sectionTag, { marginTop: 26 }]}>
+            <PersonaShard label="ZONA DE PELIGRO" height={24} fontSize={11} color={theme.error} />
+          </View>
 
+          <TouchableOpacity activeOpacity={0.85} onPress={resetDatabase} style={[styles.dangerCard, { borderColor: theme.error, backgroundColor: theme.error + '0E', transform: [{ skewX: '-10deg' }] }]}>
+            <View style={[styles.dangerAccent, { backgroundColor: theme.error }]} />
+            <View style={[styles.dangerInner, { transform: [{ skewX: '10deg' }] }]}>
+              <Ionicons name="warning" size={26} color={theme.error} style={{ marginRight: 14 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.dangerTitle, { color: theme.error, fontFamily: theme.fonts?.heading }]}>RESET DATA</Text>
+                <Text style={[styles.dangerSub, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>BORRA TODO EL PROGRESO. SOLO DEV.</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 };
 
+// Fila de opcion inclinada con barra de acento (estilo P3R)
+const OptionRow = ({ icon, label, sublabel, accent, skew, chevron, onPress }: {
+  icon: any; label: string; sublabel?: string; accent: string; skew: number; chevron?: boolean; onPress: () => void;
+}) => {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.option, { borderColor: theme.border, backgroundColor: theme.surface, transform: [{ skewX: `${skew}deg` }] }]}>
+      <View style={[styles.optionAccent, { backgroundColor: accent }]} />
+      <View style={[styles.optionInner, { transform: [{ skewX: `${-skew}deg` }] }]}>
+        <Ionicons name={icon} size={24} color={accent} style={{ marginRight: 14 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.optionText, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{label}</Text>
+          {sublabel ? <Text style={[styles.optionSub, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{sublabel}</Text> : null}
+        </View>
+        {chevron ? <Ionicons name="chevron-forward" size={22} color={theme.textDim} /> : null}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 },
-  header: { fontSize: 22, fontWeight: '900', marginBottom: 20, letterSpacing: 2 },
-  option: { padding: 16, borderWidth: 1, borderRadius: 8, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  optionText: { fontSize: 16, fontWeight: '700' }
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 50 },
+  headerWrap: { marginBottom: 12, marginTop: 4 },
+
+  sectionTag: { marginBottom: 12, marginTop: 4 },
+
+  option: { borderWidth: 1.5, paddingVertical: 14, paddingHorizontal: 16, paddingLeft: 22, marginBottom: 12, overflow: 'hidden' },
+  optionAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, transform: [{ skewX: '-14deg' }], marginLeft: -3 },
+  optionInner: { flexDirection: 'row', alignItems: 'center' },
+  optionText: { fontSize: 16, letterSpacing: 0.5 },
+  optionSub: { fontSize: 10, letterSpacing: 1, marginTop: 1 },
+
+  dangerCard: { borderWidth: 2, paddingVertical: 16, paddingHorizontal: 16, paddingLeft: 22, marginBottom: 12, overflow: 'hidden' },
+  dangerAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, transform: [{ skewX: '-14deg' }], marginLeft: -3 },
+  dangerInner: { flexDirection: 'row', alignItems: 'center' },
+  dangerTitle: { fontSize: 19, letterSpacing: 1 },
+  dangerSub: { fontSize: 10, letterSpacing: 1, marginTop: 1 },
 });

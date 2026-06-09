@@ -1,0 +1,8 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="guts_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M24,4 L30,15 L27,18.5 L33,28 L32,37 L27,44 L24,39 L21,44 L16,37 L15,28 L21,18.5 L18,15 Z" fill="#fff"></path>
+    <path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#guts_B)"></rect>
+</svg>

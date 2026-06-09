@@ -7,6 +7,7 @@ import { useAlert } from '../../context/AlertContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getContrastText } from '../../utils/colorUtils';
 import { PersonaModal } from '../UI/PersonaModal';
+import { PersonaShard } from '../UI/PersonaShard';
 
 type Props = {
   visible: boolean;
@@ -82,7 +83,7 @@ const AddTransactionModal = ({ visible, onClose, onSaved }: Props) => {
       }
 
       // Mostrar alerta de éxito y cerrar modal solo cuando el usuario confirme
-      showAlert('REGISTRO COMPLETADO', 'Transacción guardada. \n+2 XP Conocimiento 🧠', [
+      showAlert('REGISTRO COMPLETADO', 'Transacción guardada. \n+2 XP Conocimiento', [
         { text: 'OK', onPress: () => {
             // limpiar y cerrar
             setMonto(''); setConcepto(''); setCategoria(null); setTipo('GASTO');
@@ -97,60 +98,94 @@ const AddTransactionModal = ({ visible, onClose, onSaved }: Props) => {
     }
   };
 
+  const ingresoColor = colors.success;
+  const gastoColor = colors.error;
+  const tipoColor = tipo === 'INGRESO' ? ingresoColor : gastoColor;
+
   return (
     <PersonaModal visible={visible} onClose={onClose} title="NUEVO MOVIMIENTO">
-          <View style={styles.row}>
-            <TouchableOpacity style={[styles.typeButton, tipo === 'INGRESO' ? { backgroundColor: '#2ecc71' } : { backgroundColor: colors.inactive }]} onPress={() => setTipo('INGRESO')}>
-              <Text style={[styles.typeText, { color: tipo === 'INGRESO' ? '#fff' : colors.textDim }]}>INGRESO</Text>
+          {/* TIPO - botones parallelogramo */}
+          <View style={styles.tagWrap}><PersonaShard label="TIPO" height={22} fontSize={10} /></View>
+          <View style={styles.typeRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.typeButton, { borderColor: ingresoColor, backgroundColor: tipo === 'INGRESO' ? ingresoColor : colors.surface, transform: [{ skewX: '-12deg' }] }]}
+              onPress={() => setTipo('INGRESO')}
+            >
+              <Text style={[styles.typeText, { color: tipo === 'INGRESO' ? getContrastText(ingresoColor) : colors.textDim, fontFamily: colors.fonts?.heading, transform: [{ skewX: '12deg' }] }]}>INGRESO</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.typeButton, tipo === 'GASTO' ? { backgroundColor: '#e74c3c' } : { backgroundColor: colors.inactive }]} onPress={() => setTipo('GASTO')}>
-              <Text style={[styles.typeText, { color: tipo === 'GASTO' ? '#fff' : colors.textDim }]}>GASTO</Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.typeButton, { borderColor: gastoColor, backgroundColor: tipo === 'GASTO' ? gastoColor : colors.surface, transform: [{ skewX: '-12deg' }] }]}
+              onPress={() => setTipo('GASTO')}
+            >
+              <Text style={[styles.typeText, { color: tipo === 'GASTO' ? getContrastText(gastoColor) : colors.textDim, fontFamily: colors.fonts?.heading, transform: [{ skewX: '12deg' }] }]}>GASTO</Text>
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            keyboardType="numeric"
-            placeholder="¥ 0"
-            placeholderTextColor={colors.textDim}
-            style={[styles.montoInput, { color: colors.text, borderBottomColor: colors.primary, fontFamily: colors.fonts?.display }]}
-            value={monto}
-            onChangeText={setMonto}
-          />
+          {/* MONTO - protagonista, gigante */}
+          <View style={styles.tagWrap}><PersonaShard label="MONTO" height={24} fontSize={11} color={tipoColor} /></View>
+          <View style={[styles.montoCard, { backgroundColor: colors.background, borderColor: tipoColor }]}>
+            <View style={[styles.montoAccent, { backgroundColor: tipoColor }]} />
+            <View style={[styles.montoStripe, { backgroundColor: colors.secondary }]} />
+            <Text style={[styles.yenSign, { color: tipoColor, fontFamily: colors.fonts?.display }]}>¥</Text>
+            <TextInput
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={colors.textDim}
+              style={[styles.montoInput, { color: colors.text, fontFamily: colors.fonts?.display }]}
+              value={monto}
+              onChangeText={setMonto}
+            />
+          </View>
 
+          {/* CONCEPTO */}
+          <View style={styles.tagWrap}><PersonaShard label="CONCEPTO" variant="ghost" height={22} fontSize={10} /></View>
           <TextInput
-            placeholder="Concepto (ej: Cine, Nómina)"
+            placeholder="EJ: CINE, NÓMINA..."
             placeholderTextColor={colors.textDim}
-            style={[styles.input, { color: colors.text }]}
+            style={[styles.input, { color: colors.text, borderBottomColor: colors.primary, fontFamily: colors.fonts?.bold }]}
             value={concepto}
             onChangeText={setConcepto}
           />
 
+          {/* CATEGORÍA - chips caoticos (rotados + esquinados + escalonados) */}
+          <View style={styles.tagWrap}><PersonaShard label="CATEGORÍA" height={22} fontSize={10} color={colors.secondary} /></View>
           <View style={styles.catRow}>
-            {categories && categories.length > 0 ? categories.map((c) => {
+            {categories && categories.length > 0 ? categories.map((c, i) => {
               const selected = categoria === c.id_categoria;
               const chipText = selected ? getContrastText(c.color) : colors.text;
+              const sk = [-14, 12, -16, 10, -13][i % 5];
+              const rot = [-3, 2, -2, 3, -1][i % 5];
+              const st = [0, 12, 4, 10, 2][i % 5];
               return (
-              <TouchableOpacity key={c.id_categoria} onPress={() => setCategoria(c.id_categoria)} style={[styles.catBtn, selected ? { borderColor: colors.primary, backgroundColor: c.color } : { borderColor: colors.border }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                key={c.id_categoria}
+                activeOpacity={0.85}
+                onPress={() => setCategoria(c.id_categoria)}
+                style={[styles.catBtn, { marginTop: st, borderColor: selected ? c.color : colors.border, backgroundColor: selected ? c.color : colors.surface, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
+              >
+                <View style={[styles.catInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
                   <MaterialCommunityIcons name={c.icono || 'tag'} size={18} color={chipText} />
-                  <Text style={{ color: chipText, marginLeft: 8 }}>{c.nombre}</Text>
+                  <Text style={{ color: chipText, marginLeft: 8, fontFamily: colors.fonts?.heading, fontSize: 14, letterSpacing: 0.5 }}>{c.nombre}</Text>
                 </View>
               </TouchableOpacity>
               );
             }) : (
               <View style={{ padding: 8 }}>
-                <Text style={{ color: colors.textDim }}>No hay categorías. Crea una en ajustes.</Text>
+                <Text style={{ color: colors.textDim, fontFamily: colors.fonts?.body }}>No hay categorías. Crea una en ajustes.</Text>
               </View>
             )}
 
           </View>
 
+          {/* ACCIONES */}
           <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose} style={[styles.actionBtn, { backgroundColor: colors.inactive }]}>
-              <Text style={{ color: colors.text }}>Cancelar</Text>
+            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+              <Text style={{ color: colors.textDim, fontFamily: colors.fonts?.bold, letterSpacing: 1 }}>CANCELAR</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={save} style={[styles.actionBtn, { backgroundColor: colors.primary }]}>
-              <Text style={{ color: colors.textInverse }}>Guardar</Text>
+            <TouchableOpacity onPress={save} activeOpacity={0.9} style={[styles.saveBtn, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.saveBtnText, { color: colors.textInverse, fontFamily: colors.fonts?.heading }]}>GUARDAR</Text>
             </TouchableOpacity>
           </View>
     </PersonaModal>
@@ -158,20 +193,28 @@ const AddTransactionModal = ({ visible, onClose, onSaved }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-  container: { width: '92%', borderRadius: 12, padding: 16 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  titleAccent: { width: 6, height: 22, marginRight: 10, transform: [{ skewX: '-20deg' }] },
-  title: { fontSize: 22, fontWeight: '900', letterSpacing: 1.5 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  typeButton: { flex: 1, marginHorizontal: 6, padding: 12, borderRadius: 8, alignItems: 'center' },
-  typeText: { fontWeight: '700', color: '#fff' },
-  montoInput: { fontSize: 28, fontWeight: '900', textAlign: 'center', padding: 8, marginBottom: 8, borderBottomWidth: 2 },
-  input: { padding: 10, borderRadius: 8, marginBottom: 8 },
-  catRow: { flexDirection: 'row', flexWrap: 'wrap', marginVertical: 8 },
-  catBtn: { padding: 8, borderRadius: 8, borderWidth: 1, margin: 4 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
-  actionBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, marginLeft: 8 }
+  tagWrap: { marginTop: 14, marginBottom: 10 },
+
+  typeRow: { flexDirection: 'row', gap: 14 },
+  typeButton: { flex: 1, paddingVertical: 13, borderWidth: 2, alignItems: 'center' },
+  typeText: { fontSize: 16, letterSpacing: 1.5 },
+
+  montoCard: { borderRadius: 4, borderWidth: 2, paddingVertical: 10, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  montoAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, transform: [{ skewX: '-14deg' }], marginLeft: -3 },
+  montoStripe: { position: 'absolute', left: -20, right: -20, bottom: 9, height: 4, transform: [{ skewX: '-20deg' }], opacity: 0.85 },
+  yenSign: { fontSize: 36, marginRight: 8 },
+  montoInput: { flex: 1, fontSize: 44, padding: 0, includeFontPadding: false },
+
+  input: { borderBottomWidth: 2, paddingVertical: 9, fontSize: 16, letterSpacing: 0.5 },
+
+  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start', paddingTop: 4 },
+  catBtn: { paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1.5 },
+  catInner: { flexDirection: 'row', alignItems: 'center' },
+
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 22 },
+  cancelBtn: { paddingVertical: 12, paddingHorizontal: 16, marginRight: 8 },
+  saveBtn: { paddingVertical: 12, paddingHorizontal: 28, transform: [{ skewX: '-12deg' }] },
+  saveBtnText: { fontSize: 16, letterSpacing: 1.5, transform: [{ skewX: '12deg' }] },
 });
 
 export default AddTransactionModal;

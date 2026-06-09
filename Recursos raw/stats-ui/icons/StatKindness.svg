@@ -1,0 +1,8 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="kindness_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M24,16 L18,10 L9,11 L4,19 L7,27 L24,43 L41,27 L44,19 L39,11 L30,10 Z" fill="#fff"></path>
+    <path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#kindness_B)"></rect>
+</svg>

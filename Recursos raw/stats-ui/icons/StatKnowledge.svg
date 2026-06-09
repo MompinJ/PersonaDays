@@ -1,0 +1,9 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="knowledge_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M5,16 L23,12 L23,41 L5,37 Z" fill="#fff"></path>
+    <path d="M25,12 L43,16 L43,37 L25,41 Z" fill="#fff"></path>
+    <path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#knowledge_B)"></rect>
+</svg>
