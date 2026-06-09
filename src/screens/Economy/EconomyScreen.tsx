@@ -246,7 +246,7 @@ export const EconomyScreen = () => {
               <Text style={[styles.emptySub, { color: theme.textDim }]}>Pulsa + para registrar el primero</Text>
             </View>
           }
-          contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 160 }}
           showsVerticalScrollIndicator={false}
         />
       </Animated.View>
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 13, marginTop: 4 },
 
   // FAB
-  fabWrap: { position: 'absolute', right: 18, bottom: 28 },
+  fabWrap: { position: 'absolute', right: 18, bottom: 162 },
   fab: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6 },
 });
 

@@ -351,7 +351,7 @@ const irACrearMision = () => {
               </Text>
             </View>
           }
-          contentContainerStyle={{ paddingBottom: 90, flexGrow: 1 }}
+          contentContainerStyle={{ paddingBottom: 160, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
         />
       </Animated.View>
@@ -392,10 +392,10 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
   emptySub: { fontSize: 13, marginTop: 4 },
 
-  // Botones Flotantes (posicion en el Pressable, visual en el inner animado)
-  fabPos: { position: 'absolute', bottom: 20, right: 20 },
-  fabPosMid: { position: 'absolute', bottom: 92, right: 22 },
-  fabPosSmall: { position: 'absolute', bottom: 144, right: 24 },
+  // Botones Flotantes (elevados por encima de la banda del revolver)
+  fabPos: { position: 'absolute', bottom: 162, right: 20 },
+  fabPosMid: { position: 'absolute', bottom: 234, right: 22 },
+  fabPosSmall: { position: 'absolute', bottom: 286, right: 24 },
   fab: {
     width: 60, height: 60, borderRadius: 30,
     justifyContent: 'center', alignItems: 'center',

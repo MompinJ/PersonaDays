@@ -6,9 +6,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../themes/useTheme';
+import { RevolverNav } from '../components/Navigation/RevolverNav';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 //Pantallas de la app
 import { RootTabParamList, RootStackParamList } from './types';
@@ -36,38 +36,64 @@ import ListDetailScreen from '../screens/Phone/ListDetailScreen';
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Etiquetas visibles de cada modulo en el cilindro
+const TAB_LABELS: Record<string, string> = {
+  Home: 'HOME',
+  Phone: 'TELÉFONO',
+  Stats: 'STATS',
+  Missions: 'MISIONES',
+  Economy: 'FINANZAS',
+  Profile: 'PERFIL',
+};
+
+// Mapeo route name -> key de glifo (TabGlyphs)
+const TAB_GLYPH: Record<string, string> = {
+  Home: 'home',
+  Phone: 'phone',
+  Stats: 'stats',
+  Missions: 'missions',
+  Economy: 'economy',
+  Profile: 'profile',
+};
+
+// Tab bar custom: el cilindro de revolver
+const RevolverTabBar = ({ state, navigation }: BottomTabBarProps) => {
+  const order = state.routes.map((r) => r.name);
+  const labels: Record<string, string> = {};
+  order.forEach((name) => { labels[TAB_GLYPH[name]] = TAB_LABELS[name] || name; });
+
+  const handleChange = (i: number) => {
+    const route = state.routes[i];
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) {
+      navigation.navigate(route.name as never);
+    }
+  };
+
+  // RevolverNav usa las keys de glifo como identificador de camara
+  return (
+    <RevolverNav
+      order={order.map((n) => TAB_GLYPH[n])}
+      labels={labels}
+      activeIndex={state.index}
+      onChange={handleChange}
+    />
+  );
+};
+
 const MainTabs = () => {
-  const theme = useTheme();
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopColor: theme.primary,
-          borderTopWidth: 1,
-        },
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.textDim,
-        tabBarShowLabel: true,
-        tabBarIcon: ({ color, size }) => {
-          const name = route.name;
-          if (name === 'Home') return <Ionicons name="home" size={size} color={color} />;
-          if (name === 'Phone') return <MaterialCommunityIcons name="cellphone" size={size} color={color} />;
-          if (name === 'Stats') return <Ionicons name="bar-chart" size={size} color={color} />;
-          if (name === 'Missions') return <Ionicons name="list" size={size} color={color} />;
-          if (name === 'Economy') return <Ionicons name="cash" size={size} color={color} />;
-          if (name === 'Profile') return <Ionicons name="person-circle" size={size} color={color} />;
-          return null;
-        }
-      })}
+      tabBar={(props) => <RevolverTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
+      {/* Orden del cilindro: Home (default, centro) | Misiones (der) | ... | Stats (izq) */}
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Phone" component={PhoneMenuScreen} />
-      <Tab.Screen name="Stats" component={StatsScreen} />
       <Tab.Screen name="Missions" component={MissionsScreen} />
       <Tab.Screen name="Economy" component={EconomyScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Phone" component={PhoneMenuScreen} />
+      <Tab.Screen name="Stats" component={StatsScreen} />
     </Tab.Navigator>
   );
 };

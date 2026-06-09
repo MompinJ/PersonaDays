@@ -134,6 +134,22 @@ Devuelve `#000`/`#fff` según luminancia. Para texto sobre fondos de color varia
 
 ---
 
+### 4.6 Glifos de atributos y tabs — iconos SVG con `Mask`
+Iconos propios estilo P3R: **forma angular + corte diagonal "Shard"**, monocromáticos
+(`currentColor` → color del tema). Técnica `react-native-svg`: un `<Mask>` con `Rect`
+negro de base + `Path`s (blanco = pinta, negro = recorta, en orden → permite anillos)
+y un `<Rect fill={color} mask>`. El estado **activo** añade el path Shard como capa
+negra: `SHARD = 'M40,-2 L46.5,-2 L11,50 L4.5,50 Z'`.
+- `components/Stats/StatGlyphs.tsx` + `stats.ts` (`STATS`, `STAT_ORDER`,
+  `resolveStatKey(nombre)` con normalización de acentos), `StatIcon` (`size/color/skew`).
+  Los **hábitos hijos heredan el icono del stat padre** (`id_stat_padre`).
+- `components/UI/TabGlyphs.tsx` — 6 módulos (`home/phone/stats/missions/economy/profile`),
+  `<TabGlyph tab size color active />`. Usado en el navbar (§10).
+- Reglas: color SIEMPRE del tema; **NO** instalar `svg-transformer` — los glifos son
+  componentes inline. Para añadir uno: copiar el path al estilo de `StatGlyphs`.
+
+---
+
 ## 5. Patrones de elementos (recetas)
 
 ### Tag de sección
@@ -160,6 +176,27 @@ Cada chip **distinto**: zigzag de skew + escalonado vertical + color alterno.
 - El texto SIEMPRE contra-inclinado (`-sk`) para quedar legible.
 - Contenedor `chipRow`: `alignItems: 'flex-start'` (para que el escalonado baje) +
   `paddingBottom` que cubra el escalón más alto.
+
+### Fila disruptiva (barra de bala) — listas P3R
+Para listas de ítems (no formularios). Usado en: `CompletedMissionsScreen` (historial),
+`MissionItem` (Requests), `ManageMissionsScreen`, `NoteCard` (Notas). Inspirado en la
+lista de Social Links / party de P3R: barras **inclinadas y escalonadas en zigzag**.
+```tsx
+const accent = tipo === 'BOSS' ? theme.error : (i % 2 === 0 ? theme.primary : theme.secondary);
+const sk = -8;
+const stagger = [0, 16, 8, 20, 12][i % 5];   // sangría horizontal (zigzag)
+const rot = [-1.3, 1, -1, 1.3, -0.5][i % 5]; // rotación leve por índice
+// Wrapper: marginLeft: stagger, marginRight: 24 - stagger + entrada animada
+// Card: transform [{ rotate }, { skewX: sk }], borderColor: accent + acento lateral
+// Inner: transform [{ skewX: -sk }] (contra-inclina el contenido)
+```
+- **Acento lateral** grueso inclinado + **borde** de color por tipo (BOSS=`error`, resto
+  alterna `primary`/`secondary`).
+- **Tag flotante** en la esquina superior (estilo LEADER/PARTY): chip absoluto pequeño
+  (`top: -9`), contra-inclinado; muestra el tipo o el stat.
+- A la izquierda: **nombre grande** (`heading`) + meta; a la derecha: **número grande**
+  (`display`, ej. `+50` XP) + unidad / `¥`.
+- Entrada: fade + `translateX -28→0` con stagger por índice (delay `i*55–70ms`).
 
 ### Botón angular (dificultad, toggles, footer)
 `transform: [{ skewX: '-10deg' a '-12deg' }]` en el botón + **contra-skew** en cada
@@ -197,6 +234,8 @@ rayita de acento, no encerrado en un div.
 | Radar | StatRadarChart | scale 0.6→1 + fade (se "expande"). |
 | Donut | SpendingDonut | barrido `strokeDashoffset` 750ms. |
 | Pulso de día | DaySelector | scale 1→1.25→1 con spring. |
+| Fila disruptiva | Listas (historial/requests/notas) | fade + translateX -28→0, stagger por índice. |
+| Giro del revólver | RevolverNav | rotación por `requestAnimationFrame` + `easeOutBack`, snap a 60°. |
 
 Reglas: micro-interacciones 150–300ms, `transform`/`opacity`, ease-out al entrar,
 no bloquear input. Props de SVG no soportan native driver (usa `useNativeDriver:false`).
@@ -238,10 +277,41 @@ posición (escalonado/sangría) · tipografía · tamaño de texto.**
 - `components/UI/PersonaModal.tsx` — shell de pop-up con pop (todos los "agregar/editar").
 - `components/UI/PressableScale.tsx` — feedback de pulsación.
 - `components/UI/CustomAlert.tsx` — alerta global con pop + botones temáticos.
+- `components/UI/TabGlyphs.tsx` — glifos SVG de los 6 módulos (navbar). Ver §4.6.
+- `components/Stats/StatGlyphs.tsx` + `StatIcon/StatCard/StatChipCascade` + `stats.ts`
+  (`resolveStatKey`) — iconos de los 5 atributos. Ver §4.6.
+- `components/Navigation/RevolverNav.tsx` — navbar cilindro. Ver §10.
 - `utils/colorUtils.ts` — `getContrastText`.
 - `themes/palettes.ts` — tokens + `DEFAULT_FONTS` (roles).
 - `themes/useTheme.ts` — `useTheme()` (puente al GameContext).
 
 > **Estado del rollout P3R:** Finanzas, Misiones (completo, CreateMission es el modelo),
-> Stats, CustomAlert y onboarding ya consolidados. Pendiente: Arcos, Phone/Calendario/
-> Notas, Home/Profile.
+> Stats (+ iconos de atributos), Arcos, Phone/Calendario/Notas, CustomAlert, onboarding
+> y el **navbar revólver** ya consolidados. Pendiente: Home y Profile (placeholders).
+
+---
+
+## 10. Navbar Revólver
+
+Barra de navegación = **cilindro de revólver** (6 cámaras = 6 módulos). Se gira para
+cambiar de módulo; la cámara que queda **arriba** es el módulo activo.
+
+- **Archivos:** `components/Navigation/RevolverNav.tsx` + `RevolverTabBar` en
+  `navigation/AppNavigator.tsx` (se inyecta como `tabBar` custom del `Tab.Navigator`;
+  la barra default se oculta).
+- **Mecánica (sin reanimated):** `PanResponder` para arrastrar → gira; al soltar hace
+  **snap a 60°** con momentum y abre el módulo de la cámara superior. También se puede
+  **tocar una cámara lateral** para saltar a ella. La rotación se anima por
+  `requestAnimationFrame` + `easeOutBack`. Sincroniza con `activeIndex` (navegación externa).
+- **Geometría (clave del look):** óvalo **ancho y plano**, empujado abajo (solo asoma el
+  arco superior, no invasivo). El **anillo de cámaras** (`Rx`, estrecho → las laterales
+  caen DENTRO de la pantalla) está **DESACOPLADO** de la **cara del óvalo** (`RFx`, ancha
+  → cubre el ancho). `RYR`/`RFy` dan el aplanado vertical y el cuerpo. Las cámaras
+  laterales quedan **dentro** del borde del óvalo (no cruzar la línea). La cámara activa
+  se **eleva** (`RAISE`) + glow; el **label va DEBAJO** del icono (no roba pantalla arriba).
+- **Iconos:** `TabGlyph` (§4.6) con corte Shard en el activo. Todo color del tema.
+- **Orden de módulos = vecinos.** Lo define el orden de `Tab.Screen`. Actual:
+  `Home (default, centro) · Misiones (der) · Finanzas · Perfil · Teléfono · Stats (izq)`.
+- **Convivencia con el contenido:** las pantallas de tabs llevan `paddingBottom ~160`
+  para no quedar tapadas por la banda; los **FABs** (Requests/Finanzas) se elevan por
+  encima de la banda (`bottom >= ~160`) o quedan no-clickeables (la banda captura el toque).

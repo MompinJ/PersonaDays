@@ -235,6 +235,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
 });
