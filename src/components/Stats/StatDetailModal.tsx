@@ -5,6 +5,9 @@ import { db } from '../../database';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useGame } from '../../context/GameContext';
 import { useAlert } from '../../context/AlertContext';
+import { StatIcon } from './StatIcon';
+import { resolveStatKey } from './stats';
+import { PersonaShard } from '../UI/PersonaShard';
 
 interface Props {
   visible: boolean;
@@ -145,43 +148,55 @@ export const StatDetailModal = ({ visible, stat, onClose, onSaved }: Props) => {
           <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.primary }]}>
             <View style={[styles.topAccent, { backgroundColor: colors.primary }]} />
             <ScrollView contentContainerStyle={{ padding: 18 }}>
-              <Text style={[styles.title, { color: colors.text, fontFamily: colors.fonts?.title }]}>{(ds?.nombre_stat || 'SIN NOMBRE').toUpperCase()}</Text>
+              <View style={styles.titleRow}>
+                {(() => { const k = resolveStatKey(ds?.nombre_stat); return k ? <StatIcon stat={k} size={34} color={colors.primary} /> : null; })()}
+                <Text style={[styles.title, { color: colors.text, fontFamily: colors.fonts?.title, marginLeft: resolveStatKey(ds?.nombre_stat) ? 12 : 0 }]}>{(ds?.nombre_stat || 'SIN NOMBRE').toUpperCase()}</Text>
+              </View>
 
-              <Text style={[styles.label, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>DESCRIPCIÓN</Text>
+              <View style={styles.tagWrap}><PersonaShard label="DESCRIPCIÓN" variant="ghost" height={22} fontSize={10} /></View>
               {isBaseStat ? (
-                <Text style={{ color: colors.textDim, marginBottom: 8, fontFamily: colors.fonts?.body }}>{descripcion || 'Sin descripción disponible.'}</Text>
+                <Text style={[styles.descText, { color: colors.text, fontFamily: colors.fonts?.body }]}>{descripcion || 'Sin descripción disponible.'}</Text>
               ) : (
                 <TextInput
                   multiline
                   value={descripcion}
                   onChangeText={setDescripcion}
-                  placeholder="Descripción del stat"
+                  placeholder="DESCRIPCIÓN DEL STAT"
                   placeholderTextColor={colors.textDim}
-                  style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
+                  style={[styles.input, { color: colors.text, borderBottomColor: colors.primary, fontFamily: colors.fonts?.body }]}
                 />
               )}
 
-              <Text style={[styles.label, { color: colors.textDim, marginTop: 14, fontFamily: colors.fonts?.condensed }]}>META DE NIVEL</Text>
+              <View style={[styles.tagWrap, { marginTop: 18 }]}><PersonaShard label="META DE NIVEL" height={24} fontSize={11} color={colors.secondary} /></View>
               {isBaseStat ? (
-                <Text style={{ color: colors.textDim, fontFamily: colors.fonts?.body }}>{`Meta: ${nivelMeta} (Fijo)`}</Text>
+                <View style={styles.metaRow}>
+                  <Text style={[styles.metaBig, { color: colors.primary, fontFamily: colors.fonts?.display }]}>{nivelMeta}</Text>
+                  <Text style={[styles.metaHint, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>NIVEL MÁXIMO FIJO</Text>
+                </View>
               ) : (
-                <TextInput
-                  keyboardType="number-pad"
-                  value={String(nivelMeta)}
-                  onChangeText={(t) => setNivelMeta(Math.max(1, parseInt(t || '1')))}
-                  style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]}
-                />
+                <View style={styles.metaRow}>
+                  <TextInput
+                    keyboardType="number-pad"
+                    value={String(nivelMeta)}
+                    onChangeText={(t) => setNivelMeta(Math.max(1, parseInt(t || '1')))}
+                    style={[styles.metaInput, { color: colors.primary, borderBottomColor: colors.primary, fontFamily: colors.fonts?.display }]}
+                  />
+                  <Text style={[styles.metaHint, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>AL LLEGAR, HARÁS PRESTIGIO</Text>
+                </View>
               )}
 
               {children && children.length > 0 && (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={[styles.label, { color: colors.textDim, fontFamily: colors.fonts?.condensed }]}>HIJOS</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-                    {children.map(c => (
-                      <View key={c.id_stat} style={[styles.chip, { borderColor: colors.primary }]}>
-                        <Text style={[styles.chipText, { color: colors.primary, fontFamily: colors.fonts?.heading }]}>{String(c.nombre).toUpperCase()}</Text>
-                      </View>
-                    ))}
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.tagWrap}><PersonaShard label="HÁBITOS HIJOS" variant="ghost" height={22} fontSize={10} color={colors.secondary} /></View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                    {children.map((c, i) => {
+                      const sk = [-12, 11, -13][i % 3];
+                      return (
+                        <View key={c.id_stat} style={[styles.chip, { borderColor: colors.secondary, transform: [{ skewX: `${sk}deg` }] }]}>
+                          <Text style={[styles.chipText, { color: colors.secondary, fontFamily: colors.fonts?.heading, transform: [{ skewX: `${-sk}deg` }] }]}>{String(c.nombre).toUpperCase()}</Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               )}
@@ -222,11 +237,17 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
   card: { borderWidth: 3, borderRadius: 6, overflow: 'hidden' },
   topAccent: { height: 5, width: '100%' },
-  title: { fontSize: 24, fontWeight: '900', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
-  label: { fontSize: 11, marginTop: 6, letterSpacing: 1, textTransform: 'uppercase' },
-  input: { borderBottomWidth: 1, paddingVertical: 6, fontSize: 15 },
-  chip: { borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8, marginBottom: 8, transform: [{ skewX: '-12deg' }] },
-  chipText: { fontSize: 11, letterSpacing: 0.5, transform: [{ skewX: '12deg' }] },
+  titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  title: { fontSize: 24, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1, flexShrink: 1 },
+  tagWrap: { marginTop: 14, marginBottom: 10 },
+  descText: { fontSize: 15, lineHeight: 21, marginBottom: 2 },
+  input: { borderBottomWidth: 2, paddingVertical: 7, fontSize: 15 },
+  metaRow: { flexDirection: 'row', alignItems: 'center' },
+  metaBig: { fontSize: 46, lineHeight: 48, includeFontPadding: false },
+  metaInput: { fontSize: 46, borderBottomWidth: 2, minWidth: 70, textAlign: 'center', padding: 0, includeFontPadding: false },
+  metaHint: { flex: 1, fontSize: 11, letterSpacing: 1, marginLeft: 14, textTransform: 'uppercase' },
+  chip: { borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 5, marginRight: 9, marginBottom: 9 },
+  chipText: { fontSize: 12, letterSpacing: 0.5 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderTopWidth: 1 },
   btnCancel: { padding: 10 },
   skewBtn: { paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', transform: [{ skewX: '-12deg' }] },

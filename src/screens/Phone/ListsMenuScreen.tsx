@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, TextInput } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, TextInput, Animated, Easing } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -50,6 +50,52 @@ const CreateNoteModal = ({ visible, onClose, onCreate }: any) => {
         </TouchableOpacity>
       </View>
     </PersonaModal>
+  );
+};
+
+// Tarjeta de nota estilo P3R (inclinada, escalonada, titulo grande, fecha grande)
+const NoteCard = ({ item, index, formatDate, getPreview, onPress }: any) => {
+  const theme = useTheme();
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 340, delay: Math.min(index, 8) * 60, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
+
+  const accent = index % 2 === 0 ? theme.primary : theme.secondary;
+  const sk = -8;
+  const stagger = [0, 16, 8, 20, 12][index % 5];
+  const rot = [-1.3, 1, -1, 1.3, -0.5][index % 5];
+  const animStyle = {
+    opacity: anim,
+    transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-26, 0] }) }],
+  };
+
+  return (
+    <Animated.View style={[animStyle, { marginLeft: stagger, marginRight: 22 - stagger, marginBottom: 16 }]}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[styles.card, { backgroundColor: theme.surface, borderColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
+        onPress={onPress}
+      >
+        <View style={[styles.cardAccent, { backgroundColor: accent }]} />
+        <View style={[styles.cardInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardTitle, { color: theme.text, fontFamily: theme.fonts?.heading }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={[styles.cardPreview, { color: theme.textDim, fontFamily: theme.fonts?.body }]} numberOfLines={1}>
+              {getPreview(item.content)}
+            </Text>
+          </View>
+          <View style={styles.cardRight}>
+            <Text style={[styles.cardDate, { color: accent, fontFamily: theme.fonts?.heading }]}>
+              {formatDate(item.updated_at)}
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={accent} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -118,35 +164,21 @@ export const ListsMenuScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <PhoneHeader title="Notas" showBackButton={true} />
-      
-      <FlatList 
-        data={notes} 
-        keyExtractor={(i) => String(i.id_list)} 
+      <PhoneHeader title="Notas" showBackButton={true} shard />
+
+      <FlatList
+        data={notes}
+        keyExtractor={(i) => String(i.id_list)}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        renderItem={({ item, index }) => (
+          <NoteCard
+            item={item}
+            index={index}
+            formatDate={formatDate}
+            getPreview={getPreview}
             onPress={() => navigation.navigate('ListDetailScreen', { listId: item.id_list, title: item.title })}
-          >
-            <View style={[styles.cardAccent, { backgroundColor: theme.primary }]} />
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <Text style={[styles.cardTitle, { color: theme.text, fontFamily: theme.fonts?.bold }]} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.cardDate, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>
-                  {formatDate(item.updated_at)}
-                </Text>
-              </View>
-              <Text style={[styles.cardPreview, { color: theme.textDim }]} numberOfLines={2}>
-                {getPreview(item.content)}
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={theme.primary} />
-          </TouchableOpacity>
-        )} 
+          />
+        )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons 
@@ -186,38 +218,35 @@ const styles = StyleSheet.create({
     paddingBottom: 100 
   },
   card: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingLeft: 24,
+    borderWidth: 1.5,
+  },
+  cardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 9, transform: [{ skewX: '-14deg' }], marginLeft: -3 },
+  cardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingLeft: 22,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-    overflow: 'hidden',
   },
-  cardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
   cardContent: {
     flex: 1,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    flex: 1,
-  },
-  cardDate: {
-    fontSize: 11,
-    marginLeft: 8,
+    fontSize: 22,
+    letterSpacing: 0.5,
   },
   cardPreview: {
     fontSize: 13,
-    lineHeight: 18,
+    marginTop: 3,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+    marginLeft: 12,
+  },
+  cardDate: {
+    fontSize: 15,
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   emptyContainer: {
     alignItems: 'center',

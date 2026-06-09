@@ -7,6 +7,7 @@ export interface StatViewData extends JugadorStat {
   nombre_stat: string;
   tipo: 'PREDEFINED' | 'CUSTOM';
   dificultad: number;
+  id_stat_padre?: number | null;
 }
 
 export const usePlayerStats = () => {
@@ -33,6 +34,7 @@ export const usePlayerStats = () => {
           s.nombre as nombre_stat,
           s.tipo,
           s.dificultad,
+          s.id_stat_padre,
           COALESCE(js.id_jugador_stat, -1) as id_jugador_stat,
           COALESCE(js.id_jugador, ?) as id_jugador,
           COALESCE(js.nivel_actual, 1) as nivel_actual,

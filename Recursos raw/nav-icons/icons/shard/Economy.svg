@@ -1,0 +1,13 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="economy_active" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M43.4,32.0 L32.0,43.4 L16.0,43.4 L4.6,32.0 L4.6,16.0 L16.0,4.6 L32.0,4.6 L43.4,16.0 Z" fill="#fff"></path>
+    <path d="M12,11 L16.8,11 L25.5,26 L21,26 Z" fill="#000"></path>
+    <path d="M31.2,11 L36,11 L27,26 L23,26 Z" fill="#000"></path>
+    <path d="M21.5,24 L26.5,24 L26.5,39 L21.5,39 Z" fill="#000"></path>
+    <path d="M15,27.5 L33,27.5 L33,30.5 L15,30.5 Z" fill="#000"></path>
+    <path d="M15,32.5 L33,32.5 L33,35.5 L15,35.5 Z" fill="#000"></path>
+    <path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#economy_active)"></rect>
+</svg>

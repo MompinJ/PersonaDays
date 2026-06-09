@@ -1,0 +1,9 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="profile" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M24,15.5 L31,12.5 L43,15 L41,23 L36,31 L26,29 L24,32.5 L22,29 L12,31 L7,23 L5,15 L17,12.5 Z" fill="#fff"></path>
+    <path d="M28,21.5 L32,19.5 L36,21.5 L32,23.5 Z" fill="#000"></path>
+    <path d="M12,21.5 L16,19.5 L20,21.5 L16,23.5 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#profile)"></rect>
+</svg>

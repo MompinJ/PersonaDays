@@ -3,14 +3,18 @@ import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { StatViewData } from '../../hooks/usePlayerStats';
 import { useTheme } from '../../themes/useTheme';
 import { calculateLevelFromXP } from '../../utils/levelingUtils';
+import { StatIcon } from './StatIcon';
+import { resolveStatKey, type StatKey } from './stats';
 
 interface Props {
   data: StatViewData;
   colorTema: string; // El color del tema (Azul Makoto, Rosa Kotone, etc.)
+  statKey?: StatKey | null; // icono ya resuelto (incluye herencia de hijos); si no, se resuelve por nombre
 }
 
-export const StatRow = ({ data, colorTema }: Props) => {
+export const StatRow = ({ data, colorTema, statKey }: Props) => {
   const theme = useTheme();
+  const iconKey = statKey !== undefined ? statKey : resolveStatKey(data.nombre_stat);
   // Ahora usamos la curva progresiva para calcular nivel y progreso desde la XP total
   const lvlInfo = calculateLevelFromXP(data.experiencia_actual || 0);
   const xpPercent = Math.min(Math.max(lvlInfo.progress * 100, 0), 100);
@@ -36,7 +40,10 @@ export const StatRow = ({ data, colorTema }: Props) => {
 
       <View style={styles.infoContainer}>
         <View style={styles.headerRow}>
-          <Text style={[styles.statName, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{data.nombre_stat}</Text>
+          <View style={styles.nameWrap}>
+            {iconKey ? <StatIcon stat={iconKey} size={18} skew={0} color={colorTema} /> : null}
+            <Text style={[styles.statName, { color: theme.text, fontFamily: theme.fonts?.heading, marginLeft: iconKey ? 8 : 0 }]}>{data.nombre_stat}</Text>
+          </View>
           {data.cuenta_prestigio > 0 && (
             <Text style={[styles.prestige, { color: theme.primary, fontFamily: theme.fonts?.bold }]}>★ {data.cuenta_prestigio}</Text>
           )}
@@ -87,7 +94,13 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  nameWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   statName: {
     fontSize: 16,

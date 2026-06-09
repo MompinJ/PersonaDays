@@ -4,19 +4,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
 import { useNavigation } from '@react-navigation/native';
+import { PersonaShard } from '../UI/PersonaShard';
 
 interface PhoneHeaderProps {
   title: string;
   showBackButton?: boolean;
   onBack?: () => void;
   rightAction?: ReactNode;
+  /** Titulo como shard grande (look mas agresivo P3R). */
+  shard?: boolean;
 }
 
-export const PhoneHeader: React.FC<PhoneHeaderProps> = ({ 
-  title, 
+export const PhoneHeader: React.FC<PhoneHeaderProps> = ({
+  title,
   showBackButton = true,
   onBack,
-  rightAction
+  rightAction,
+  shard = false
 }) => {
   const theme = useTheme();
   const navigation = useNavigation();
@@ -49,15 +53,22 @@ export const PhoneHeader: React.FC<PhoneHeaderProps> = ({
           </TouchableOpacity>
         )}
         
-        {/* Barra de acento inclinada estilo Persona */}
-        <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
-
-        <Text
-          style={[styles.title, { color: theme.text, fontFamily: theme.fonts?.title }]}
-          numberOfLines={1}
-        >
-          {title?.toUpperCase()}
-        </Text>
+        {shard ? (
+          <View style={{ flex: 1 }}>
+            <PersonaShard label={title?.toUpperCase()} height={46} fontSize={28} font={theme.fonts?.title} />
+          </View>
+        ) : (
+          <>
+            {/* Barra de acento inclinada estilo Persona */}
+            <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+            <Text
+              style={[styles.title, { color: theme.text, fontFamily: theme.fonts?.title }]}
+              numberOfLines={1}
+            >
+              {title?.toUpperCase()}
+            </Text>
+          </>
+        )}
 
         <View style={styles.rightContainer}>
           {rightAction}

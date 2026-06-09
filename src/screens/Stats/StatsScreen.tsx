@@ -14,6 +14,7 @@ import { AddStatButton } from '../../components/Stats/AddStatButton';
 import { CreateStatModalNew as CreateStatModal } from '../../components/Stats/CreateStatModalNew';
 import { SelectGraphStatsModal } from '../../components/Stats/SelectGraphStatsModal';
 import { StatDetailModal } from '../../components/Stats/StatDetailModal';
+import { resolveStatKey } from '../../components/Stats/stats';
 
 const STORAGE_KEY = 'USER_GRAPH_CONFIG';
 
@@ -140,11 +141,17 @@ export const StatsScreen = () => {
               </View>
             </View>
           }
-          renderItem={({ item }) => (
-            <PressableScale scaleTo={0.98} onPress={() => { setSelectedStat(item); setDetailModalVisible(true); }}>
-              <StatRow data={item} colorTema={colors.primary} />
-            </PressableScale>
-          )}
+          renderItem={({ item }) => {
+            // Icono: por nombre propio; si es un habito hijo, hereda el del stat padre
+            const ownKey = resolveStatKey(item.nombre_stat);
+            const parentName = item.id_stat_padre ? stats.find(s => s.id_stat === item.id_stat_padre)?.nombre_stat : null;
+            const statKey = ownKey ?? resolveStatKey(parentName);
+            return (
+              <PressableScale scaleTo={0.98} onPress={() => { setSelectedStat(item); setDetailModalVisible(true); }}>
+                <StatRow data={item} colorTema={colors.primary} statKey={statKey} />
+              </PressableScale>
+            );
+          }}
           ListFooterComponent={
             <AddStatButton onPress={handleCreateStat} color={colors.primary} />
           }

@@ -1,0 +1,11 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="phone_active" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M15,4 L33,4 L33,44 L15,44 Z" fill="#fff"></path>
+    <path d="M18.5,9 L29.5,9 L29.5,37 L18.5,37 Z" fill="#000"></path>
+    <path d="M21,6 L27,6 L27,7.7 L21,7.7 Z" fill="#000"></path>
+    <path d="M24.0,38.7 L24.4,38.7 L24.8,38.9 L25.1,39.1 L25.4,39.4 L25.6,39.7 L25.8,40.1 L25.8,40.5 L25.8,40.9 L25.6,41.3 L25.4,41.6 L25.1,41.9 L24.8,42.1 L24.4,42.3 L24.0,42.3 L23.6,42.3 L23.2,42.1 L22.9,41.9 L22.6,41.6 L22.4,41.3 L22.2,40.9 L22.2,40.5 L22.2,40.1 L22.4,39.7 L22.6,39.4 L22.9,39.1 L23.2,38.9 L23.6,38.7 Z" fill="#000"></path>
+    <path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#phone_active)"></rect>
+</svg>

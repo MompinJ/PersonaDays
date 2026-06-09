@@ -8,6 +8,8 @@ import { useTheme } from '../../themes/useTheme';
 import { PersonaModal } from '../UI/PersonaModal';
 import { PersonaShard } from '../UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
+import { StatIcon } from './StatIcon';
+import { resolveStatKey } from './stats';
 
 interface Props {
   visible: boolean;
@@ -91,9 +93,12 @@ export const CreateStatModalNew = ({ visible, onClose, onSuccess }: Props) => {
                       style={[styles.parentButton, { marginTop: st, borderColor: cc, backgroundColor: active ? cc : colors.surface, transform: [{ skewX: `${sk}deg` }] }]}
                       onPress={() => setSelectedParentId(stat.id)}
                     >
-                      <Text style={[styles.parentButtonText, { color: active ? getContrastText(cc) : colors.textDim, fontFamily: colors.fonts?.heading, transform: [{ skewX: `${-sk}deg` }] }]}>
-                        {stat.nombre}
-                      </Text>
+                      <View style={[styles.parentBtnInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
+                        {(() => { const k = resolveStatKey(stat.nombre); return k ? <StatIcon stat={k} size={16} skew={0} color={active ? getContrastText(cc) : cc} /> : null; })()}
+                        <Text style={[styles.parentButtonText, { color: active ? getContrastText(cc) : colors.textDim, fontFamily: colors.fonts?.heading, marginLeft: 7 }]}>
+                          {stat.nombre}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -189,6 +194,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 14,
   },
   parentButtonSelected: {},
+  parentBtnInner: { flexDirection: 'row', alignItems: 'center' },
   parentButtonText: { fontSize: 12, fontWeight: 'bold' },
   parentButtonTextSelected: {},
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
