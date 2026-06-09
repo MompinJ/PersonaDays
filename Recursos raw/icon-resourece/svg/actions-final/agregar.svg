@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="add_burst" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M24,3 L29,18 L19,18 Z" fill="#fff"></path><path d="M24,45 L29,30 L19,30 Z" fill="#fff"></path><path d="M3,24 L18,29 L18,19 Z" fill="#fff"></path><path d="M45,24 L30,29 L30,19 Z" fill="#fff"></path><path d="M28.2,24.0 L24.0,28.2 L19.8,24.0 L24.0,19.8 Z" fill="#fff"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#add_burst)"></rect>
+</svg>

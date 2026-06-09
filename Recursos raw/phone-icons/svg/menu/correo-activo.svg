@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="correo_active" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M7,13 L41,13 L41,35 L7,35 Z" fill="#fff"></path><path d="M7,13 L24,27 L41,13 L41,16.8 L24,30.8 L7,16.8 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#correo_active)"></rect>
+</svg>

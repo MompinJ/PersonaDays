@@ -1,5 +1,7 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Easing, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Pressable, InteractionManager } from 'react-native';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { ListSkeleton, SkeletonBar } from '../../components/UI/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,17 +48,10 @@ export const EconomyScreen = () => {
 
   const { label: monthLabel } = getMonthBounds();
 
-  // Animacion de entrada (una sola vez al montar) y feedback del FAB
-  const intro = useRef(new Animated.Value(0)).current;
+  // Entrada animada en CADA foco + feedback del FAB
+  const { style: introStyle } = useFocusEntrance(18, 420);
   const fabScale = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    Animated.timing(intro, {
-      toValue: 1,
-      duration: 420,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, []);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   const load = async () => {
     try {
@@ -96,12 +91,16 @@ export const EconomyScreen = () => {
       setMonthSlices(slices);
     } catch (e) {
       console.error('Error cargando finanzas', e);
+    } finally {
+      setFirstLoad(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      // Diferido: la entrada anima primero, luego consultamos la DB
+      const task = InteractionManager.runAfterInteractions(load);
+      return () => task.cancel();
     }, [])
   );
 
@@ -227,13 +226,14 @@ export const EconomyScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
+        {firstLoad && transactions.length === 0 ? (
+          <View style={{ padding: 16, paddingTop: 8 }}>
+            <SkeletonBar width="55%" height={48} skew={-14} style={{ marginBottom: 18 }} />
+            <SkeletonBar width="100%" height={140} skew={-6} style={{ marginBottom: 24, borderRadius: 4 }} />
+            <ListSkeleton rows={4} />
+          </View>
+        ) : (
         <FlatList
           data={transactions}
           keyExtractor={(i) => String(i.id_finanza)}
@@ -249,6 +249,7 @@ export const EconomyScreen = () => {
           contentContainerStyle={{ padding: 16, paddingBottom: 160 }}
           showsVerticalScrollIndicator={false}
         />
+        )}
       </Animated.View>
 
       <Pressable

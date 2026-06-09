@@ -1,7 +1,9 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Animated, Easing, TouchableOpacity, InteractionManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { ListSkeleton } from '../../components/UI/Skeleton';
 import { db } from '../../database';
 import { useTheme } from '../../themes/useTheme';
 import { useGame } from '../../context/GameContext';
@@ -80,13 +82,13 @@ export const CompletedMissionsScreen = () => {
   const { refreshStats } = usePlayerStats();
 
   const [completed, setCompleted] = useState<any[]>([]);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const load = async () => {
         try {
-          console.log('CompletedMissions: cargando completadas de hoy...');
           const rows: any[] = await db.getAllAsync(
             `SELECT m.*, im.id_stat, im.valor_impacto, s.nombre as nombre_stat
              FROM misiones m
@@ -95,14 +97,14 @@ export const CompletedMissionsScreen = () => {
              WHERE m.completada = 1 AND date(m.fecha_completada) = date('now')
              ORDER BY m.fecha_completada DESC;`
           );
-          console.log('CompletedMissions: rows fetched:', rows ? rows.length : 0);
-          if (active) setCompleted(rows || []);
+          if (active) { setCompleted(rows || []); setFirstLoad(false); }
         } catch (e) {
           console.error('Error cargando completadas:', e);
+          if (active) setFirstLoad(false);
         }
       };
-      load();
-      return () => { active = false; };
+      const task = InteractionManager.runAfterInteractions(load);
+      return () => { active = false; task.cancel(); };
     }, [])
   );
 
@@ -257,11 +259,8 @@ export const CompletedMissionsScreen = () => {
 
   const [selectedMission, setSelectedMission] = useState<any | null>(null);
 
-  // Animacion de entrada (una sola vez)
-  const intro = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, []);
+  // Entrada animada en cada foco
+  const { style: introStyle } = useFocusEntrance(18, 420);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => (
     <CompletedRow item={item} index={index} onPress={() => setSelectedMission(item)} onRestore={() => handleRevertMission(item)} />
@@ -273,13 +272,10 @@ export const CompletedMissionsScreen = () => {
         <PersonaShard label="HISTORIAL DE HOY" height={50} fontSize={26} font={colors.fonts?.title} />
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
+        {firstLoad && completed.length === 0 ? (
+          <View style={{ paddingTop: 8 }}><ListSkeleton rows={4} /></View>
+        ) : (
         <FlatList
           data={completed}
           keyExtractor={(i) => i.id_mision ? i.id_mision.toString() : Math.random().toString()}
@@ -294,6 +290,7 @@ export const CompletedMissionsScreen = () => {
             </View>
           }
         />
+        )}
       </Animated.View>
 
       {/* Modal de detalle similar a MissionsScreen */}

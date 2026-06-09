@@ -5,6 +5,11 @@ import { PressableScale } from '../../components/UI/PressableScale';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
 import { useFocusEffect } from '@react-navigation/native'; // Hook para saber cuando entras a la pantalla
+import { InteractionManager } from 'react-native';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { ListSkeleton } from '../../components/UI/Skeleton';
+import { useEventFlash } from '../../context/EventFlashContext';
+import { ActionGlyph } from '../../components/UI/ActionGlyphs';
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
 import { calculateLevelFromXP } from '../../utils/levelingUtils';
@@ -26,11 +31,10 @@ export const MissionsScreen = () => {
   const { theme, player, refreshUser } = useGame();
   const { refreshStats } = usePlayerStats();
 
-  // Animacion de entrada (una sola vez al montar)
-  const intro = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, []);
+  // Entrada animada en CADA foco (no solo al montar)
+  const { style: introStyle } = useFocusEntrance(18, 420);
+  const [firstLoad, setFirstLoad] = useState(true);
+  const { flash } = useEventFlash();
 
  // Mostrar misiones
   const cargarMisiones = async () => {
@@ -50,6 +54,7 @@ export const MissionsScreen = () => {
     // acumuladores fuera del try para que estén disponibles en todo el handler
     let totalExpGained = 0; // acumulador para el log
     let logInserted = false;
+    const leveledUp: { name: string; level: number }[] = []; // stats que subieron de nivel
 
     try {
       const mision = misiones.find(m => m.id_mision === id);
@@ -75,7 +80,20 @@ export const MissionsScreen = () => {
             console.log('Impacto encontrado:', impacto);
             const valor = impacto.valor_impacto || 0;
             const statId = impacto.id_stat;
-            console.log('Sumando XP:', valor, 'al stat:', statId);
+
+            // Nivel y nombre ANTES de aplicar (para detectar subida de nivel)
+            let prevLevel = 1;
+            let statName = '';
+            try {
+              const prev: any[] = await db.getAllAsync(
+                'SELECT js.experiencia_actual as xp, s.nombre as nombre FROM stats s LEFT JOIN jugador_stat js ON js.id_stat = s.id_stat AND js.id_jugador = ? WHERE s.id_stat = ?',
+                [player?.id_jugador, statId]
+              );
+              if (prev && prev.length > 0) {
+                prevLevel = calculateLevelFromXP(prev[0].xp || 0).level;
+                statName = prev[0].nombre || '';
+              }
+            } catch (e) { /* ignore */ }
 
             // 1) Añadir XP total
             await db.runAsync(
@@ -93,8 +111,12 @@ export const MissionsScreen = () => {
               if (rows && rows.length > 0) {
                 const totalXP = rows[0].experiencia_actual || 0;
                 const lvlInfo = calculateLevelFromXP(totalXP);
-                console.log('Nivel recalculado:', lvlInfo.level, 'XP en nivel:', lvlInfo.currentLevelXP, 'meta:', lvlInfo.xpToNextLevel);
                 await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlInfo.level, statId, player?.id_jugador]);
+
+                // Subio de nivel? guardar para el flash
+                if (lvlInfo.level > prevLevel && statName) {
+                  leveledUp.push({ name: statName, level: lvlInfo.level });
+                }
 
                 // --- HERENCIA: comprobar si el stat tiene padre y aplicar XP heredada ---
                 try {
@@ -171,6 +193,10 @@ export const MissionsScreen = () => {
       try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
       setMisiones(prev => prev.filter(m => m.id_mision !== id));
 
+      // FLASH de evento estilo Persona: encargo completado + subidas de nivel (en cola)
+      flash({ kind: 'complete', title: 'ENCARGO COMPLETADO', subtitle: mision.nombre, xp: totalExpGained, yen: mision.recompensa_yenes || 0 });
+      leveledUp.forEach((l) => flash({ kind: 'levelup', title: `NIVEL ${l.level}`, subtitle: l.name }));
+
     } catch (error) {
       console.error('Error completando misión:', error);
     }
@@ -214,7 +240,6 @@ const irACrearMision = () => {
   // 4. Cada vez que entres a esta pestaña, recarga los datos (ejecución única por foco)
   useFocusEffect(
     useCallback(() => {
-      console.log('--- PANTALLA MISIONES EN FOCO (Ejecución Única) ---');
       let isActive = true;
 
       const fetchByType = async () => {
@@ -223,10 +248,10 @@ const irACrearMision = () => {
           await checkAndResetRecurrence();
 
           const query = `
-  SELECT 
-    m.*, 
-    s.nombre as nombre_stat, 
-    im.valor_impacto 
+  SELECT
+    m.*,
+    s.nombre as nombre_stat,
+    im.valor_impacto
   FROM misiones m
   LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
   LEFT JOIN stats s ON im.id_stat = s.id_stat
@@ -237,15 +262,18 @@ const irACrearMision = () => {
           if (isActive) {
             try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
             setMisiones(resultados);
+            setFirstLoad(false);
           }
         } catch (error) {
           console.error('Error al cargar misiones (focus):', error);
+          if (isActive) setFirstLoad(false);
         }
       };
 
-      fetchByType();
+      // Diferido: la entrada anima primero, luego consultamos la DB
+      const task = InteractionManager.runAfterInteractions(fetchByType);
 
-      return () => { isActive = false; };
+      return () => { isActive = false; task.cancel(); };
     }, [])
   );
 
@@ -322,13 +350,10 @@ const irACrearMision = () => {
       </View>
 
       {/* Lista de Misiones */}
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
+        {firstLoad && misiones.length === 0 ? (
+          <View style={{ paddingTop: 8 }}><ListSkeleton rows={5} /></View>
+        ) : (
         <FlatList
           data={filteredMissions}
           keyExtractor={(item) => item.id_mision.toString()}
@@ -354,17 +379,18 @@ const irACrearMision = () => {
           contentContainerStyle={{ paddingBottom: 160, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
         />
+        )}
       </Animated.View>
 
-      {/* Botones flotantes: historial, gestionar y crear */}
+      {/* Botones flotantes: historial, gestionar y crear (glifos P3R, color del tema) */}
       <PressableScale containerStyle={styles.fabPosSmall} style={[styles.secondaryFabSmall, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('CompletedMissions')}>
-        <Ionicons name="time-outline" size={18} color={theme.text} />
+        <ActionGlyph name="historial" size={22} color={theme.primary} active />
       </PressableScale>
       <PressableScale containerStyle={styles.fabPosMid} style={[styles.secondaryFab, { backgroundColor: theme.surface, borderColor: theme.primary }]} onPress={() => navigation.navigate('ManageMissions')}>
-        <Ionicons name="cog" size={20} color={theme.text} />
+        <ActionGlyph name="gestionar" size={24} color={theme.primary} active />
       </PressableScale>
       <PressableScale containerStyle={styles.fabPos} style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={irACrearMision}>
-        <Ionicons name="add" size={32} color={theme.textInverse} />
+        <ActionGlyph name="agregar" size={32} color={theme.textInverse} active />
       </PressableScale>
 
       <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />

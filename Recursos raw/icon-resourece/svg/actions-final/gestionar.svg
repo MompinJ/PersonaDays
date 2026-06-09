@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="mng_console" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M16,9 L8,9 L8,39 L16,39 L16,35 L12,35 L12,13 L16,13 Z" fill="#fff"></path><path d="M32,9 L40,9 L40,39 L32,39 L32,35 L36,35 L36,13 L32,13 Z" fill="#fff"></path><path d="M18.5,15 L29.5,15 L29.5,18.2 L18.5,18.2 Z" fill="#fff"></path><path d="M18.5,22.4 L29.5,22.4 L29.5,25.599999999999998 L18.5,25.599999999999998 Z" fill="#fff"></path><path d="M18.5,29.8 L29.5,29.8 L29.5,33 L18.5,33 Z" fill="#fff"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#mng_console)"></rect>
+</svg>

@@ -322,7 +322,6 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
               placeholderTextColor={colors.textDim}
               value={nombre}
               onChangeText={setNombre}
-              autoFocus
             />
           </View>
 

@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="notas_pencil" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M6,12 L32,12 L32,15.2 L6,15.2 Z" fill="#fff"></path><path d="M6,22 L32,22 L32,25.2 L6,25.2 Z" fill="#fff"></path><path d="M6,32 L22,32 L22,35.2 L6,35.2 Z" fill="#fff"></path><path d="M40,8 L44,12 L28,28 L23,29 L24,24 Z" fill="#fff"></path><path d="M37,11 L41,15 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#notas_pencil)"></rect>
+</svg>

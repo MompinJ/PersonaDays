@@ -9,6 +9,7 @@ import ManageArcModal from '../../../components/Arcs/ManageArcModal';
 import { useGame } from '../../../context/GameContext';
 import { usePlayerStats } from '../../../hooks/usePlayerStats';
 import { finalizeArcWithRewards, hasActiveSubArcs } from '../../../services/arcService';
+import { useEventFlash } from '../../../context/EventFlashContext';
 import { db } from '../../../database';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
 import { PersonaCount } from '../../../components/UI/PersonaCount';
@@ -23,6 +24,7 @@ export const ArcDetailScreen = ({ route, navigation }: Props) => {
   const { player, refreshUser } = useGame();
   const { refreshStats } = usePlayerStats();
   const { showAlert } = useAlert();
+  const { flash } = useEventFlash();
 
   const [progress, setProgress] = useState(0);
   const [statName, setStatName] = useState<string | null>(null);
@@ -75,10 +77,11 @@ export const ArcDetailScreen = ({ route, navigation }: Props) => {
       { text: 'FINALIZAR', onPress: async () => {
         try {
           const { grantedXP } = await finalizeArcWithRewards(arc, player);
-          showAlert('CAPÍTULO CERRADO', grantedXP > 0 ? `El arco ha sido completado. ¡Ganaste ${grantedXP} XP!` : 'El arco ha sido completado y movido al historial. ¡Buen trabajo!');
           try { refreshStats && refreshStats(); } catch (e) {}
           try { refreshUser && refreshUser(); } catch (e) {}
           navigation.goBack();
+          // Flash celebratorio (en vez de un alert): se muestra sobre la pantalla de Arcos
+          flash({ kind: 'complete', title: 'CAPÍTULO CERRADO', subtitle: arc?.nombre, xp: grantedXP > 0 ? grantedXP : undefined });
         } catch (err: any) {
           console.error('Error finalizando arco:', err);
           showAlert('ERROR', 'No se pudo finalizar el arco. ' + (err?.message || ''));

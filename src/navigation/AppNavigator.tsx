@@ -3,7 +3,7 @@
 
 //Herramientas de construccion
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../themes/useTheme';
@@ -100,30 +100,38 @@ const MainTabs = () => {
 
 // 4. El componente principal
 export const AppNavigator = () => {
+  const theme = useTheme();
+  // Tema de navegacion con fondo del personaje: evita el flash blanco al hacer pop
+  const navTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: theme.background,
+      card: theme.surface,
+      text: theme.text,
+      primary: theme.primary,
+      border: theme.border,
+    },
+  };
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.background },
+          animation: 'fade',
+          freezeOnBlur: false,
+        }}
+      >
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
         <Stack.Screen name="Arcs" component={ArcsScreen} />
         <Stack.Screen name="ListsMenuScreen" component={ListsMenuScreen} />
         <Stack.Screen name="ListDetailScreen" component={ListDetailScreen} />
         <Stack.Screen name="ArcDetail" component={ArcDetailScreen} />
-        <Stack.Screen
-          name="ManageMissions"
-          component={ManageMissionsScreen}
-          options={{ presentation: 'modal' }}
-        />
-        <Stack.Screen
-          name="CreateMission"
-          component={CreateMissionScreen}
-          options={{ presentation: 'modal' }}
-        />
-        <Stack.Screen
-          name="CompletedMissions"
-          component={CompletedMissionsScreen}
-          options={{ presentation: 'modal' }}
-        />
+        <Stack.Screen name="ManageMissions" component={ManageMissionsScreen} />
+        <Stack.Screen name="CreateMission" component={CreateMissionScreen} />
+        <Stack.Screen name="CompletedMissions" component={CompletedMissionsScreen} />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}

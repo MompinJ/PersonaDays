@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="arcos_active" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M8,42 L8,26 L11,19 L17,13 L24,11 L31,13 L37,19 L40,26 L40,42 L32,42 L32,27 L30,22 L26,18 L24,17 L22,18 L18,22 L16,27 L16,42 Z" fill="#fff"></path><path d="M24,2 L25.6,5.4 L29,7 L25.6,8.6 L24,12 L22.4,8.6 L19,7 L22.4,5.4 Z" fill="#fff"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#arcos_active)"></rect>
+</svg>

@@ -24,6 +24,7 @@ import { initDatabase } from './src/database';
 // Context
 import { GameProvider, useGame } from './src/context/GameContext';
 import { AlertProvider } from './src/context/AlertContext';
+import { EventFlashProvider } from './src/context/EventFlashContext';
 import { PALETTES } from './src/themes/palettes';
 
 const DEFAULT_PALETTE = Object.values(PALETTES)[0] as any;
@@ -44,7 +45,7 @@ function RootNavigation() {
   if (!player) {
     return (
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: DEFAULT_PALETTE.background } }}>
           <Stack.Screen name="Setup" component={SetupScreen} />
           <Stack.Screen name="CharacterSelection" component={CharacterSelectionScreen} />
         </Stack.Navigator>
@@ -94,11 +95,13 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: DEFAULT_PALETTE.background }}>
       <StatusBar style="light" />
       <GameProvider>
         <AlertProvider>
-          <RootNavigation />
+          <EventFlashProvider>
+            <RootNavigation />
+          </EventFlashProvider>
         </AlertProvider>
       </GameProvider>
     </GestureHandlerRootView>

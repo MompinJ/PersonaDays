@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation, Animated, Easing } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, LayoutAnimation, Animated, InteractionManager } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { SkeletonStatRow } from '../../components/UI/Skeleton';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,17 +29,17 @@ export const StatsScreen = () => {
 
   const colors = useTheme();
 
-  // Animacion de entrada (una sola vez al montar)
-  const intro = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(intro, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, []);
+  // Entrada animada en CADA foco (no solo al montar)
+  const { style: introStyle } = useFocusEntrance(16, 450);
 
+  // Carga diferida: deja que la entrada anime primero, luego consulta la DB
   useFocusEffect(
     useCallback(() => {
-      try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
-      refreshStats && refreshStats();
-      return () => { /* cleanup if needed */ };
+      const task = InteractionManager.runAfterInteractions(() => {
+        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
+        refreshStats && refreshStats();
+      });
+      return () => task.cancel();
     }, [refreshStats])
   );
 
@@ -91,13 +93,7 @@ export const StatsScreen = () => {
     }
   };
 
-  if (loading && stats.length === 0) {
-    return (
-      <View style={[styles.screen, styles.center]}>
-        <Text style={{ color: colors.text, fontFamily: colors.fonts?.body }}>Analizando potencial...</Text>
-      </View>
-    );
-  }
+  const showSkeleton = loading && stats.length === 0;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }] }>
@@ -107,13 +103,15 @@ export const StatsScreen = () => {
         <PersonaShard label="PARAMETERS" height={54} fontSize={30} font={colors.fonts?.title} />
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
+        {showSkeleton ? (
+          <View style={{ paddingHorizontal: 6, paddingTop: 20 }}>
+            <View style={{ alignItems: 'center', marginBottom: 30 }}>
+              <View style={{ width: 240, height: 240, borderRadius: 120, borderWidth: 1, borderColor: colors.border, opacity: 0.4 }} />
+            </View>
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonStatRow key={i} index={i} />)}
+          </View>
+        ) : (
         <FlatList
           data={stats}
           keyExtractor={(item) => item.id_stat.toString()}
@@ -160,6 +158,7 @@ export const StatsScreen = () => {
           refreshing={loading}
           showsVerticalScrollIndicator={false}
         />
+        )}
       </Animated.View>
 
       <CreateStatModal 

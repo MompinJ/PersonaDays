@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="ajustes_hsliders" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M8,12.5 L40,12.5 L40,15 L8,15 Z" fill="#fff"></path><path d="M23.0,13.8 L17.0,19.8 L11.0,13.8 L17.0,7.8 Z" fill="#fff"></path><path d="M8,22.75 L40,22.75 L40,25.25 L8,25.25 Z" fill="#fff"></path><path d="M37.0,24.0 L31.0,30.0 L25.0,24.0 L31.0,18.0 Z" fill="#fff"></path><path d="M8,33 L40,33 L40,35.5 L8,35.5 Z" fill="#fff"></path><path d="M28.0,34.3 L22.0,40.3 L16.0,34.3 L22.0,28.3 Z" fill="#fff"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#ajustes_hsliders)"></rect>
+</svg>

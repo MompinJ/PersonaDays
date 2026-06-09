@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, InteractionManager } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { ListSkeleton } from '../../../components/UI/Skeleton';
 import { useTheme } from '../../../themes/useTheme';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
 import { PressableScale } from '../../../components/UI/PressableScale';
@@ -13,6 +14,7 @@ import ManageArcModal from '../../../components/Arcs/ManageArcModal';
 import { useGame } from '../../../context/GameContext';
 import { useAlert } from '../../../context/AlertContext';
 import { finalizeArcWithRewards } from '../../../services/arcService';
+import { useEventFlash } from '../../../context/EventFlashContext';
 import { usePlayerStats } from '../../../hooks/usePlayerStats';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +27,7 @@ export const ArcsScreen = () => {
   const [arcs, setArcs] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingArc, setEditingArc] = useState<any | null>(null);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   const loadArcs = async () => {
     try {
@@ -33,18 +36,22 @@ export const ArcsScreen = () => {
       else setArcs(rows);
     } catch (e) {
       console.error('Error cargando arcos:', e);
+    } finally {
+      setFirstLoad(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      loadArcs();
+      const task = InteractionManager.runAfterInteractions(loadArcs);
+      return () => task.cancel();
     }, [])
   );
 
   const { player, refreshUser } = useGame();
   const { refreshStats } = usePlayerStats();
   const { showAlert } = useAlert();
+  const { flash } = useEventFlash();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const swipeableRef = useRef<any>(null);
 
@@ -136,15 +143,10 @@ export const ArcsScreen = () => {
                         try {
                           const { grantedXP } = await finalizeArcWithRewards(arc, player);
                           try { swipeableRef.current && swipeableRef.current.close(); } catch(e){}
-                          showAlert(
-                            'CAPÍTULO CERRADO',
-                            grantedXP > 0
-                              ? `El arco ha sido completado. ¡Ganaste ${grantedXP} XP!`
-                              : 'El arco ha sido completado y movido al historial. ¡Buen trabajo!'
-                          );
                           try { refreshStats && refreshStats(); } catch(e){}
                           try { refreshUser && refreshUser(); } catch(e){}
                           loadArcs();
+                          flash({ kind: 'complete', title: 'CAPÍTULO CERRADO', subtitle: arc?.nombre, xp: grantedXP > 0 ? grantedXP : undefined });
                         } catch (err) {
                           console.error('Error finalizando arco:', err);
                           try { swipeableRef.current && swipeableRef.current.close(); } catch(e){}
@@ -171,6 +173,8 @@ export const ArcsScreen = () => {
             </View>
           );
         })()
+      ) : firstLoad && arcs.length === 0 ? (
+        <View style={{ paddingHorizontal: 10, paddingTop: 8 }}><ListSkeleton rows={4} /></View>
       ) : (
         <FlatList
           data={filtered}

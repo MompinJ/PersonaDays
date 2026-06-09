@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="galeria_stack" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M15,8 L40,8 L40,33 L15,33 Z" fill="#fff"></path><path d="M18,11 L37,11 L37,30 L18,30 Z" fill="#000"></path><path d="M8,16 L33,16 L33,41 L8,41 Z" fill="#fff"></path><path d="M11,19 L30,19 L30,38 L11,38 Z" fill="#000"></path><path d="M11,38 L18,29 L22,33 L27,26 L30,38 Z" fill="#fff"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#galeria_stack)"></rect>
+</svg>

@@ -1,29 +1,29 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
 import { useNavigation } from '@react-navigation/native';
 import { useAlert } from '../../context/AlertContext';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { PressableScale } from '../../components/UI/PressableScale';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { MenuGlyph } from '../../components/UI/MenuGlyphs';
 
 export const PhoneMenuScreen = () => {
   const theme = useTheme();
   const navigation: any = useNavigation();
   const { showAlert } = useAlert();
 
-  const intro = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, []);
+  // Entrada animada en cada foco
+  const { style: introStyle } = useFocusEntrance(18, 420);
 
   const tiles = [
-    { key: 'calendar', label: 'CALENDARIO', icon: 'calendar-month', action: () => navigation.navigate('Calendar') },
-    { key: 'arcs', label: 'ARCOS', icon: 'book-open-variant', action: () => navigation.navigate('Arcs') },
-    { key: 'lists', label: 'NOTAS', icon: 'playlist-edit', action: () => navigation.navigate('ListsMenuScreen') },
-    { key: 'gallery', label: 'GALERÍA', icon: 'image-multiple', soon: true },
-    { key: 'mail', label: 'CORREO', icon: 'email-outline', soon: true },
-    { key: 'settings', label: 'AJUSTES', icon: 'cog-outline', action: () => navigation.navigate('Settings') },
+    { key: 'calendar', label: 'CALENDARIO', glyph: 'calendario', action: () => navigation.navigate('Calendar') },
+    { key: 'arcs', label: 'ARCOS', glyph: 'arcos', action: () => navigation.navigate('Arcs') },
+    { key: 'lists', label: 'NOTAS', glyph: 'notas', action: () => navigation.navigate('ListsMenuScreen') },
+    { key: 'gallery', label: 'GALERÍA', glyph: 'galeria', soon: true },
+    { key: 'mail', label: 'CORREO', glyph: 'correo', soon: true },
+    { key: 'settings', label: 'AJUSTES', glyph: 'ajustes', action: () => navigation.navigate('Settings') },
   ] as const;
 
   return (
@@ -32,13 +32,7 @@ export const PhoneMenuScreen = () => {
         <PersonaShard label="TELÉFONO" height={54} fontSize={30} font={theme.fonts?.title} />
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
         <View style={styles.grid}>
           {tiles.map((t, i) => {
             const accent = i % 2 === 0 ? theme.primary : theme.secondary;
@@ -53,7 +47,7 @@ export const PhoneMenuScreen = () => {
                 onPress={dimmed ? () => showAlert('PRÓXIMAMENTE', `${t.label} llegará pronto.`) : (t as any).action}
               >
                 <View style={[styles.tileAccent, { backgroundColor: c }]} />
-                <MaterialCommunityIcons name={t.icon as any} size={38} color={c} />
+                <MenuGlyph name={t.glyph} size={40} color={c} active={!dimmed} />
                 <Text style={[styles.tileLabel, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{t.label}</Text>
                 {dimmed && (
                   <View style={[styles.soonTag, { backgroundColor: theme.textDim }]}>

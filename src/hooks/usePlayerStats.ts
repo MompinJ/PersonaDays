@@ -16,7 +16,8 @@ export const usePlayerStats = () => {
 
   const loadStats = useCallback(async () => {
     try {
-      setLoading(true);
+      // No ponemos loading=true en refrescos: mantenemos los datos visibles
+      // (loading arranca en true solo para la PRIMERA carga -> esqueleto).
 
       // Buscar jugador actual (el primero disponible)
       const players: any = await db.getAllAsync<Jugador>('SELECT id_jugador FROM jugadores LIMIT 1');

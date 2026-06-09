@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="arcos_steps" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M6,42 L6,33 L17,33 L17,24 L28,24 L28,15 L39,15 L39,42 Z" fill="#fff"></path><path d="M36.7,22.5 L33.5,25.7 L30.3,22.5 L33.5,19.3 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#arcos_steps)"></rect>
+</svg>

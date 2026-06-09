@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="notas_active" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M10,7 L31,7 L40,16 L40,42 L10,42 Z" fill="#fff"></path><path d="M31,7 L40,16 L31,16 Z" fill="#000"></path><path d="M15,22 L33,22 L33,24.6 L15,24.6 Z" fill="#000"></path><path d="M15,28 L33,28 L33,30.6 L15,30.6 Z" fill="#000"></path><path d="M15,34 L27,34 L27,36.6 L15,36.6 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#notas_active)"></rect>
+</svg>

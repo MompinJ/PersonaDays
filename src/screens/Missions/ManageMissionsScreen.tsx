@@ -8,6 +8,9 @@ import { MissionType } from '../../types';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
+import { InteractionManager } from 'react-native';
+import { useFocusEntrance } from '../../hooks/useFocusEntrance';
+import { ListSkeleton } from '../../components/UI/Skeleton';
 
 export const ManageMissionsScreen = () => {
   const navigation = useNavigation<any>();
@@ -17,35 +20,31 @@ export const ManageMissionsScreen = () => {
   const [filterType, setFilterType] = useState<string>('TODAS');
   const [filterStat, setFilterStat] = useState<number | null>(null);
   const [filterDay, setFilterDay] = useState<number | null>(null);
+  const [firstLoad, setFirstLoad] = useState(true);
 
-  // Animacion de entrada (una sola vez)
-  const intro = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, []);
+  // Entrada animada en cada foco
+  const { style: introStyle } = useFocusEntrance(18, 420);
 
-  // Cargar cada vez que la pantalla entra en foco para evitar datos cacheados
+  // Cargar cada vez que la pantalla entra en foco (diferido para que anime primero)
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
       const load = async () => {
         try {
-          console.log('ManageMissionsScreen: cargando misiones maestras desde DB...');
           const rows: any[] = await db.getAllAsync(
             'SELECT m.*, m.dias_repeticion, m.frecuencia_repeticion, im.id_stat FROM misiones m LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision WHERE m.activa = 1 ORDER BY m.tipo ASC, m.nombre ASC'
           );
-          console.log('ManageMissionsScreen: rows fetched:', rows ? rows.length : 0);
           if (isActive) setMisiones(rows || []);
 
           const stats: any[] = await db.getAllAsync('SELECT * FROM stats ORDER BY nombre ASC');
-          console.log('ManageMissionsScreen: stats fetched:', stats ? stats.length : 0);
-          if (isActive) setAvailableStats(stats || []);
+          if (isActive) { setAvailableStats(stats || []); setFirstLoad(false); }
         } catch (e) {
           console.error('Error cargando misiones maestras o stats:', e);
+          if (isActive) setFirstLoad(false);
         }
       };
-      load();
-      return () => { isActive = false; };
+      const task = InteractionManager.runAfterInteractions(load);
+      return () => { isActive = false; task.cancel(); };
     }, [])
   );
 
@@ -156,13 +155,7 @@ export const ManageMissionsScreen = () => {
         <PersonaShard label="GESTIONAR" height={50} fontSize={28} font={colors.fonts?.title} />
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-        }}
-      >
+      <Animated.View style={[{ flex: 1 }, introStyle]}>
         {/* Fila 1: Tipos (parallelogramos color por tipo, zigzag) */}
         <View style={styles.filterRowTall}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContentTop}>
@@ -211,6 +204,9 @@ export const ManageMissionsScreen = () => {
           </ScrollView>
         </View>
 
+        {firstLoad && misiones.length === 0 ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}><ListSkeleton rows={5} /></View>
+        ) : (
         <FlatList
           data={filteredMissions}
           keyExtractor={(i) => (i.id_mision ? i.id_mision.toString() : Math.random().toString())}
@@ -224,6 +220,7 @@ export const ManageMissionsScreen = () => {
             </View>
           }
         />
+        )}
       </Animated.View>
     </View>
   );
