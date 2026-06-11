@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, Switch, DevSettings } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import { db, initDatabase } from '../../database';
 import { useAlert } from '../../context/AlertContext';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { loadConfig, saveConfig, syncRoutineReminders, requestPermission, NotifConfig } from '../../services/notificationService';
+import { exportBackup, importBackup } from '../../services/backupService';
 
 export const SettingsScreen = () => {
   const navigation = useNavigation<any>();
@@ -126,6 +127,25 @@ export const SettingsScreen = () => {
     ]);
   };
 
+  const handleExportBackup = async () => {
+    const res = await exportBackup();
+    if (!res.ok && !res.canceled) showAlert('ERROR', res.reason || 'No se pudo exportar.');
+  };
+
+  const handleRestoreBackup = () => {
+    showAlert('RESTAURAR RESPALDO', 'Esto REEMPLAZARÁ todos tus datos actuales con los del archivo que elijas. ¿Continuar?', [
+      { text: 'CANCELAR', style: 'cancel' },
+      { text: 'ELEGIR ARCHIVO', style: 'destructive', onPress: async () => {
+        const res = await importBackup();
+        if (res.ok === false && res.canceled) return;
+        if (!res.ok) { showAlert('ERROR', res.reason || 'No se pudo restaurar.'); return; }
+        showAlert('RESPALDO RESTAURADO', 'La app se recargará para aplicar los cambios. Si no se recarga sola, ciérrala y vuelve a abrirla.', [
+          { text: 'RECARGAR', onPress: () => { try { DevSettings.reload(); } catch (e) { /* prod: el usuario reinicia */ } } },
+        ]);
+      } },
+    ]);
+  };
+
   // DEV: Reset Database (Danger Zone)
   const resetDatabase = () => {
     showAlert('CONFIRMAR RESET', '¿Estás seguro? Esto borrará TODO el progreso y datos de la app de forma permanente.', [
@@ -235,6 +255,26 @@ export const SettingsScreen = () => {
             if (b) { d.setHours(b.hour); d.setMinutes(b.minute); d.setSeconds(0); }
             return <DateTimePicker value={d} mode="time" is24Hour display="default" onChange={onPickTime} />;
           })() : null}
+
+          {/* RESPALDO */}
+          <View style={[styles.sectionTag, { marginTop: 26 }]}><PersonaShard label="RESPALDO" height={24} fontSize={11} color={theme.primary} /></View>
+
+          <OptionRow
+            icon="cloud-upload"
+            label="EXPORTAR RESPALDO"
+            sublabel="GUARDA TODO TU PROGRESO EN UN ARCHIVO"
+            accent={theme.primary}
+            skew={-11}
+            onPress={handleExportBackup}
+          />
+          <OptionRow
+            icon="cloud-download"
+            label="RESTAURAR RESPALDO"
+            sublabel="REEMPLAZA TUS DATOS CON UN ARCHIVO"
+            accent={theme.secondary}
+            skew={10}
+            onPress={handleRestoreBackup}
+          />
 
           {/* MANTENIMIENTO */}
           <View style={[styles.sectionTag, { marginTop: 26 }]}><PersonaShard label="MANTENIMIENTO" variant="ghost" height={22} fontSize={10} /></View>
