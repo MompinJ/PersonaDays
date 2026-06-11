@@ -20,6 +20,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Servicios (Lógica)
 import { initDatabase } from './src/database';
+import { initNotifications, syncRoutineReminders } from './src/services/notificationService';
 
 // Context
 import { GameProvider, useGame } from './src/context/GameContext';
@@ -78,6 +79,15 @@ export default function App() {
       } catch (e) {
         console.error('Error inicializando DB:', e);
         setIsDbReady(true); // permitimos que la app intente seguir aunque falle
+      }
+      // Recordatorios: setup del handler y reagendado desde la config guardada.
+      // No pide permisos aqui (eso ocurre al activar en Ajustes). Si el master
+      // esta off o no hay permiso, queda todo cancelado.
+      try {
+        await initNotifications();
+        await syncRoutineReminders();
+      } catch (e) {
+        console.error('Error inicializando notificaciones:', e);
       }
     };
     setup();
