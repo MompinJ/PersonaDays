@@ -19,6 +19,7 @@ export type RootStackParamList = {
   CharacterSelection: { isEditing?: boolean } | undefined;
   Setup: { isEditing?: boolean } | undefined;
   Calendar: undefined;
+  Trends: undefined;
   Arcs: undefined;
   ArcDetail: { arc: any } | undefined;
   Arcana: undefined;

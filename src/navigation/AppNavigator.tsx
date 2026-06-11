@@ -32,6 +32,7 @@ import { ArcanaShopScreen } from '../screens/Arcana/ArcanaShopScreen';
 import PhoneMenuScreen from '../screens/Phone/Phone';
 import ListsMenuScreen from '../screens/Phone/ListsMenuScreen';
 import ListDetailScreen from '../screens/Phone/ListDetailScreen';
+import { TrendsScreen } from '../screens/Stats/TrendsScreen';
 
 // Este objeto sabe que pantallas existen y  cuales estan activas en etse momento
 // Ademas genera la barra visual por defecto
@@ -127,6 +128,7 @@ export const AppNavigator = () => {
       >
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
+        <Stack.Screen name="Trends" component={TrendsScreen} />
         <Stack.Screen name="Arcs" component={ArcsScreen} />
         <Stack.Screen name="ListsMenuScreen" component={ListsMenuScreen} />
         <Stack.Screen name="ListDetailScreen" component={ListDetailScreen} />
