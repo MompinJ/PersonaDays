@@ -25,12 +25,14 @@ export const checkAndSeedData = async () => {
       (5, 'Carisma', 'Tu habilidad para atraer e influir en los demás.', 'PREDEFINED', 1.0);
 
       -- 3. Vincular Stats al Jugador (Inicializar en Nivel 1)
+      -- nivel_actual SIEMPRE coherente con experiencia_actual (0 XP -> nivel 1).
+      -- Sembrar niveles altos con 0 XP desincronizaba nivel<->XP (bug historico).
       INSERT OR IGNORE INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES
-      (1, 1, 20, 0, 99), -- Conocimiento
-      (1, 2, 10, 0, 99), -- Coraje
-      (1, 3, 55, 0, 99), -- Destreza
-      (1, 4, 40, 0, 99), -- Gentileza
-      (1, 5, 70, 0, 99); -- Carisma
+      (1, 1, 1, 0, 99), -- Conocimiento
+      (1, 2, 1, 0, 99), -- Coraje
+      (1, 3, 1, 0, 99), -- Destreza
+      (1, 4, 1, 0, 99), -- Gentileza
+      (1, 5, 1, 0, 99); -- Carisma
       `);
 
       console.log('✨ ¡Protagonista creado! Datos iniciales listos.');
@@ -295,6 +297,17 @@ export const initDatabase = async () => {
 
     // Llamada al seed para poblar jugador y stats si está vacío
     await checkAndSeedData();
+
+    // Reparar cualquier desincronizacion nivel_actual <-> experiencia_actual
+    // (datos sembrados con niveles altos y 0 XP, o instalaciones previas al fix).
+    // Import dinamico para no crear ciclo estatico database <-> statService.
+    try {
+      const { reconcileStatLevels } = await import('../services/statService');
+      const fixed = await reconcileStatLevels();
+      if (fixed > 0) console.log(`Niveles reconciliados (nivel<->XP): ${fixed} stats corregidos`);
+    } catch (e) {
+      console.error('Error reconciliando niveles de stats:', e);
+    }
 
     console.log('✅ Base de datos inicializada correctamente');
   } catch (error) {

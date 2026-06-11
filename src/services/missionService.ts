@@ -1,5 +1,5 @@
 import { db } from '../database';
-import { calculateLevelFromXP } from '../utils/levelingUtils';
+import { grantXpToStat } from './statService';
 import { recalcPlayerLevel, updateStreakOnActivity, getCurrentStreak } from './playerService';
 import { computeXPGain, statKeyFromName } from '../data/arcanaEffects';
 import type { Difficulty, XPContext } from '../data/arcanaEffects';
@@ -12,7 +12,9 @@ import { getEquippedArcanaIds } from './arcanaService';
 // fuente de verdad, y ambas operaciones corren dentro de una transaccion.
 
 // Recompensa de XP por dificultad. Ratio 1:2:3 (una dificil = tres faciles).
-export const MISSION_XP = { EASY: 50, MEDIUM: 100, HARD: 150 } as const;
+// Calibrado para ~1 nivel/semana en mid-game con ~15-20 misiones/dia (modelo
+// de habitos): a mayor volumen de misiones, la XP por mision se mantiene baja.
+export const MISSION_XP = { EASY: 60, MEDIUM: 120, HARD: 180 } as const;
 
 // Deriva la dificultad desde la XP base de la mision (no se guarda como tal).
 const difficultyFromXP = (xp: number): Difficulty =>
@@ -76,86 +78,23 @@ export const completeMission = async (
     let totalExpGained = 0;
     const leveledUp: { name: string; level: number }[] = [];
 
-    const impactos: any[] = await db.getAllAsync('SELECT * FROM impacto_mision WHERE id_mision = ?', [missionId]);
+    const impactos: any[] = await db.getAllAsync(
+      'SELECT im.*, s.nombre AS nombre_stat FROM impacto_mision im LEFT JOIN stats s ON s.id_stat = im.id_stat WHERE im.id_mision = ?',
+      [missionId]
+    );
     for (const imp of impactos || []) {
       const valor = imp.valor_impacto || 0;
       const statId = imp.id_stat;
 
-      // Nivel y nombre ANTES de aplicar (para detectar subida de nivel)
-      let prevLevel = 1;
-      let statName = '';
-      const prev: any[] = await db.getAllAsync(
-        'SELECT js.experiencia_actual as xp, s.nombre as nombre FROM stats s LEFT JOIN jugador_stat js ON js.id_stat = s.id_stat AND js.id_jugador = ? WHERE s.id_stat = ?',
-        [playerId, statId]
-      );
-      if (prev && prev.length > 0) {
-        prevLevel = calculateLevelFromXP(prev[0].xp || 0).level;
-        statName = prev[0].nombre || '';
-      }
-
       // Bonus de arcanos: la XP base de este impacto se escala segun los arcanos
       // equipados y el contexto (stat de este impacto + dificultad/tipo/racha).
-      const ctx: XPContext = { ...baseCtx, statKey: statKeyFromName(statName) };
+      const ctx: XPContext = { ...baseCtx, statKey: statKeyFromName(imp.nombre_stat) };
       const valorBonus = computeXPGain(valor, ctx, equippedIds);
 
-      // 1) Añadir XP (ya con bonus) al stat impactado
-      await db.runAsync(
-        'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
-        [valorBonus, statId, playerId]
-      );
-      totalExpGained += valorBonus;
-
-      // 2) Recalcular nivel del stat desde su XP total
-      const rows: any[] = await db.getAllAsync(
-        'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-        [statId, playerId]
-      );
-      if (rows && rows.length > 0) {
-        const totalXP = rows[0].experiencia_actual || 0;
-        const lvl = calculateLevelFromXP(totalXP);
-        await db.runAsync(
-          'UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?',
-          [lvl.level, statId, playerId]
-        );
-        if (lvl.level > prevLevel && statName) leveledUp.push({ name: statName, level: lvl.level });
-
-        // 3) Herencia: el stat padre recibe la mitad de la XP
-        const pr: any[] = await db.getAllAsync('SELECT id_stat_padre FROM stats WHERE id_stat = ?', [statId]);
-        if (pr && pr.length > 0 && pr[0].id_stat_padre) {
-          const idPadre = pr[0].id_stat_padre;
-          const xpPadre = Math.floor(valorBonus / 2);
-          if (xpPadre > 0) {
-            const parentJs: any[] = await db.getAllAsync(
-              'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-              [idPadre, playerId]
-            );
-            if (parentJs && parentJs.length > 0) {
-              await db.runAsync(
-                'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
-                [xpPadre, idPadre, playerId]
-              );
-            } else {
-              await db.runAsync(
-                'INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, ?, ?, ?)',
-                [playerId, idPadre, 1, xpPadre, 99]
-              );
-            }
-            totalExpGained += xpPadre;
-
-            const rowsParent: any[] = await db.getAllAsync(
-              'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-              [idPadre, playerId]
-            );
-            if (rowsParent && rowsParent.length > 0) {
-              const lvlPadre = calculateLevelFromXP(rowsParent[0].experiencia_actual || 0);
-              await db.runAsync(
-                'UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?',
-                [lvlPadre.level, idPadre, playerId]
-              );
-            }
-          }
-        }
-      }
+      // Aplica XP al stat (recalcula nivel) y hereda la mitad al padre.
+      const res = await grantXpToStat(playerId, statId, valorBonus, { cascadeParentHalf: true });
+      totalExpGained += res.xpApplied + res.parentApplied;
+      if (res.leveledUp && res.statName) leveledUp.push({ name: res.statName, level: res.level });
     }
 
     // 4) Log con el arco activo en el momento de completar (si existe)
@@ -229,49 +168,11 @@ export const revertMission = async (missionId: number, player: any): Promise<boo
       const valor = imp.valor_impacto || 0;
       const statId = imp.id_stat;
 
-      // Recalcular la XP con bonus (espejo de completeMission)
+      // Recalcular la XP con bonus (espejo de completeMission) y restarla, con la
+      // misma cascada al padre. grantXpToStat con delta negativo es simetrico.
       const ctx: XPContext = { ...baseCtx, statKey: statKeyFromName(imp.nombre_stat) };
       const valorBonus = computeXPGain(valor, ctx, equippedIds);
-
-      await db.runAsync(
-        'UPDATE jugador_stat SET experiencia_actual = MAX(0, experiencia_actual - ?) WHERE id_stat = ? AND id_jugador = ?',
-        [valorBonus, statId, playerId]
-      );
-      const after: any[] = await db.getAllAsync(
-        'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-        [statId, playerId]
-      );
-      if (after && after.length > 0) {
-        const lvl = calculateLevelFromXP(after[0].experiencia_actual || 0);
-        await db.runAsync(
-          'UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?',
-          [lvl.level, statId, playerId]
-        );
-      }
-
-      // Revertir la XP heredada al stat padre
-      const pr: any[] = await db.getAllAsync('SELECT id_stat_padre FROM stats WHERE id_stat = ?', [statId]);
-      if (pr && pr.length > 0 && pr[0].id_stat_padre) {
-        const idPadre = pr[0].id_stat_padre;
-        const xpPadre = Math.floor(valorBonus / 2);
-        if (xpPadre > 0) {
-          await db.runAsync(
-            'UPDATE jugador_stat SET experiencia_actual = MAX(0, experiencia_actual - ?) WHERE id_stat = ? AND id_jugador = ?',
-            [xpPadre, idPadre, playerId]
-          );
-          const pAfter: any[] = await db.getAllAsync(
-            'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-            [idPadre, playerId]
-          );
-          if (pAfter && pAfter.length > 0) {
-            const lvlP = calculateLevelFromXP(pAfter[0].experiencia_actual || 0);
-            await db.runAsync(
-              'UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?',
-              [lvlP.level, idPadre, playerId]
-            );
-          }
-        }
-      }
+      await grantXpToStat(playerId, statId, -valorBonus, { cascadeParentHalf: true });
     }
 
     // Revertir los yenes otorgados al completar (clamp a 0, simetria)

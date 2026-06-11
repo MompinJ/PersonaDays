@@ -360,7 +360,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
                 >
                   <Text style={{ color: active ? colors.primary : colors.textDim, fontFamily: colors.fonts?.heading, fontSize: 15, letterSpacing: 0.5, transform: [{ skewX: '10deg' }] }}>{dif}</Text>
                   <Text style={{ fontSize: 10, color: colors.textDim, marginTop: 4, fontFamily: colors.fonts?.condensed, transform: [{ skewX: '10deg' }] }}>
-                    {dif === 'EASY' ? '+10 XP' : dif === 'MEDIUM' ? '+30 XP' : '+50 XP'}
+                    {dif === 'EASY' ? `+${MISSION_XP.EASY} XP` : dif === 'MEDIUM' ? `+${MISSION_XP.MEDIUM} XP` : `+${MISSION_XP.HARD} XP`}
                   </Text>
                 </TouchableOpacity>
               );

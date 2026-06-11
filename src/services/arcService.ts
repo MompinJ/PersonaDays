@@ -1,5 +1,5 @@
 import { db } from '../database';
-import { calculateLevelFromXP } from '../utils/levelingUtils';
+import { grantXpToStat } from './statService';
 import { recalcPlayerLevel } from './playerService';
 
 // Servicio centralizado para la lógica de Arcos.
@@ -45,41 +45,11 @@ export const finalizeArcWithRewards = async (arc: any, player: any): Promise<Fin
     let grantedXP = 0;
 
     if (arc.id_stat_relacionado && player && player.id_jugador) {
-      const bonusXP = ARC_COMPLETION_BONUS_XP;
-      grantedXP = bonusXP;
-
-      const jsRows: any[] = await db.getAllAsync(
-        'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-        [arc.id_stat_relacionado, player.id_jugador]
-      );
-
-      if (jsRows && jsRows.length > 0) {
-        await db.runAsync(
-          'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
-          [bonusXP, arc.id_stat_relacionado, player.id_jugador]
-        );
-      } else {
-        await db.runAsync(
-          'INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, ?, ?, ?)',
-          [player.id_jugador, arc.id_stat_relacionado, 1, bonusXP, 99]
-        );
-      }
-
-      // Recalcular nivel a partir de la XP total acumulada
-      const afterRows: any[] = await db.getAllAsync(
-        'SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?',
-        [arc.id_stat_relacionado, player.id_jugador]
-      );
-      if (afterRows && afterRows.length > 0) {
-        const totalAfter = afterRows[0].experiencia_actual || 0;
-        const lvl = calculateLevelFromXP(totalAfter);
-        await db.runAsync(
-          'UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?',
-          [lvl.level, arc.id_stat_relacionado, player.id_jugador]
-        );
-      }
-
-      // El nivel del jugador depende de la suma de niveles de stats
+      grantedXP = ARC_COMPLETION_BONUS_XP;
+      // Mismo pipeline XP->nivel que las misiones (sin cascada al padre: el bonus
+      // de arco es propio del stat relacionado).
+      await grantXpToStat(player.id_jugador, arc.id_stat_relacionado, ARC_COMPLETION_BONUS_XP);
+      // El nivel del jugador depende de la suma de niveles de stats.
       await recalcPlayerLevel(player.id_jugador);
     }
 
