@@ -20,6 +20,7 @@ export const PhoneMenuScreen = () => {
   const tiles = [
     { key: 'calendar', label: 'CALENDARIO', glyph: 'calendario', action: () => navigation.navigate('Calendar') },
     { key: 'arcs', label: 'ARCOS', glyph: 'arcos', action: () => navigation.navigate('Arcs') },
+    { key: 'shop', label: 'EMPORIO', glyph: 'emporio', action: () => navigation.navigate('ArcanaShop') },
     { key: 'lists', label: 'NOTAS', glyph: 'notas', action: () => navigation.navigate('ListsMenuScreen') },
     { key: 'gallery', label: 'GALERÍA', glyph: 'galeria', soon: true },
     { key: 'mail', label: 'CORREO', glyph: 'correo', soon: true },

@@ -10,7 +10,7 @@ Gestiona las etapas de vida del jugador ("Arcos"). Actúa como contenedor de mis
 ## 📱 Pantallas y Componentes
 
 ### 1. ArcsScreen
-**Ubicación:** `src/screens/Arcs/ArcsScreen.tsx`
+**Ubicación:** `src/screens/Phone/Arcs/ArcsScreen.tsx`
 
 **Funcionalidades:**
 * **Pestañas (Tabs):** Alterna entre `ACTIVOS` y `HISTORIAL`.
@@ -20,16 +20,24 @@ Gestiona las etapas de vida del jugador ("Arcos"). Actúa como contenedor de mis
 * **Validación de Creación:** Al intentar crear un nuevo arco, verifica si ya existe uno con `estado='ACTIVO'`. Si es así, bloquea la creación.
 
 **Lógica de Finalización (Rewards):**
-Al finalizar un arco:
+Centralizada en `src/services/arcService.ts` (`finalizeArcWithRewards`), dentro de
+una transacción. Al finalizar un arco:
 1. Cambia estado a 'COMPLETADO' y fija `fecha_fin`.
-2. **Cálculo de XP:** Suma toda la `recompensa_exp` de las misiones completadas que pertenecían a ese arco (`id_arco`).
-3. **Asignación:** Otorga esa XP total al `id_stat_relacionado` del arco.
-4. **Level Up:** Recalcula el nivel del stat basado en la nueva XP.
+2. **Bonus FIJO de XP:** otorga `ARC_COMPLETION_BONUS_XP = 1000` al
+   `id_stat_relacionado` del arco.
+3. **Level Up:** recalcula el nivel del stat y el `nivel_jugador`.
 
-Implementación: Actualmente la lógica de sumar y otorgar XP está implementada en `src/screens/Arcs/ArcsScreen.tsx` (se ejecuta al finalizar desde la tarjeta tipo "Hero" o mediante la acción de swipe/confirmación). El archivo `src/screens/Arcs/ArcDetailScreen.tsx`, al finalizar, actualmente sólo marca el arco como 'COMPLETADO' y fija `fecha_fin` sin ejecutar la asignación de XP. Si se desea que finalizar desde `ArcDetailScreen` también otorgue XP, se debe replicar la lógica de `ArcsScreen` en esa pantalla.
+> **Importante (decisión):** el bonus es **fijo**, NO la suma de la XP de las
+> misiones del arco. Esa XP ya se otorgó al completar cada misión una a una;
+> volver a sumarla era un doble conteo (bug corregido). Las misiones de tipo ARCO
+> no dan XP extra por el stat: dan la XP normal de su dificultad y su único trato
+> especial es que su impacto se asigna al stat del arco. Ver `Sistema_de_Progresion.md`.
+
+Ambas pantallas (`ArcsScreen` por swipe y `ArcDetailScreen` por botón) usan el
+mismo servicio, así que las dos otorgan el bonus de forma idéntica.
 
 ### 2. ArcDetailScreen
-**Ubicación:** `src/screens/Arcs/ArcDetailScreen.tsx`
+**Ubicación:** `src/screens/Phone/Arcs/ArcDetailScreen.tsx`
 
 **Funcionalidades:**
 * **Modo Zen:** Visualización limpia del arco. (Actualmente preparada para futuras expansiones como notas/fotos).

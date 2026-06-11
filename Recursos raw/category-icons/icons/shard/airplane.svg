@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="airplane_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M22.5,5 L25.5,5 L26.5,30 L24,41 L21.5,30 Z" fill="#fff"></path><path d="M3,27 L21.5,21 L21.5,27 L5,31 Z" fill="#fff"></path><path d="M45,27 L26.5,21 L26.5,27 L43,31 Z" fill="#fff"></path><path d="M18,38 L21.5,33 L21.5,38 Z" fill="#fff"></path><path d="M30,38 L26.5,33 L26.5,38 Z" fill="#fff"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#airplane_B)"></rect>
+</svg>

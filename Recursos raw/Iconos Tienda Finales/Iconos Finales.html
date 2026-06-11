@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Íconos de Tienda · Finales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Barlow+Condensed:wght@500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  :root{
+    --bg:#0C1422; --bg2:#101B2E; --surface:#16223A; --line:#27395B; --border:#2E4267;
+    --gold:#D9B24A; --gold-hi:#F2D784; --cyan:#00D4FF; --text:#EAF1FB; --dim:#8C9CB8; --faint:#5E6E8C;
+  }
+  html,body{ background:radial-gradient(120% 60% at 50% -8%, #16233c 0%, var(--bg) 58%), var(--bg);
+    color:var(--text); font-family:'Barlow Condensed',sans-serif; min-height:100%; }
+  body{ padding:44px 36px 64px; }
+  .wrap{ max-width:880px; margin:0 auto; }
+  .head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    padding-bottom:22px; margin-bottom:30px; border-bottom:2px solid var(--border); position:relative; }
+  .head::after{ content:""; position:absolute; left:0; bottom:-2px; width:120px; height:2px;
+    background:var(--gold); box-shadow:0 0 14px var(--gold); }
+  .eyebrow{ display:flex; align-items:center; gap:9px; font-weight:700; font-size:13px;
+    letter-spacing:.3em; color:var(--gold); text-transform:uppercase; transform:skewX(-8deg); margin-bottom:8px; }
+  .eyebrow .tk{ width:22px; height:3px; background:var(--gold); transform:skewX(8deg); box-shadow:0 0 10px var(--gold); }
+  h1{ font-family:'Anton'; font-size:50px; line-height:.85; text-transform:uppercase; transform:skewX(-7deg); }
+  h1 em{ font-style:normal; color:var(--gold); text-shadow:0 0 24px rgba(217,178,74,.5); }
+  .lead{ font-size:15px; color:var(--dim); max-width:300px; text-align:right; line-height:1.35; }
+  .lead b{ color:var(--text); }
+  .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .card{ position:relative; background:linear-gradient(180deg, var(--surface), var(--bg2));
+    border:1.5px solid var(--border); padding:26px 24px 22px; overflow:hidden;
+    clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%); }
+  .card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--gold);
+    box-shadow:0 0 14px rgba(217,178,74,.5); }
+  .hero{ display:flex; align-items:center; justify-content:center; height:150px;
+    background:repeating-linear-gradient(-45deg, rgba(255,255,255,.018) 0 1px, transparent 1px 9px),
+      radial-gradient(70% 70% at 50% 42%, rgba(217,178,74,.12), transparent 70%);
+    border:1px solid var(--line); margin-bottom:18px; }
+  .hero .ic{ color:var(--gold); filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+  .name{ font-family:'Bebas Neue'; font-size:28px; letter-spacing:.06em; transform:skewX(-7deg); }
+  .fn{ font-weight:600; font-size:12.5px; letter-spacing:.06em; color:var(--dim);
+    text-transform:uppercase; transform:skewX(-7deg); margin-top:2px; }
+  .row{ display:flex; align-items:center; gap:16px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+  .sizes{ display:flex; align-items:flex-end; gap:14px; } .sizes .ic{ color:var(--text); }
+  .tints{ display:flex; gap:10px; margin-left:auto; }
+  .tints .chip{ width:36px; height:36px; display:grid; place-items:center; border:1px solid var(--border); transform:skewX(-9deg); }
+  .tints .chip .un{ display:flex; transform:skewX(9deg); }
+  .chip.g{ background:rgba(217,178,74,.12); } .chip.g .ic{ color:var(--gold); }
+  .chip.c{ background:rgba(0,212,255,.1); } .chip.c .ic{ color:var(--cyan); }
+  .chip.k{ background:var(--gold); } .chip.k .ic{ color:#1a1206; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="eyebrow"><span class="tk"></span>PERSONADAYS · TIENDA</div>
+      <h1>ÍCONOS <em>FINALES</em></h1>
+    </div>
+    <div class="lead"><b>EMPORIO</b> y <b>ETIQUETA</b> · 48×48, angular, <b>currentColor</b>.</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const ICONS = [
+  { id:'storefront', name:'EMPORIO', file:'svg/storefront.svg' },
+  { id:'tag', name:'ETIQUETA', file:'svg/tag.svg' },
+];
+function tint(svg, color){ return svg.replace(/currentColor/g, color); }
+const grid = document.getElementById('grid');
+Promise.all(ICONS.map(i=>fetch(i.file).then(r=>r.text()).then(t=>({...i, svg:t})))).then(list=>{
+  list.forEach(ic=>{
+    const big = ic.svg.replace('<svg ', '<svg width="84" height="84" ');
+    const mk = (s,c)=> tint(ic.svg.replace('<svg ', `<svg width="${s}" height="${s}" `), c);
+    const card = document.createElement('div');
+    card.className='card';
+    card.innerHTML = `
+      <div class="hero"><span class="ic">${big}</span></div>
+      <div class="name">${ic.name}</div>
+      <div class="fn">${ic.file}</div>
+      <div class="row">
+        <div class="sizes">
+          <span class="ic">${mk(36,'currentColor')}</span>
+          <span class="ic">${mk(26,'currentColor')}</span>
+          <span class="ic">${mk(20,'currentColor')}</span>
+        </div>
+        <div class="tints">
+          <span class="chip g"><span class="un"><span class="ic">${mk(22,'#D9B24A')}</span></span></span>
+          <span class="chip c"><span class="un"><span class="ic">${mk(22,'#00D4FF')}</span></span></span>
+          <span class="chip k"><span class="un"><span class="ic">${mk(22,'#1a1206')}</span></span></span>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+});
+</script>
+</body>
+</html>

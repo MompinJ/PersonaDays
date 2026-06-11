@@ -24,14 +24,23 @@ Las misiones son el motor principal del juego. Representan las tareas, hábitos 
     * Icono `Lista/Reloj`: Va a `CompletedMissionsScreen` (Historial).
 
 **Lógica de Completado (Transaction):**
-Al completar una misión, el sistema ejecuta una transacción SQL compleja:
+Toda la lógica vive centralizada en `src/services/missionService.ts`
+(`completeMission`), dentro de una transacción (`BEGIN/COMMIT/ROLLBACK`). Las
+pantallas solo la llaman. Pasos:
 1. **Update Misión:** Marca `completada = 1` y fija `fecha_completada`.
-2. **Logs:** Inserta un registro en la tabla `logs` (Historial de auditoría).
-3. **Economía:** Suma los `recompensa_yenes` al saldo del jugador en la tabla `jugadores`.
-4. **Progreso de Stat (Level Up):**
-    * Busca en `impacto_mision` qué Stat se beneficia.
-    * Suma la `recompensa_exp` a la experiencia actual de ese Stat en `jugador_stat`.
-    * **Cálculo de Nivel:** Verifica si la nueva XP supera el umbral del nivel actual y sube de nivel si corresponde.
+2. **Racha:** Actualiza la racha del día (`updateStreakOnActivity`).
+3. **Progreso de Stat:** Por cada impacto (`impacto_mision`):
+    * Toma la `recompensa_exp` base y le aplica el **bonus de arcanos** equipados
+      (`computeXPGain`, ver `Sistema_de_Arcanos.md`).
+    * Suma esa XP (ya con bonus) a `jugador_stat` y recalcula el nivel del stat.
+    * **Herencia:** si el stat tiene padre, le pasa la **mitad** de la XP.
+4. **Logs:** Inserta un registro en `logs` (con el arco activo si existe).
+5. **Economía:** Suma los `recompensa_yenes` al saldo del jugador.
+6. **Nivel de jugador:** Recalcula `nivel_jugador` (derivado de las stats).
+
+**Revertir:** `CompletedMissionsScreen` llama a `revertMission`, el **espejo
+exacto** de completar (resta XP con el mismo bonus, resta yenes, recalcula
+niveles). Detalle de reglas en `Sistema_de_Progresion.md`.
 
 ### 2. CreateMissionScreen (Creación y Edición)
 **Ubicación:** `src/screens/Missions/CreateMissionScreen.tsx`
@@ -39,10 +48,11 @@ Al completar una misión, el sistema ejecuta una transacción SQL compleja:
 **Funcionalidades:**
 * **Configuración de Tarea:** Nombre, Tipo y Descripción.
 * **Dificultad y Recompensas:**
-    * Sistema predefinido que ajusta XP y Yenes automáticamente (aunque los Yenes son editables):
-        * **EASY:** 10 XP / 500 ¥
-        * **MEDIUM:** 30 XP / 1500 ¥
-        * **HARD:** 50 XP / 5000 ¥
+    * La dificultad fija la **XP** (ratio 1:2:3). Los **Yenes** son editables (con un valor sugerido por dificultad):
+        * **EASY:** 50 XP
+        * **MEDIUM:** 100 XP
+        * **HARD:** 150 XP
+    * La dificultad no se guarda como tal: se **deriva** de `recompensa_exp`.
 * **Impacto en Atributo:**
     * *Scroll Horizontal:* Permite seleccionar qué Stat (ej: Coraje, Conocimiento) subirá de nivel al hacer esta tarea.
 * **Vinculación con Arcos:**
@@ -89,7 +99,7 @@ Al completar una misión, el sistema ejecuta una transacción SQL compleja:
 | `id_mision` | PK | |
 | `nombre` | TEXT | |
 | `tipo` | TEXT | 'DIARIA', 'SEMANAL', 'ARCO', 'EXTRA' |
-| `recompensa_exp` | INTEGER | Valor base de XP (10, 30, 50) |
+| `recompensa_exp` | INTEGER | Valor base de XP (50, 100, 150) |
 | `recompensa_yenes` | INTEGER | Dinero ganado |
 | `completada` | INTEGER | 0 (Pendiente) / 1 (Hecha) |
 | `frecuencia_repeticion` | TEXT | 'ONE_OFF' o 'REPEATING' |

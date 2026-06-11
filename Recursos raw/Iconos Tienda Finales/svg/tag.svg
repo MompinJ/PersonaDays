@@ -1,0 +1,13 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="tag_S" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M17,7 L44,7 L44,41 L17,41 L4,24 Z" fill="#fff"></path>
+    <path d="M13.5,20 L17,24 L13.5,28 L10,24 Z" fill="#000"></path>
+    <path d="M30.6,18 L33.4,18 L33.4,32 L30.6,32 Z" fill="#000"></path>
+    <path d="M24.4,13 L26.4,11.4 L33,18.2 L31,19.8 Z" fill="#000"></path>
+    <path d="M39.6,13 L37.6,11.4 L31,18.2 L33,19.8 Z" fill="#000"></path>
+    <path d="M26,22 L38,22 L38,23.8 L26,23.8 Z" fill="#000"></path>
+    <path d="M26,25.6 L38,25.6 L38,27.4 L26,27.4 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#tag_S)"></rect>
+</svg>

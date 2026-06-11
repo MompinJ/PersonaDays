@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="school_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M24,8 L45,16 L24,24 L3,16 Z" fill="#fff"></path><path d="M14,21 L34,21 L34,30 L24,34 L14,30 Z" fill="#fff"></path><path d="M43,16 L44.6,16 L44.6,27 L43,27 Z" fill="#fff"></path><path d="M46.2,28.5 L43.8,30.9 L41.4,28.5 L43.8,26.1 Z" fill="#fff"></path><path d="M25.8,16.0 L24.0,17.8 L22.2,16.0 L24.0,14.2 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#school_B)"></rect>
+</svg>

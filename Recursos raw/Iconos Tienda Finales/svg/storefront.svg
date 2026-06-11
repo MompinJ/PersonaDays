@@ -1,0 +1,17 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="storefront_S" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M5,12 L43,12 L46,24 L2,24 Z" fill="#fff"></path>
+    <path d="M7,24 L41,24 L41,44 L7,44 Z" fill="#fff"></path>
+    <path d="M2,24 L8,24 L5,19 Z" fill="#000"></path>
+    <path d="M8,24 L14.3,24 L11.1,19 Z" fill="#000"></path>
+    <path d="M14.3,24 L20.6,24 L17.4,19 Z" fill="#000"></path>
+    <path d="M20.6,24 L26.9,24 L23.7,19 Z" fill="#000"></path>
+    <path d="M26.9,24 L33.1,24 L29.9,19 Z" fill="#000"></path>
+    <path d="M33.1,24 L39.4,24 L36.2,19 Z" fill="#000"></path>
+    <path d="M39.4,24 L46,24 L42.7,19 Z" fill="#000"></path>
+    <path d="M22.5,12 L25.5,12 L25.5,24 L22.5,24 Z" fill="#000"></path>
+    <path d="M19,31 L24,27 L29,31 L29,44 L19,44 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#storefront_S)"></rect>
+</svg>

@@ -3,6 +3,11 @@
 ## Propósito General
 Sistema de gestión de finanzas personales ("Real Life Wallet") gamificado. Permite registrar ingresos y gastos reales, visualizarlos en un formato de chat cronológico y recompensar al jugador con experiencia (XP) por su responsabilidad financiera.
 
+> **Ojo — dos "dineros" distintos:** este módulo (tabla `finanzas`) es el dinero
+> REAL del usuario y es **independiente**. No tiene relación con los **yenes** del
+> jugador (`jugadores.yenes`), que son la recompensa de misiones y la **moneda de
+> la tienda de arcanos** (ver `Sistema_de_Arcanos.md`).
+
 ---
 
 ## 📱 Pantallas y Componentes
@@ -33,6 +38,9 @@ Sistema de gestión de finanzas personales ("Real Life Wallet") gamificado. Perm
     * Al guardar exitosamente, busca el stat llamado **"Conocimiento"**.
     * Otorga **+2 XP** a dicho stat.
     * Si el vínculo `jugador_stat` no existe, lo crea automáticamente.
+    * *Nota:* este es un camino de XP **directo** (no pasa por `missionService`),
+      así que no recalcula el nivel del stat ni el `nivel_jugador` en el momento;
+      se sincronizan al arrancar o al completar la siguiente misión.
 * **Validaciones:**
     * Monto > 0.
     * Concepto no vacío.

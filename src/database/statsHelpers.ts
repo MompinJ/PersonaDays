@@ -1,4 +1,5 @@
 import { db } from './database';
+import { recalcPlayerLevel } from '../services/playerService';
 
 export const createCustomStat = async (
   nombre: string,
@@ -58,6 +59,9 @@ export const createCustomStat = async (
       `INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, 1, 0, ?);`,
       [playerId, newStatId, nivelMaximo]
     );
+
+    // El nivel del jugador depende de la suma de niveles de stats: la nueva suma +1
+    try { await recalcPlayerLevel(playerId); } catch (e) { /* noop */ }
 
     console.log(`✅ Stat Custom creada: ${nombre} (ID: ${newStatId}) para jugador ${playerId}`);
     return true;

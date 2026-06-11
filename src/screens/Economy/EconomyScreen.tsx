@@ -11,6 +11,7 @@ import { db } from '../../database';
 import AddTransactionModal from '../../components/Economy/AddTransactionModal';
 import SpendingDonut, { DonutSlice } from '../../components/Economy/SpendingDonut';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CategoryIcon, getCategory } from '../../components/category-icons';
 import { getContrastText } from '../../utils/colorUtils';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 
@@ -200,7 +201,7 @@ export const EconomyScreen = () => {
       <View style={[styles.itemRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={[styles.itemAccent, { backgroundColor: circleColor }]} />
         <View style={[styles.iconCircle, { backgroundColor: circleColor }]}>
-          <MaterialCommunityIcons name={icon as any} size={20} color={getContrastText(cat?.color)} />
+          <CategoryIcon category={getCategory(icon).key} size={20} skew={0} color={getContrastText(cat?.color)} />
         </View>
         <View style={styles.itemCenter}>
           <Text style={[styles.desc, { color: theme.text, fontFamily: theme.fonts?.bold }]} numberOfLines={1}>

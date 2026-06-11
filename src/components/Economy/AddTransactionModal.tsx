@@ -5,6 +5,7 @@ import { db } from '../../database';
 import { getPlayer } from '../../services/playerService';
 import { useAlert } from '../../context/AlertContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CategoryIcon, getCategory } from '../category-icons';
 import { getContrastText } from '../../utils/colorUtils';
 import { PersonaModal } from '../UI/PersonaModal';
 import { PersonaShard } from '../UI/PersonaShard';
@@ -166,7 +167,7 @@ const AddTransactionModal = ({ visible, onClose, onSaved }: Props) => {
                 style={[styles.catBtn, { marginTop: st, borderColor: selected ? c.color : colors.border, backgroundColor: selected ? c.color : colors.surface, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
               >
                 <View style={[styles.catInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
-                  <MaterialCommunityIcons name={c.icono || 'tag'} size={18} color={chipText} />
+                  <CategoryIcon category={getCategory(c.icono).key} size={18} skew={0} color={chipText} />
                   <Text style={{ color: chipText, marginLeft: 8, fontFamily: colors.fonts?.heading, fontSize: 14, letterSpacing: 0.5 }}>{c.nombre}</Text>
                 </View>
               </TouchableOpacity>

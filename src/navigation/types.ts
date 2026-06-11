@@ -21,6 +21,8 @@ export type RootStackParamList = {
   Calendar: undefined;
   Arcs: undefined;
   ArcDetail: { arc: any } | undefined;
+  Arcana: undefined;
+  ArcanaShop: undefined;
   ListsMenuScreen: undefined;
   ListDetailScreen: { listId: number; title: string } | undefined;
   ManageCategories: undefined;

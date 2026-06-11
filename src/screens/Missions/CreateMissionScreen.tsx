@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Platform, Animated, Easing } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker'; // <--- IMPORTANTE
 import { Ionicons } from '@expo/vector-icons';
+import { P3RDatePicker } from '../../components/UI/P3RDatePicker';
 import { db } from '../../database';
 import { MissionType, MissionFrequency, Stat } from '../../types'; // Asegúrate de tener MissionFrequency en types
+import { MISSION_XP } from '../../services/missionService';
 import { DaySelector } from '../../components/Missions/DaySelector';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
@@ -101,7 +102,7 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       setNombre(missionToEdit.nombre || '');
       setTipo(missionToEdit.tipo || MissionType.DIARIA);
       const xpVal = missionToEdit.recompensa_exp || 0;
-      if (xpVal <= 10) setDificultad('EASY'); else if (xpVal <= 30) setDificultad('MEDIUM'); else setDificultad('HARD');
+      if (xpVal <= MISSION_XP.EASY) setDificultad('EASY'); else if (xpVal <= MISSION_XP.MEDIUM) setDificultad('MEDIUM'); else setDificultad('HARD');
       setYenes((missionToEdit.recompensa_yenes || 0).toString());
       const dias = missionToEdit.dias_repeticion ? String(missionToEdit.dias_repeticion).split(',').filter(Boolean).map((d: string) => parseInt(d, 10)) : [];
       setDiasSeleccionados(dias);
@@ -139,9 +140,9 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
   // Calcular recompensas según dificultad
   const getRecompensas = () => {
     switch (dificultad) {
-      case 'EASY': return { xp: 10, yenes: 500 };
-      case 'MEDIUM': return { xp: 30, yenes: 1000 };
-      case 'HARD': return { xp: 50, yenes: 1500 };
+      case 'EASY': return { xp: MISSION_XP.EASY, yenes: 500 };
+      case 'MEDIUM': return { xp: MISSION_XP.MEDIUM, yenes: 1000 };
+      case 'HARD': return { xp: MISSION_XP.HARD, yenes: 1500 };
     }
   };
 
@@ -256,14 +257,6 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
     } catch (error) {
       console.error(error);
       showAlert("Error", "Falló al guardar la misión");
-    }
-  };
-
-  // Manejador del calendario
-  const onChangeDate = (event: any, selectedDate?: Date) => {
-    setMostrarPicker(false); // Cerrar picker en Android
-    if (selectedDate) {
-      setFechaExpiracion(selectedDate);
     }
   };
 
@@ -449,16 +442,13 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
             </TouchableOpacity>
           )}
 
-          {tieneExpiracion && mostrarPicker && (
-            <DateTimePicker
-              value={fechaExpiracion}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onChangeDate}
-              minimumDate={new Date()}
-              textColor={colors.text}
-            />
-          )}
+          <P3RDatePicker
+            visible={tieneExpiracion && mostrarPicker}
+            value={fechaExpiracion}
+            minDate={new Date()}
+            onAccept={(d) => { if (d) setFechaExpiracion(d); setMostrarPicker(false); }}
+            onCancel={() => setMostrarPicker(false)}
+          />
 
         </ScrollView>
 

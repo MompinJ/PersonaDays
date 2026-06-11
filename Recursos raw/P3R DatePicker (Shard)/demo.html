@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P3R DatePicker · Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Barlow+Condensed:wght@500;600;700&family=Big+Shoulders+Display:wght@600;700;800&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="p3r-datepicker.css" rel="stylesheet">
+<style>
+  html, body { margin: 0; min-height: 100%;
+    background: radial-gradient(130% 90% at 70% 12%, #11233F 0%, #0A1226 55%, #070F1E 100%);
+    color: #EAF2FF; font-family: 'Exo 2', system-ui, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  .kicker { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; font-size: 13px; color: #16C7E6; }
+  h1 { font-family: 'Anton', sans-serif; font-size: 46px; margin: 6px 0 4px; transform: skewX(-5deg);
+    letter-spacing: .5px; }
+  .sub { color: #7589B8; font-size: 16px; margin-bottom: 40px; max-width: 52ch; }
+  .row { display: flex; flex-wrap: wrap; gap: 28px 40px; align-items: flex-start; margin-bottom: 44px; }
+  .demo-lbl { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; font-size: 15px;
+    color: #45568A; margin-bottom: 10px; }
+  .out { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; font-size: 20px;
+    color: #EAF2FF; margin-top: 12px; min-height: 24px; }
+  .out span { color: #7589B8; font-weight: 600; font-size: 14px; font-family: 'Exo 2'; }
+  .swatches { display: flex; gap: 10px; margin-top: 6px; }
+  .sw { width: 28px; height: 28px; cursor: pointer; transform: skewX(-9deg);
+    border: 2px solid transparent; transition: border-color .12s; }
+  .sw.on { border-color: #EAF2FF; }
+  .hr { height: 1.5px; background: #2A3E82; opacity: .5; margin: 8px 0 40px; transform: skewX(-12deg); }
+</style>
+</head>
+<body>
+<div class="wrap"><div id="root"></div></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="p3r-datepicker-core.js"></script>
+<script type="text/babel" src="p3r-datepicker.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+const THEMES = [
+  { name: 'AZUL',   accent: '#3D7BFF', accent2: '#16C7E6' },
+  { name: 'VERDE',  accent: '#2BE6A6', accent2: '#7CF3CC' },
+  { name: 'KOTONE', accent: '#FF5BA0', accent2: '#FFB0D2' },
+  { name: 'REN',    accent: '#FF3B4A', accent2: '#FF9098' },
+  { name: 'AIGIS',  accent: '#F4B43A', accent2: '#FFDD96' },
+];
+const fmt = (d) => d ? d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '—';
+
+function Demo() {
+  const [d1, setD1] = useState(null);
+  const [d2, setD2] = useState(new Date());
+  const [ti, setTi] = useState(0);
+  const t = THEMES[ti];
+  const today = new Date();
+  return (
+    <div>
+      <div className="kicker">PersonaDays · Componente</div>
+      <h1>P3R DATEPICKER</h1>
+      <p className="sub">El selector de fecha estilo Persona 3 Reload. Pop-up oscuro que reemplaza al diálogo nativo — toca el campo para abrirlo.</p>
+
+      <div className="row">
+        <div>
+          <div className="demo-lbl">CAMPO VACÍO · CUALQUIER FECHA</div>
+          <P3RDatePicker value={d1} onChange={setD1} placeholder="Elegir fecha" />
+          <div className="out">{fmt(d1)} <span>{d1 ? '' : '(sin seleccionar)'}</span></div>
+        </div>
+        <div>
+          <div className="demo-lbl">CON VALOR · SOLO FUTURAS</div>
+          <P3RDatePicker value={d2} onChange={setD2} minDate={today} />
+          <div className="out">{fmt(d2)}</div>
+        </div>
+      </div>
+
+      <div className="hr"></div>
+
+      <div className="demo-lbl">TEMA (PROTAGONISTA ACTIVO)</div>
+      <div className="swatches">
+        {THEMES.map((x, i) => (
+          <div key={x.name} className={'sw' + (i===ti?' on':'')} style={{ background:x.accent }} onClick={() => setTi(i)} title={x.name}></div>
+        ))}
+      </div>
+      <div className="row" style={{ marginTop: 22 }}>
+        <div>
+          <div className="demo-lbl">{t.name}</div>
+          <P3RDatePicker value={d2} onChange={setD2} accent={t.accent} accent2={t.accent2} />
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

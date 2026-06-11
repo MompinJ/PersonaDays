@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="cart_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M5,9 L10,9 L21,30 L17.5,30 L7.5,11 L5,11 Z" fill="#fff"></path><path d="M14,15 L42,15 L39,28 L18,28 Z" fill="#fff"></path><path d="M24.2,38.0 L21.0,41.2 L17.8,38.0 L21.0,34.8 Z" fill="#fff"></path><path d="M38.2,38.0 L35.0,41.2 L31.8,38.0 L35.0,34.8 Z" fill="#fff"></path><path d="M23,16 L24.5,16 L24.5,27 L23,27 Z" fill="#000"></path><path d="M31,16 L32.5,16 L32.5,27 L31,27 Z" fill="#000"></path><path d="M16,20.5 L40.5,20.5 L40,22.3 L16.4,22.3 Z" fill="#000"></path><path d="M22.3,38.0 L21.0,39.3 L19.7,38.0 L21.0,36.7 Z" fill="#000"></path><path d="M36.3,38.0 L35.0,39.3 L33.7,38.0 L35.0,36.7 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#cart_A)"></rect>
+</svg>

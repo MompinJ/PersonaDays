@@ -11,15 +11,20 @@ través de un sistema de inspección por días.
 
 1. CalendarScreen
 
-Ubicación: src/screens/Calendar/CalendarScreen.tsx
+Ubicación: src/screens/Phone/Calendar/CalendarScreen.tsx
+
+> **Vista de mes = `P3RCalendarPanel`** (estilo P3R, ver §4.7 del Sistema de Diseño).
+> Sustituyó a `react-native-calendars` (ya no se usa). Se monta con `hideFooter`,
+> `marks` (rango del arco) y `onPick` (abre el modal del día). Conserva el HUD de
+> fecha, el tag del arco y el número de día gigante de fondo.
+
 Funcionalidades:
 
   - Visualización de Contexto (Arco):
       - Identifica el Arco Activo consultando la base de datos.
-      - Pinta el rango de fechas (desde fecha_inicio hasta fecha_fin o Hoy)
-        usando el color temático del arco con transparencia (marcador de
-        periodo).
-      - Muestra el nombre del arco en el encabezado.
+      - Tinta el rango de fechas (desde fecha_inicio hasta fecha_fin o Hoy) con el
+        color del arco (`mark + '38'` de fondo + punto) vía el prop `marks` del panel.
+      - Muestra el nombre del arco en el encabezado (PersonaShard ghost).
   - Interacción Diaria:
       - Al tocar un día específico, despliega un Modal con las misiones
         disponibles o completadas en esa fecha.
@@ -55,7 +60,7 @@ para mantener la inmersión narrativa sin perder la identidad del usuario:
 | **Botones / Títulos** | Contexto del Avatar | `theme.primary` | Controles de la App. |
 | **Selección de Día** | Contexto del Avatar | `theme.primary` | Feedback de interacción inmediata. |
 | **Rango del Calendario** | Contexto del Arco | `arc.color_hex` | Inmersión en la historia actual (Narrativa). |
-| **Línea de Hoy** | Contexto del Arco | `arc.color_hex` | Progreso actual en la trama. |
+| **Día de Hoy** | Contexto del Avatar | `theme.secondary` | Borde resaltado que dibuja el propio panel P3R. |
 
 ⚙️ Lógica de Negocio (Algoritmos)
 
@@ -85,9 +90,11 @@ Criterios de Filtrado (Prioridad en Cascada):
 
 Utiliza la librería `date-fns` para iterar días.
   - Loop: `while (current <= end)`
-  - Periodo: Asigna `color` (Fondo) y `textColor` a cada día dentro del rango.
-  - Hoy: Sobrescribe el estilo del día actual para mostrarlo sólido y con
-    punto indicador.
+  - Produce un `Record<'yyyy-MM-dd', color>` (el color del arco por cada día del
+    rango) que se pasa al panel como `marks`. El panel lo pinta como tinte de celda
+    + punto inferior.
+  - Hoy: NO se marca aquí; el propio `P3RCalendarPanel` resalta el día actual con
+    borde `secondary`.
 
 🗄️ Estructura de Datos (Base de Datos)
 

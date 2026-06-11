@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="bank_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M4,18 L24,8 L44,18 Z" fill="#fff"></path><path d="M6,18 L42,18 L42,21 L6,21 Z" fill="#fff"></path><path d="M9,21 L13,21 L13,37 L9,37 Z" fill="#fff"></path><path d="M16.3,21 L20.3,21 L20.3,37 L16.3,37 Z" fill="#fff"></path><path d="M23.6,21 L27.6,21 L27.6,37 L23.6,37 Z" fill="#fff"></path><path d="M30.9,21 L34.9,21 L34.9,37 L30.9,37 Z" fill="#fff"></path><path d="M5,38 L43,38 L43,42 L5,42 Z" fill="#fff"></path><path d="M25.8,14.0 L24.0,15.8 L22.2,14.0 L24.0,12.2 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#bank_A)"></rect>
+</svg>

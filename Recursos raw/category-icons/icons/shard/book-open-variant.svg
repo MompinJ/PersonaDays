@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="bookopenvariant_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M6,14 L23,11 L23,38 L6,40 Z" fill="#fff"></path><path d="M25,11 L42,14 L42,40 L25,38 Z" fill="#fff"></path><path d="M23,12 L25,12 L25,38 L23,38 Z" fill="#000"></path><path d="M9,18 L20,18 L20,19.9 L9,19.9 Z" fill="#000"></path><path d="M9,23 L20,23 L20,24.9 L9,24.9 Z" fill="#000"></path><path d="M9,28 L18,28 L18,29.9 L9,29.9 Z" fill="#000"></path><path d="M28,18 L39,18 L39,19.9 L28,19.9 Z" fill="#000"></path><path d="M28,23 L39,23 L39,24.9 L28,24.9 Z" fill="#000"></path><path d="M30,28 L39,28 L39,29.9 L30,29.9 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#bookopenvariant_B)"></rect>
+</svg>

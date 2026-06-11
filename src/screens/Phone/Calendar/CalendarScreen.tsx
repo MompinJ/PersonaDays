@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import { format, parseISO, isSameDay, addDays } from 'date-fns';
 import { db } from '../../../database';
@@ -9,21 +8,12 @@ import { Mision } from '../../../types';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
 import { PersonaModal } from '../../../components/UI/PersonaModal';
 import { PersonaCount } from '../../../components/UI/PersonaCount';
+import { P3RCalendarPanel } from '../../../components/UI/P3RDatePicker';
 import { arcDisplayColor } from '../../../services/arcService';
-
-// Configuración de idioma
-LocaleConfig.locales['es'] = {
-  monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-  monthNamesShort: ['Ene.', 'Feb.', 'Mar.', 'Abr.', 'May.', 'Jun.', 'Jul.', 'Ago.', 'Sep.', 'Oct.', 'Nov.', 'Dic.'],
-  dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-  dayNamesShort: ['Dom.', 'Lun.', 'Mar.', 'Mié.', 'Jue.', 'Vie.', 'Sáb.'],
-  today: 'Hoy',
-};
-LocaleConfig.defaultLocale = 'es';
 
 export const CalendarScreen = () => {
   const theme = useTheme();
-  const [markedDates, setMarkedDates] = useState<any>({});
+  const [markedDates, setMarkedDates] = useState<Record<string, string>>({});
   const [activeArc, setActiveArc] = useState<any>(null);
   const [missions, setMissions] = useState<Mision[]>([]);
 
@@ -56,32 +46,21 @@ export const CalendarScreen = () => {
   const generateArcMarkings = (arc: any) => {
     const start = parseISO(arc.fecha_inicio);
     const end = arc.fecha_fin ? parseISO(arc.fecha_fin) : new Date();
-    const markings: any = {};
+    const markings: Record<string, string> = {};
     let current = start;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const arcColor = arcDisplayColor(arc, theme.primary);
 
+    // tinte de cada dia del rango del arco (la celda de HOY ya la resalta el panel)
     while (current <= end || isSameDay(current, end)) {
-      const dateStr = format(current, 'yyyy-MM-dd');
-      markings[dateStr] = {
-        startingDay: isSameDay(current, start),
-        endingDay: isSameDay(current, end),
-        color: arcColor + '66',
-        textColor: theme.textInverse,
-      };
-      if (dateStr === todayStr) {
-        // El circulo de HOY usa el color del personaje (avatar), no el del arco
-        markings[dateStr] = { ...markings[dateStr], marked: true, dotColor: theme.textInverse, color: theme.primary, textColor: theme.textInverse };
-      }
+      markings[format(current, 'yyyy-MM-dd')] = arcColor;
       current = addDays(current, 1);
     }
     setMarkedDates(markings);
   };
 
-  const handleDayPress = (day: DateData) => {
-    const dateStr = day.dateString;
-    const localDate = new Date(day.year, day.month - 1, day.day);
-    const jsDayOfWeek = localDate.getDay();
+  const handleDayPress = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const jsDayOfWeek = date.getDay();
 
     const eventsForDay = missions.filter(m => {
       if (m.tipo === 'DIARIA' || m.frecuencia_repeticion === 'EVERY_DAY') return true;
@@ -133,25 +112,10 @@ export const CalendarScreen = () => {
         {/* Numero del DIA gigante de fondo (estilo P3R) */}
         <Text style={[styles.bgMonth, { color: avatarColor }]} pointerEvents="none">{today.getDate()}</Text>
 
-        <Calendar
-          theme={{
-            calendarBackground: 'transparent',
-            textSectionTitleColor: theme.textDim,
-            selectedDayBackgroundColor: avatarColor,
-            selectedDayTextColor: theme.textInverse,
-            todayTextColor: avatarColor,
-            dayTextColor: theme.text,
-            textDisabledColor: theme.inactive,
-            monthTextColor: theme.text,
-            arrowColor: avatarColor,
-            textDayFontFamily: theme.fonts?.body,
-            textMonthFontFamily: theme.fonts?.title,
-            textDayHeaderFontFamily: theme.fonts?.bold,
-          }}
-          markingType={'period'}
-          markedDates={markedDates}
-          onDayPress={handleDayPress}
-          enableSwipeMonths={true}
+        <P3RCalendarPanel
+          hideFooter
+          marks={markedDates}
+          onPick={handleDayPress}
         />
       </View>
 
@@ -193,7 +157,7 @@ const styles = StyleSheet.create({
   hudCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
 
   calendarWrapper: { flex: 1, justifyContent: 'center' },
-  bgMonth: { position: 'absolute', right: 4, top: 0, fontSize: 200, lineHeight: 200, fontFamily: 'Anton_400Regular', opacity: 0.07, letterSpacing: -6 },
+  bgMonth: { position: 'absolute', right: 8, top: -28, fontSize: 120, lineHeight: 120, fontFamily: 'Anton_400Regular', opacity: 0.07, letterSpacing: -4 },
 
   missionRow: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingLeft: 18, borderWidth: 1, borderRadius: 8, marginBottom: 10, overflow: 'hidden' },
   missionAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, transform: [{ skewX: '-12deg' }], marginLeft: -2 },

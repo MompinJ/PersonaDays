@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="shopping_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M12,17 L36,17 L38.5,42 L9.5,42 Z" fill="#fff"></path><path d="M17,18 L17,12 L20.5,8 L27.5,8 L31,12 L31,18 L28,18 L28,12.8 L26,10.8 L22,10.8 L20,12.8 L20,18 Z" fill="#fff"></path><path d="M12,29 L37.6,25.5 L37.8,27.6 L12.2,31.1 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#shopping_A)"></rect>
+</svg>

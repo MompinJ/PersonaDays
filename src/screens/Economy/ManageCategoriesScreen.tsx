@@ -1,30 +1,79 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, Animated, Easing } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CategoryIcon, getCategory, CATEGORY_ORDER } from '../../components/category-icons';
 import { useAlert } from '../../context/AlertContext';
 import { getContrastText } from '../../utils/colorUtils';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 
+// Tag de seccion inclinado (PersonaShard auto-varia entre tags consecutivos).
+const SectionTag = ({ text }: { text: string }) => (
+  <View style={styles.sectionTagWrap}><PersonaShard label={text} /></View>
+);
+
+// ---------- Fila disruptiva (barra de bala) para una categoria ----------
+const CategoryRow = ({ item, index, onDelete }: { item: any; index: number; onDelete: (id: number) => void }) => {
+  const theme = useTheme();
+  const accent = item.color || (index % 2 === 0 ? theme.primary : theme.secondary);
+  const isIncome = item.tipo === 'INGRESO';
+  const tagColor = isIncome ? theme.success : theme.error;
+  const sk = -8;
+  const stagger = [0, 16, 8, 20, 12][index % 5];
+  const rot = [-1.3, 1, -1, 1.3, -0.5][index % 5];
+
+  // Entrada: fade + translateX -28 -> 0, escalonada por indice.
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 360, delay: index * 55, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
+  const entrance = {
+    opacity: anim,
+    transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-28, 0] }) }],
+  };
+
+  return (
+    <Animated.View style={[{ marginLeft: stagger, marginRight: 24 - stagger, marginBottom: 16 }, entrance]}>
+      <View style={[styles.row, { backgroundColor: theme.surface, borderColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}>
+        <View style={[styles.rowAccent, { backgroundColor: accent }]} />
+        <View style={[styles.rowInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
+          <View style={[styles.iconSwatch, { backgroundColor: accent }]}>
+            <CategoryIcon category={getCategory(item.icono).key} size={24} skew={0} color={getContrastText(accent)} />
+          </View>
+          <Text numberOfLines={1} style={[styles.rowName, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{item.nombre}</Text>
+          <PressableScale onPress={() => onDelete(item.id_categoria)} style={styles.deleteBtn} scaleTo={0.85}>
+            <MaterialCommunityIcons name="trash-can" size={20} color={theme.error} />
+          </PressableScale>
+        </View>
+      </View>
+
+      {/* Tag flotante: FUERA de la tarjeta (que tiene overflow:hidden) para que
+          no se recorte su mitad superior. Tipo: GASTO=error / INGRESO=success. */}
+      <View style={[styles.floatTag, { backgroundColor: tagColor }]}>
+        <Text style={[styles.floatTagText, { color: getContrastText(tagColor), fontFamily: theme.fonts?.condensed }]}>{item.tipo}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
 export const ManageCategoriesScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation<any>();
   const { showAlert } = useAlert();
+  const insets = useSafeAreaInsets();
 
   const [categories, setCategories] = useState<any[]>([]);
   const [name, setName] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('tag');
+  const [selectedIcon, setSelectedIcon] = useState('cash');
   const [selectedColor, setSelectedColor] = useState('#FF5252');
   const [tipo, setTipo] = useState<'GASTO' | 'INGRESO'>('GASTO');
 
   const palette = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722', '#795548', '#9E9E9E', '#607D8B'];
 
-  const iconsList = ['food', 'bus', 'car', 'cart', 'shopping', 'gamepad-variant', 'movie', 'home', 'hospital-box', 'school', 'book-open-variant', 'gift', 'cash', 'credit-card', 'bank', 'tools', 'airplane', 'paw', 'tshirt-crew', 'glass-cocktail'];
-
-  // Animacion de entrada
   const intro = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
@@ -39,29 +88,15 @@ export const ManageCategoriesScreen = () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { load(); }, []));
 
   const handleAdd = async () => {
-    if (!name || name.trim().length === 0) {
-      showAlert('ERROR', 'El nombre es requerido');
-      return;
-    }
-    if (!selectedIcon) {
-      showAlert('ERROR', 'Selecciona un icono');
-      return;
-    }
-    if (!selectedColor) {
-      showAlert('ERROR', 'Selecciona un color');
-      return;
-    }
-
+    if (!name || name.trim().length === 0) { showAlert('ERROR', 'El nombre es requerido'); return; }
+    if (!selectedIcon) { showAlert('ERROR', 'Selecciona un icono'); return; }
+    if (!selectedColor) { showAlert('ERROR', 'Selecciona un color'); return; }
     try {
       await db.runAsync('INSERT INTO financial_categories (nombre, icono, color, tipo) VALUES (?, ?, ?, ?)', [name.trim(), selectedIcon, selectedColor, tipo]);
-      setName(''); setSelectedIcon('tag'); setSelectedColor('#FF5252'); setTipo('GASTO');
+      setName(''); setSelectedIcon('cash'); setSelectedColor('#FF5252'); setTipo('GASTO');
       load();
       showAlert('Hecho', 'Categoría creada');
     } catch (e) {
@@ -82,114 +117,122 @@ export const ManageCategoriesScreen = () => {
           console.error('Error eliminando categoría', e);
           showAlert('ERROR', 'No se pudo eliminar la categoría');
         }
-      } }
+      } },
     ]);
   };
 
-  // Etiqueta de seccion inclinada (estilo Persona)
-  const SectionTag = ({ text }: { text: string }) => (
-    <View style={styles.sectionTagWrap}>
-      <PersonaShard label={text} />
-    </View>
-  );
+  // ---------- Formulario de creacion (cabecera de la lista) ----------
+  const FormHeader = (
+    <View>
+      <SectionTag text="NUEVA" />
 
-  const renderItem = ({ item }: any) => (
-    <View style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <View style={[styles.rowAccent, { backgroundColor: item.color || theme.inactive }]} />
-      <View style={[styles.leftCircle, { backgroundColor: item.color || theme.inactive }]}>
-        <MaterialCommunityIcons name={item.icono || 'tag'} size={20} color={getContrastText(item.color)} />
+      {/* Nombre: input con acento inclinado (estilo objetivo) */}
+      <View style={[styles.inputWrap, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.inputAccent, { backgroundColor: theme.primary }]} />
+        <TextInput
+          placeholder="NOMBRE DE LA CATEGORÍA"
+          placeholderTextColor={theme.textDim}
+          value={name}
+          onChangeText={setName}
+          style={[styles.input, { color: theme.text, fontFamily: theme.fonts?.heading }]}
+        />
       </View>
 
-      <View style={styles.center}>
-        <Text style={[styles.name, { color: theme.text }]}>{item.nombre}</Text>
-        <Text style={[styles.sub, { color: theme.textDim }]}>{item.tipo}</Text>
+      {/* Tipo: GASTO (error) / INGRESO (success) como parallelogramos */}
+      <View style={styles.typeRow}>
+        {(['GASTO', 'INGRESO'] as const).map((t, idx) => {
+          const active = tipo === t;
+          const acc = t === 'GASTO' ? theme.error : theme.success;
+          return (
+            <TouchableOpacity
+              key={t}
+              activeOpacity={0.85}
+              onPress={() => setTipo(t)}
+              style={[styles.typeChip, { borderColor: acc, backgroundColor: active ? acc : theme.surface, marginLeft: idx === 0 ? 0 : 14 }]}
+            >
+              <View style={styles.typeInner}>
+                <MaterialCommunityIcons name={t === 'GASTO' ? 'arrow-down-bold' : 'arrow-up-bold'} size={15} color={active ? getContrastText(acc) : acc} />
+                <Text style={[styles.typeText, { color: active ? getContrastText(acc) : theme.textDim, fontFamily: theme.fonts?.heading }]}>{t}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <PressableScale onPress={() => handleDelete(item.id_categoria)} style={styles.deleteBtn} scaleTo={0.85}>
-        <MaterialCommunityIcons name="trash-can" size={22} color={theme.error} />
-      </PressableScale>
+      {/* Color: swatches paralelogramo en fila */}
+      <SectionTag text="COLOR" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickerRow}>
+        {palette.map((c) => {
+          const sel = selectedColor === c;
+          return (
+            <TouchableOpacity key={c} onPress={() => setSelectedColor(c)} activeOpacity={0.85}
+              style={[styles.swatch, { backgroundColor: c, borderColor: sel ? theme.text : 'transparent', borderWidth: sel ? 3 : 0 }]}>
+              {sel && <View style={styles.swatchCheck}><MaterialCommunityIcons name="check-bold" size={16} color={getContrastText(c)} /></View>}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Icono: chips en cascada (zigzag de skew + escalonado) */}
+      <SectionTag text="ICONO" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.pickerRow, { alignItems: 'flex-start', paddingBottom: 18 }]}>
+        {CATEGORY_ORDER.map((ic, i) => {
+          const active = selectedIcon === ic;
+          const acc = i % 2 === 0 ? theme.primary : theme.secondary;
+          const sk = [-14, 12, -13, 15, -12][i % 5];
+          const st = [0, 12, 4, 14, 6][i % 5];
+          return (
+            <TouchableOpacity key={ic} onPress={() => setSelectedIcon(ic)} activeOpacity={0.85}
+              style={[styles.iconChip, { marginTop: st, borderColor: acc, backgroundColor: active ? acc : theme.surface, transform: [{ skewX: `${sk}deg` }] }]}>
+              <View style={{ transform: [{ skewX: `${-sk}deg` }] }}>
+                <CategoryIcon category={ic} size={24} skew={0} color={active ? getContrastText(acc) : theme.text} />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Guardar: boton angular con sombra desplazada */}
+      <View style={styles.saveWrap}>
+        <View style={[styles.saveShadow, { backgroundColor: theme.secondary }]} />
+        <PressableScale style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
+          <View style={styles.saveInner}>
+            <MaterialCommunityIcons name="plus-thick" size={18} color={theme.textInverse} />
+            <Text style={[styles.saveBtnText, { color: theme.textInverse, fontFamily: theme.fonts?.title }]}>GUARDAR CATEGORÍA</Text>
+          </View>
+        </PressableScale>
+      </View>
+
+      <SectionTag text="EXISTENTES" />
     </View>
   );
-
-  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top + 10 }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top + 6 }]}>
+      {/* Header */}
       <View style={styles.topHeader}>
-        <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
-        <Text style={[styles.title, { color: theme.text, fontFamily: theme.fonts?.title }]}>CATEGORÍAS</Text>
+        <PressableScale style={[styles.backBtn, { borderColor: theme.border, backgroundColor: theme.surface }]} onPress={() => navigation.goBack()} scaleTo={0.88}>
+          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+        </PressableScale>
+        <PersonaShard label="CATEGORÍAS" height={50} fontSize={28} font={theme.fonts?.title} />
       </View>
 
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: intro,
-          transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-        }}
-      >
-        <View style={{ paddingHorizontal: 18 }}>
-          <View style={styles.form}>
-            <TextInput placeholder="Nombre de la categoría" placeholderTextColor={theme.textDim} value={name} onChangeText={setName} style={[styles.input, { color: theme.text, borderBottomColor: theme.primary }]} />
-
-            <View style={styles.typeRow}>
-              {(['GASTO', 'INGRESO'] as const).map((t, idx) => {
-                const active = tipo === t;
-                return (
-                  <TouchableOpacity
-                    key={t}
-                    activeOpacity={0.85}
-                    onPress={() => setTipo(t)}
-                    style={[styles.tag, { borderColor: theme.primary, backgroundColor: active ? theme.primary : theme.surface, marginLeft: idx === 0 ? 0 : 12 }]}
-                  >
-                    <Text style={[styles.tagText, { color: active ? theme.textInverse : theme.textDim, fontFamily: theme.fonts?.heading }]}>{t}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+      <Animated.View style={{ flex: 1, opacity: intro, transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
+        <FlatList
+          data={categories}
+          keyExtractor={(i) => String(i.id_categoria)}
+          renderItem={({ item, index }) => <CategoryRow item={item} index={index} onDelete={handleDelete} />}
+          ListHeaderComponent={FormHeader}
+          contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <MaterialCommunityIcons name="tag-off-outline" size={44} color={theme.textDim} />
+              <Text style={{ color: theme.textDim, marginTop: 10, fontFamily: theme.fonts?.bold }}>Aún no hay categorías</Text>
             </View>
-
-            <SectionTag text="COLOR" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4, paddingVertical: 2 }}>
-              {palette.map((c) => (
-                <TouchableOpacity key={c} onPress={() => setSelectedColor(c)} style={[styles.colorDotHorizontal, { backgroundColor: c }, selectedColor === c ? { borderWidth: 3, borderColor: theme.text } : null]}>
-                  {selectedColor === c && <MaterialCommunityIcons name="check" size={14} color={getContrastText(c)} />}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <SectionTag text="ICONO" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4, paddingVertical: 2 }}>
-              {iconsList.map((ic) => {
-                const active = selectedIcon === ic;
-                return (
-                  <TouchableOpacity key={ic} onPress={() => setSelectedIcon(ic)} style={[styles.iconChoiceHorizontal, active ? { borderColor: theme.primary, backgroundColor: theme.primary } : { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                    <MaterialCommunityIcons name={ic as any} size={20} color={active ? theme.textInverse : theme.text} />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <PressableScale containerStyle={{ marginTop: 16, alignItems: 'center' }} style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
-              <Text style={[styles.saveBtnText, { color: theme.textInverse, fontFamily: theme.fonts?.heading }]}>GUARDAR CATEGORÍA</Text>
-            </PressableScale>
-          </View>
-        </View>
-
-        <View style={{ paddingHorizontal: 18, flex: 1 }}>
-          <SectionTag text="EXISTENTES" />
-          <FlatList
-            data={categories}
-            keyExtractor={(i) => String(i.id_categoria)}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <MaterialCommunityIcons name="tag-off-outline" size={44} color={theme.textDim} />
-                <Text style={{ color: theme.textDim, marginTop: 10, fontFamily: theme.fonts?.bold }}>Aún no hay categorías</Text>
-              </View>
-            }
-          />
-        </View>
+          }
+        />
       </Animated.View>
     </SafeAreaView>
   );
@@ -198,34 +241,45 @@ export const ManageCategoriesScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 10 },
-  titleAccent: { width: 7, height: 26, marginRight: 12, transform: [{ skewX: '-20deg' }] },
-  title: { fontSize: 26, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
+  topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 12, gap: 14 },
+  backBtn: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
 
-  form: { paddingVertical: 4 },
-  typeRow: { flexDirection: 'row', marginBottom: 4 },
-  tag: { paddingVertical: 8, paddingHorizontal: 18, borderWidth: 1.5, transform: [{ skewX: '-12deg' }] },
-  tagText: { fontWeight: '900', transform: [{ skewX: '12deg' }] },
-  input: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 2, marginBottom: 14, fontSize: 16 },
+  sectionTagWrap: { marginTop: 22, marginBottom: 12 },
 
-  sectionTagWrap: { marginTop: 12, marginBottom: 10 },
-  sectionTag: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, transform: [{ skewX: '-20deg' }] },
-  sectionTagText: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2, transform: [{ skewX: '20deg' }] },
+  // Input nombre
+  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 3, overflow: 'hidden' },
+  inputAccent: { width: 7, alignSelf: 'stretch', transform: [{ skewX: '-12deg' }], marginLeft: -2 },
+  input: { flex: 1, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, letterSpacing: 0.5 },
 
-  colorDotHorizontal: { width: 40, height: 40, borderRadius: 20, marginHorizontal: 6, justifyContent: 'center', alignItems: 'center' },
-  iconChoiceHorizontal: { width: 52, height: 52, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginHorizontal: 6, borderWidth: 1.5 },
+  // Tipo toggle
+  typeRow: { flexDirection: 'row', marginTop: 16 },
+  typeChip: { flex: 1, paddingVertical: 12, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', transform: [{ skewX: '-11deg' }] },
+  typeInner: { flexDirection: 'row', alignItems: 'center', transform: [{ skewX: '11deg' }] },
+  typeText: { fontSize: 16, letterSpacing: 1.5, marginLeft: 6 },
 
-  saveBtn: { paddingVertical: 14, paddingHorizontal: 30, alignItems: 'center', transform: [{ skewX: '-12deg' }] },
-  saveBtnText: { fontWeight: '900', letterSpacing: 1, transform: [{ skewX: '12deg' }] },
+  // Pickers
+  pickerRow: { paddingHorizontal: 2, paddingVertical: 4 },
+  swatch: { width: 40, height: 46, marginRight: 12, borderRadius: 2, justifyContent: 'center', alignItems: 'center', transform: [{ skewX: '-12deg' }] },
+  swatchCheck: { transform: [{ skewX: '12deg' }] },
+  iconChip: { width: 52, height: 52, marginRight: 12, borderWidth: 1.5, borderRadius: 2, justifyContent: 'center', alignItems: 'center' },
 
-  // Row styles (tarjeta con acento)
-  row: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingLeft: 18, borderRadius: 10, borderWidth: 1, marginBottom: 10, overflow: 'hidden' },
-  rowAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
-  leftCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  center: { flex: 1, marginLeft: 12 },
-  name: { fontWeight: '800', fontSize: 16 },
-  sub: { fontSize: 12, marginTop: 2 },
-  deleteBtn: { padding: 8 },
+  // Guardar
+  saveWrap: { marginTop: 22, alignSelf: 'center' },
+  saveShadow: { position: 'absolute', left: 6, top: 6, right: -3, bottom: -4, transform: [{ skewX: '-11deg' }] },
+  saveBtn: { paddingVertical: 15, paddingHorizontal: 34, transform: [{ skewX: '-11deg' }] },
+  saveInner: { flexDirection: 'row', alignItems: 'center', transform: [{ skewX: '11deg' }] },
+  saveBtnText: { fontSize: 18, letterSpacing: 1, marginLeft: 8 },
+
+  // Fila disruptiva
+  row: { borderWidth: 1.5, borderRadius: 3, paddingVertical: 14, paddingLeft: 18, paddingRight: 12, overflow: 'hidden' },
+  rowAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7 },
+  rowInner: { flexDirection: 'row', alignItems: 'center' },
+  iconSwatch: { width: 42, height: 42, borderRadius: 2, justifyContent: 'center', alignItems: 'center' },
+  rowName: { flex: 1, fontSize: 21, letterSpacing: 0.5, marginLeft: 14, textTransform: 'uppercase' },
+  deleteBtn: { padding: 8, marginLeft: 4 },
+
+  floatTag: { position: 'absolute', top: -10, left: 16, paddingHorizontal: 10, paddingVertical: 3, transform: [{ skewX: '-12deg' }], zIndex: 5, elevation: 6 },
+  floatTagText: { fontSize: 11, letterSpacing: 1.5, transform: [{ skewX: '12deg' }] },
 
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
 });

@@ -90,6 +90,23 @@ Progreso del jugador en cada stat.
 
 **Ubicación:** `src/utils/levelingUtils.ts`
 
-El sistema no guarda el nivel directamente como valor arbitrario, sino que lo deriva de la XP total.
-* **Fórmula:** Generalmente usa una curva exponencial o cuadrática donde cada nivel requiere más XP que el anterior.
+El nivel no se guarda como valor arbitrario: se **deriva** de la XP total
+(`experiencia_actual` es la XP acumulada, no el resto del nivel).
+* **Curva:** base **1000 XP** para el nivel 1→2, **+100** por nivel (incremental
+  lineal). Cada nivel cuesta un poco más que el anterior.
 * **Cálculo:** `calculateLevelFromXP(totalXP)` retorna `{ level, currentLevelXP, xpToNextLevel, progress }`.
+
+### Herencia (stats hijos → padre)
+Cuando un stat **custom** (hijo) gana XP, su **padre** recibe la **mitad**
+(`floor(xp / 2)`). Aplica tanto al completar como al revertir misiones, y la mitad
+se calcula sobre la XP ya con bonus de arcanos.
+
+### Nivel del jugador (derivado de las stats)
+`nivel_jugador` no es independiente: es la suma de niveles de TODAS las stats
+dividida por una constante.
+```
+nivel_jugador = floor( suma de niveles de stats / 5 )
+```
+(`recalcPlayerLevel` en `src/services/playerService.ts`). Cuenta base y custom, es
+monótono, y se recalcula al completar/revertir misión, finalizar arco, crear stat
+custom y una vez al arrancar. Reglas completas en `Sistema_de_Progresion.md`.

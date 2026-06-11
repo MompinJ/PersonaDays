@@ -12,7 +12,7 @@ import { useEventFlash } from '../../context/EventFlashContext';
 import { ActionGlyph } from '../../components/UI/ActionGlyphs';
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
-import { calculateLevelFromXP } from '../../utils/levelingUtils';
+import { completeMission } from '../../services/missionService';
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { useNavigation } from '@react-navigation/native';
@@ -36,166 +36,34 @@ export const MissionsScreen = () => {
   const [firstLoad, setFirstLoad] = useState(true);
   const { flash } = useEventFlash();
 
- // Mostrar misiones
-  const cargarMisiones = async () => {
-    try {
-      // Seleccionar misiones con posible impacto y nombre de stat
-      const query = `SELECT m.*, s.nombre as nombre_stat, im.valor_impacto FROM misiones m LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision LEFT JOIN stats s ON im.id_stat = s.id_stat WHERE m.activa = 1 AND m.tipo = ? AND m.completada = 0 ORDER BY m.id_mision DESC`;
-      const resultados = await db.getAllAsync<any>(query, [filtroActual]);
-      setMisiones(resultados as Mision[]);
-      console.log('Misiones cargadas con stats:', resultados ? resultados.length : 0);
-    } catch (error) {
-      console.error('Error al cargar misiones:', error);
-    }
-  };
-
   // Marcar como completada una mision (con logs y desaparición suave)
   const toogleMission = async (id: number) => {
-    // acumuladores fuera del try para que estén disponibles en todo el handler
-    let totalExpGained = 0; // acumulador para el log
-    let logInserted = false;
-    const leveledUp: { name: string; level: number }[] = []; // stats que subieron de nivel
+    const mision = misiones.find(m => m.id_mision === id);
+    if (!mision) return;
+
+    // Evitar doble-toggle
+    if (mision.completada) {
+      console.log('Misión ya completada (en memoria):', id);
+      return;
+    }
 
     try {
-      const mision = misiones.find(m => m.id_mision === id);
-      if (!mision) return;
+      // Toda la logica (XP, niveles, herencia, log, nivel jugador) vive en el
+      // service y corre dentro de una transaccion. Si algo falla, hace ROLLBACK.
+      const result = await completeMission(id, player);
+      if (!result) return; // no existe o ya estaba completada
 
-      // Evitar doble-toggle
-      if (mision.completada) {
-        console.log('Misión ya completada (en memoria):', id);
-        return;
-      }
-
-      // Marcar como completada en la BD (guardar fecha de completado)
-      await db.runAsync("UPDATE misiones SET completada = ?, fecha_completada = datetime('now') WHERE id_mision = ?", [1, id]);
-      console.log('Misión marcada como completada en BD (con fecha):', id);
-
-      // Obtener y aplicar impactos
-      try {
-        const impactos: any[] = await db.getAllAsync('SELECT * FROM impacto_mision WHERE id_mision = ?', [id]);
-        if (!impactos || impactos.length === 0) {
-          console.log('No hay impacto para la misión:', id);
-        } else {
-          for (const impacto of impactos) {
-            console.log('Impacto encontrado:', impacto);
-            const valor = impacto.valor_impacto || 0;
-            const statId = impacto.id_stat;
-
-            // Nivel y nombre ANTES de aplicar (para detectar subida de nivel)
-            let prevLevel = 1;
-            let statName = '';
-            try {
-              const prev: any[] = await db.getAllAsync(
-                'SELECT js.experiencia_actual as xp, s.nombre as nombre FROM stats s LEFT JOIN jugador_stat js ON js.id_stat = s.id_stat AND js.id_jugador = ? WHERE s.id_stat = ?',
-                [player?.id_jugador, statId]
-              );
-              if (prev && prev.length > 0) {
-                prevLevel = calculateLevelFromXP(prev[0].xp || 0).level;
-                statName = prev[0].nombre || '';
-              }
-            } catch (e) { /* ignore */ }
-
-            // 1) Añadir XP total
-            await db.runAsync(
-              'UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?',
-              [valor, statId, player?.id_jugador]
-            );
-
-            totalExpGained += valor;
-
-            console.log('XP Principal aplicada:', valor, 'al stat:', statId);
-
-            // 2) Obtener el nuevo total y recalcular nivel de forma pura
-            try {
-              const rows: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [statId, player?.id_jugador]);
-              if (rows && rows.length > 0) {
-                const totalXP = rows[0].experiencia_actual || 0;
-                const lvlInfo = calculateLevelFromXP(totalXP);
-                await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlInfo.level, statId, player?.id_jugador]);
-
-                // Subio de nivel? guardar para el flash
-                if (lvlInfo.level > prevLevel && statName) {
-                  leveledUp.push({ name: statName, level: lvlInfo.level });
-                }
-
-                // --- HERENCIA: comprobar si el stat tiene padre y aplicar XP heredada ---
-                try {
-                  const pr: any[] = await db.getAllAsync('SELECT id_stat_padre FROM stats WHERE id_stat = ?', [statId]);
-                  if (pr && pr.length > 0 && pr[0].id_stat_padre) {
-                    const idPadre = pr[0].id_stat_padre;
-                    const xpPadre = Math.floor((valor || 0) / 2);
-                    if (xpPadre > 0 && player && player.id_jugador) {
-                      console.log('XP Principal aplicada:', valor, 'al stat:', statId);
-
-                      // Verificar si existe jugador_stat para el padre
-                      const parentJs: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
-                      if (parentJs && parentJs.length > 0) {
-                        await db.runAsync('UPDATE jugador_stat SET experiencia_actual = experiencia_actual + ? WHERE id_stat = ? AND id_jugador = ?', [xpPadre, idPadre, player.id_jugador]);
-                      } else {
-                        // Insertar registro si no existe
-                        await db.runAsync('INSERT INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES (?, ?, ?, ?, ?)', [player.id_jugador, idPadre, 1, xpPadre, 99]);
-                      }
-
-                      totalExpGained += xpPadre;
-
-                      // Recalcular nivel del padre
-                      const rowsParent: any[] = await db.getAllAsync('SELECT experiencia_actual FROM jugador_stat WHERE id_stat = ? AND id_jugador = ?', [idPadre, player.id_jugador]);
-                      if (rowsParent && rowsParent.length > 0) {
-                        const totalXPPadre = rowsParent[0].experiencia_actual || 0;
-                        const lvlPadre = calculateLevelFromXP(totalXPPadre);
-                        await db.runAsync('UPDATE jugador_stat SET nivel_actual = ? WHERE id_stat = ? AND id_jugador = ?', [lvlPadre.level, idPadre, player.id_jugador]);
-                        console.log('XP Heredada aplicada:', xpPadre, 'al stat padre:', idPadre);
-                      }
-                    }
-                  } else {
-                    console.log('Stat no tiene padre, omitiendo herencia para stat:', statId);
-                  }
-                } catch (erp) {
-                  console.error('Error aplicando herencia de XP:', erp);
-                }
-              }
-            } catch (e) {
-              console.error('Error recalculando nivel desde XP total:', e);
-            }
-          }
-
-          // Refrescar vistas
-          try { refreshStats && refreshStats(); } catch(e) { console.log('refreshStats error', e); }
-          try { refreshUser && refreshUser(); } catch(e) { console.log('refreshUser error', e); }
-
-        }
-      } catch (impErr) {
-        console.error('Error aplicando impacto de misión:', impErr);
-      }
-
-      // Asegurar que exista un log aunque no hubiera impactos
-      try {
-        const totalYenes = (mision && mision.recompensa_yenes) ? mision.recompensa_yenes : 0;
-        // Obtener el id del arco activo en el momento de completado (si existe)
-        let activeArcId: number | null = null;
-        try {
-          const arcRows: any[] = await db.getAllAsync("SELECT id_arco FROM arcos WHERE estado = 'ACTIVO' LIMIT 1;");
-          if (arcRows && arcRows.length > 0) activeArcId = arcRows[0].id_arco;
-        } catch (arcErr) {
-          console.error('Error consultando arco activo para logs:', arcErr);
-        }
-
-        await db.runAsync(
-          `INSERT INTO logs (id_mision, fecha_completada, exp_ganada, yenes_ganados, id_arco) VALUES (?, datetime('now', 'localtime'), ?, ?, ?);`,
-          [id, totalExpGained, totalYenes, activeArcId]
-        );
-        console.log('Log insertado (fallback) para misión:', id, 'exp:', totalExpGained, 'yenes:', totalYenes, 'id_arco:', activeArcId);
-      } catch (logErr) {
-        console.error('Error insertando log de misión (fallback):', logErr);
-      }
+      // Refrescar vistas
+      try { refreshStats && refreshStats(); } catch(e) { console.log('refreshStats error', e); }
+      try { refreshUser && refreshUser(); } catch(e) { console.log('refreshUser error', e); }
 
       // Animación y eliminación local inmediata de la misión
       try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch(e) { /* ignore */ }
       setMisiones(prev => prev.filter(m => m.id_mision !== id));
 
       // FLASH de evento estilo Persona: encargo completado + subidas de nivel (en cola)
-      flash({ kind: 'complete', title: 'ENCARGO COMPLETADO', subtitle: mision.nombre, xp: totalExpGained, yen: mision.recompensa_yenes || 0 });
-      leveledUp.forEach((l) => flash({ kind: 'levelup', title: `NIVEL ${l.level}`, subtitle: l.name }));
+      flash({ kind: 'complete', title: 'ENCARGO COMPLETADO', subtitle: result.missionName, xp: result.totalExpGained, yen: result.totalYenes });
+      result.leveledUp.forEach((l) => flash({ kind: 'levelup', title: `NIVEL ${l.level}`, subtitle: l.name }));
 
     } catch (error) {
       console.error('Error completando misión:', error);

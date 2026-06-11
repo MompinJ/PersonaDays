@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="tools_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M5.5,8.5 L13.5,16.5 L18.5,11.5 L10.5,3.5 Z" fill="#fff"></path><path d="M13.8,14.2 L33.8,34.2 L36.2,31.8 L16.2,11.8 Z" fill="#fff"></path><path d="M34,32 L39,37 L37,39 L32,34 Z" fill="#fff"></path><path d="M14.4,36.4 L34.4,16.4 L31.6,13.6 L11.6,33.6 Z" fill="#fff"></path><path d="M40.2,13.0 L37.1,18.4 L30.9,18.4 L27.8,13.0 L30.9,7.6 L37.1,7.6 Z" fill="#fff"></path><path d="M36.8,13.0 L35.4,15.4 L32.6,15.4 L31.2,13.0 L32.6,10.6 L35.4,10.6 Z" fill="#000"></path><path d="M34,13 L41,8 L41,13 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#tools_A)"></rect>
+</svg>

@@ -42,7 +42,7 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
   const s = useRef({
     rot: -activeIndex * STEP, active: activeIndex,
     raf: 0, from: 0, target: 0, t0: 0, dur: 0,
-    startRot: 0, kick: 0,
+    startRot: 0,
   }).current;
 
   const cx = W / 2;
@@ -51,11 +51,6 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
   // Cara del ovalo: ancha (cubre el ancho de la pantalla); vertical da cuerpo para contener las camaras
   const RFx = Math.min(Math.max(W * 0.60, 210), 340);
   const RFy = RYR + 40;
-
-  const finalize = () => {
-    s.kick = 1; render();
-    setTimeout(() => { s.kick = 0; render(); }, 220);
-  };
 
   const animateTo = (target: number, fireActive: boolean) => {
     const active = ((Math.round(-target / STEP) % count) + count) % count;
@@ -68,7 +63,7 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
       const p = Math.min(1, (Date.now() - s.t0) / s.dur);
       s.rot = s.from + (s.target - s.from) * easeOutBack(p);
       render();
-      if (p >= 1) { s.rot = s.target; render(); finalize(); return; }
+      if (p >= 1) { s.rot = s.target; render(); return; }
       s.raf = requestAnimationFrame(loop);
     };
     s.raf = requestAnimationFrame(loop);
@@ -122,7 +117,6 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
   }
   chambers.sort((p, q) => p.z - q.z);
 
-  const kickY = s.kick ? 8 : 0;
   const accent = theme.primary;
   const accentInk = getContrastText(accent);
 
@@ -133,7 +127,7 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
         pointerEvents="none"
         style={[styles.drum, {
           width: RFy * 2, height: RFy * 2, borderRadius: RFy,
-          left: cx - RFy, top: CY - RFy + kickY,
+          left: cx - RFy, top: CY - RFy,
           backgroundColor: theme.surface, borderColor: theme.border,
           transform: [{ scaleX: RFx / RFy }],
         }]}
@@ -153,7 +147,7 @@ export const RevolverNav = ({ order, labels, activeIndex, onChange }: Props) => 
             onPress={() => tapChamber(i)}
             style={{
               position: 'absolute',
-              left: x - size / 2, top: y - size / 2 + kickY,
+              left: x - size / 2, top: y - size / 2,
               width: size, height: size, zIndex: z,
               opacity: 0.62 + t * 0.38,
               transform: [{ scale: sc }],

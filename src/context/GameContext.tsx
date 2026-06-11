@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Jugador, CharacterTheme } from '../types';
 import { db } from '../database/database';
+import { recalcPlayerLevel } from '../services/playerService';
 import { PALETTES, ThemeColors, DEFAULT_FONTS } from '../themes/palettes';
 
 type GameContextType = {
@@ -25,6 +26,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       const result: any = await db.getAllAsync('SELECT * FROM jugadores LIMIT 1');
       if (result && Array.isArray(result) && result.length > 0) {
         const p = result[0] as Jugador;
+        // nivel_jugador es derivado (suma de niveles de stats / K). Se recalcula
+        // al completar/revertir mision, pero no siempre coincide al arrancar
+        // (datos semilla, stats custom). Lo sincronizamos una vez aqui.
+        try { p.nivel_jugador = await recalcPlayerLevel(p.id_jugador); } catch (e) { /* noop */ }
         setPlayer(p);
         const base = PALETTES[(p.character_theme as CharacterTheme)] || PALETTES[CharacterTheme.MAKOTO];
         setTheme({ ...base, fonts: DEFAULT_FONTS });

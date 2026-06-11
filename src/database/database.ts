@@ -188,6 +188,19 @@ export const initDatabase = async () => {
         FOREIGN KEY (id_arcano) REFERENCES arcanos(id_arcano)
       );
 
+      -- TABLA JUGADOR_ARCANOS (Arcanos comprados / poseidos)
+      -- disponible_desde: fecha (lunes) hasta la que un arcano queda en cooldown
+      -- tras desequiparlo; NULL = disponible.
+      CREATE TABLE IF NOT EXISTS jugador_arcanos (
+        id_jugador INTEGER NOT NULL,
+        id_arcano INTEGER NOT NULL,
+        fecha_compra TEXT NOT NULL,
+        disponible_desde TEXT,
+        PRIMARY KEY (id_jugador, id_arcano),
+        FOREIGN KEY (id_jugador) REFERENCES jugadores(id_jugador),
+        FOREIGN KEY (id_arcano) REFERENCES arcanos(id_arcano)
+      );
+
       -- TABLA LOGS (Historial)
       CREATE TABLE IF NOT EXISTS logs (
         id_log INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -270,8 +283,8 @@ export const initDatabase = async () => {
           ('Comida', 'food', '#FF5252', 'GASTO'),
           ('Transporte', 'bus', '#448AFF', 'GASTO'),
           ('Ocio', 'gamepad-variant', '#FFC107', 'GASTO'),
-          ('Salud', 'heart-pulse', '#E91E63', 'GASTO'),
-          ('Otros', 'circle-outline', '#9E9E9E', 'GASTO'),
+          ('Salud', 'hospital-box', '#E91E63', 'GASTO'),
+          ('Otros', 'dots-horizontal', '#9E9E9E', 'GASTO'),
           ('Salario', 'cash', '#4CAF50', 'INGRESO'),
           ('Regalo', 'gift', '#9C27B0', 'INGRESO');
         `);

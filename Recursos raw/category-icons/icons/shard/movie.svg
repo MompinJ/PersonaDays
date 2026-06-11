@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="movie_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M6,10 L42,14 L41,19.5 L5,15.5 Z" fill="#fff"></path><path d="M5,20 L41,20 L41,41 L5,41 Z" fill="#fff"></path><path d="M12,10.9 L16,11.3 L12.5,16.1 L8.5,15.7 Z" fill="#000"></path><path d="M21,11.8 L25,12.2 L21.5,17.0 L17.5,16.6 Z" fill="#000"></path><path d="M30,12.7 L34,13.1 L30.5,17.9 L26.5,17.5 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#movie_B)"></rect>
+</svg>

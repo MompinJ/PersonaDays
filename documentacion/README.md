@@ -9,7 +9,7 @@ El objetivo es que el usuario sea el "Protagonista" de su propia historia, subie
 
 ## 🏗️ Arquitectura Técnica
 
-* **Framework:** React Native (Expo SDK 52).
+* **Framework:** React Native (Expo SDK 54).
 * **Lenguaje:** TypeScript.
 * **Base de Datos Local:** SQLite (`expo-sqlite`) para persistencia total de datos offline.
 * **Gestión de Estado:** Context API (`GameContext`, `AlertContext`).
@@ -36,8 +36,8 @@ El núcleo del crecimiento del personaje. Se basa en el pentágono clásico de a
 ### 2. ⚔️ Misiones (Daily Life Gameplay)
 El motor de acción diaria. Las misiones representan tareas, hábitos o pendientes.
 * **Tipos:** Diaria, Semanal, Arco (Narrativa) y Extra (One-off).
-* **Dificultad Dinámica:** Fácil, Media, Difícil (ajusta recompensas de XP y Yenes automáticamante).
-* **Impacto:** Cada misión está vinculada a un Stat específico. Al completarla, el usuario gana XP para ese atributo y dinero (Yenes).
+* **Dificultad Dinámica:** Fácil, Media, Difícil. Fija la XP (50/100/150, ratio 1:2:3); los Yenes son editables.
+* **Impacto:** Cada misión está vinculada a un Stat específico. Al completarla, el usuario gana XP para ese atributo (con el bonus de los arcanos equipados) y dinero (Yenes).
 * **Repetición:** Lógica compleja de recurrencia por días de la semana (ej: "Solo Lunes y Miércoles").
 
 ### 3. 🏹 Arcos (Sistema Narrativo)
@@ -89,6 +89,8 @@ El esquema relacional en SQLite conecta todos los módulos:
 * `arcos`: Contenedores narrativos.
 * `misiones`: Tareas ejecutable.
 * `impacto_mision`: Tabla puente que define (Misión -> da XP a -> Stat).
+* `arcanos`: Catálogo de los 22 arcanos (texto/efecto para mostrar).
+* `jugador_arcanos` / `jugador_arcanos_slots`: Arcanos comprados (propiedad + cooldown) y equipados (slots).
 * `finanzas` / `financial_categories`: Módulo económico independiente pero gamificado.
 * `logs`: Historial inmutable de acciones.
 
@@ -102,3 +104,16 @@ está documentado en **[`Sistema_de_Diseno_P3R.md`](./Sistema_de_Diseno_P3R.md)*
 
 La **pantalla modelo / master class** es `src/screens/Missions/CreateMissionScreen.tsx`.
 **Léelo antes de crear o modificar cualquier UI.**
+
+---
+
+## Lógica y reglas de juego
+
+Las decisiones de **lógica** (no de diseño) están documentadas aparte:
+
+* **[`Sistema_de_Progresion.md`](./Sistema_de_Progresion.md)** — XP por misión,
+  curva de niveles, fórmula del nivel de jugador, yenes, racha y bonus de arco.
+  La lógica vive centralizada en `src/services/missionService.ts`.
+* **[`Sistema_de_Arcanos.md`](./Sistema_de_Arcanos.md)** — efectos como datos,
+  stacking, economía de la tienda (desbloqueo/precio/slots) y los dos
+  temporizadores (bloqueo de 3 días + cooldown semanal).

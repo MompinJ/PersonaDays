@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="gift_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M9,19 L39,19 L39,41 L9,41 Z" fill="#fff"></path><path d="M6,13 L42,13 L42,19 L6,19 Z" fill="#fff"></path><path d="M24,13 L15,7 L17,13 Z" fill="#fff"></path><path d="M24,13 L33,7 L31,13 Z" fill="#fff"></path><path d="M22,13 L26,13 L26,41 L22,41 Z" fill="#000"></path><path d="M26.4,13.0 L24.0,15.4 L21.6,13.0 L24.0,10.6 Z" fill="#fff"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#gift_B)"></rect>
+</svg>

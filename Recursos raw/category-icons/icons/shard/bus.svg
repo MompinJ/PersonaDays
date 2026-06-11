@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="bus_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M7,11 L41,11 L41,33 L7,33 Z" fill="#fff"></path><path d="M18.8,36.0 L15.0,39.8 L11.2,36.0 L15.0,32.2 Z" fill="#fff"></path><path d="M36.8,36.0 L33.0,39.8 L29.2,36.0 L33.0,32.2 Z" fill="#fff"></path><path d="M10,16 L22,16 L22,24 L10,24 Z" fill="#000"></path><path d="M26,16 L38,16 L38,24 L26,24 Z" fill="#000"></path><path d="M16.5,36.0 L15.0,37.5 L13.5,36.0 L15.0,34.5 Z" fill="#000"></path><path d="M34.5,36.0 L33.0,37.5 L31.5,36.0 L33.0,34.5 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#bus_B)"></rect>
+</svg>

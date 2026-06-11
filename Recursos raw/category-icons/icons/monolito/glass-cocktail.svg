@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="glasscocktail_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M9,12 L39,12 L24,29 Z" fill="#fff"></path><path d="M22.5,29 L25.5,29 L25.5,38 L22.5,38 Z" fill="#fff"></path><path d="M16,41 L32,41 L29,38 L19,38 Z" fill="#fff"></path><path d="M28.5,14.6 L35.5,9.1 L34.5,7.9 L27.5,13.4 Z" fill="#fff"></path><path d="M37.4,8.0 L35.0,10.4 L32.6,8.0 L35.0,5.6 Z" fill="#fff"></path><path d="M14,16 L34,16 L32.3,18.2 L15.7,18.2 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#glasscocktail_A)"></rect>
+</svg>

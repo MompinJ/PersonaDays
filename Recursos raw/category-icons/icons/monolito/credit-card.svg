@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="creditcard_A" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M5,13 L43,13 L43,35 L5,35 Z" fill="#fff"></path><path d="M5,18 L43,18 L43,23 L5,23 Z" fill="#000"></path><path d="M9,27 L16,27 L16,32 L9,32 Z" fill="#000"></path><path d="M19,29 L35,29 L35,31.4 L19,31.4 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#creditcard_A)"></rect>
+</svg>

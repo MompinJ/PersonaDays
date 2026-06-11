@@ -1,0 +1,7 @@
+<svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <mask id="gamepadvariant_B" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#000"></rect>
+    <path d="M11,17 L19,15 L29,15 L37,17 L42,27 L37,33 L30,30 L18,30 L11,33 L6,27 Z" fill="#fff"></path><path d="M12.5,22 L20.5,22 L20.5,24.6 L12.5,24.6 Z" fill="#000"></path><path d="M15.2,19.3 L17.8,19.3 L17.8,27.3 L15.2,27.3 Z" fill="#000"></path><path d="M33.1,21.5 L31.0,23.6 L28.9,21.5 L31.0,19.4 Z" fill="#000"></path><path d="M37.6,24.5 L35.5,26.6 L33.4,24.5 L35.5,22.4 Z" fill="#000"></path><path d="M40,-2 L46.5,-2 L11,50 L4.5,50 Z" fill="#000"></path>
+  </mask>
+  <rect width="48" height="48" fill="currentColor" mask="url(#gamepadvariant_B)"></rect>
+</svg>
