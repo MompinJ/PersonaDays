@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useAlert } from '../../context/AlertContext';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 import { PersonaModal } from '../UI/PersonaModal';
+import { P3RDatePicker } from '../UI/P3RDatePicker';
 import { getContrastText } from '../../utils/colorUtils';
+
+// fecha_inicio/fecha_fin se guardan como 'yyyy-mm-dd'. Convertir en LOCAL (no
+// new Date(str) que parsea en UTC y desfasa el dia, ni toISOString que vuelve a UTC).
+const parseLocalDate = (s: string): Date => {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+const toDateStr = (d: Date): string => {
+  const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 const COLORS = ['#00D4FF', '#FF4D4F', '#28A745', '#FFC107', '#7B2CBF', '#FF7AC6', '#FF9800'];
 
@@ -23,7 +34,6 @@ const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; 
 
   const [showPickerStart, setShowPickerStart] = useState(false);
   const [showPickerEnd, setShowPickerEnd] = useState(false);
-  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   useEffect(() => {
     const loadStats = async () => {
@@ -77,22 +87,31 @@ const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; 
         <TextInput placeholder="Descripción" placeholderTextColor={theme.textDim} value={descripcion} onChangeText={setDescripcion} style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]} />
 
         <View style={styles.dateRow}>
-          <TouchableOpacity onPress={() => { if (!isCompleted) { setShowPickerStart(true); setTempDate(fechaInicio ? new Date(fechaInicio) : new Date()); } }} style={[styles.dateBtn, { borderColor: theme.primary }]}>
+          <TouchableOpacity onPress={() => { if (!isCompleted) setShowPickerStart(true); }} style={[styles.dateBtn, { borderColor: theme.primary }]}>
             <Ionicons name="calendar-outline" size={16} color={theme.primary} style={styles.unskew} />
             <Text style={[styles.dateText, { color: fechaInicio ? theme.text : theme.textDim }]}>{fechaInicio || 'INICIO'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { if (!isCompleted) { setShowPickerEnd(true); setTempDate(fechaFin ? new Date(fechaFin) : new Date()); } }} style={[styles.dateBtn, { borderColor: theme.border }]}>
+          <TouchableOpacity onPress={() => { if (!isCompleted) setShowPickerEnd(true); }} style={[styles.dateBtn, { borderColor: theme.border }]}>
             <Ionicons name="flag-outline" size={16} color={theme.textDim} style={styles.unskew} />
             <Text style={[styles.dateText, { color: fechaFin ? theme.text : theme.textDim }]}>{fechaFin || 'FIN'}</Text>
           </TouchableOpacity>
         </View>
 
-        {showPickerStart && (
-          <DateTimePicker value={tempDate} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(e, d) => { setShowPickerStart(false); if (d) setFechaInicio(d.toISOString().split('T')[0]); }} maximumDate={new Date(2100, 0, 1)} />
-        )}
-        {showPickerEnd && (
-          <DateTimePicker value={tempDate} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(e, d) => { setShowPickerEnd(false); if (d) setFechaFin(d.toISOString().split('T')[0]); }} maximumDate={new Date(2100, 0, 1)} />
-        )}
+        <P3RDatePicker
+          visible={showPickerStart}
+          value={fechaInicio ? parseLocalDate(fechaInicio) : new Date()}
+          maxDate={new Date(2100, 0, 1)}
+          onAccept={(d) => { if (d) setFechaInicio(toDateStr(d)); setShowPickerStart(false); }}
+          onCancel={() => setShowPickerStart(false)}
+        />
+        <P3RDatePicker
+          visible={showPickerEnd}
+          value={fechaFin ? parseLocalDate(fechaFin) : (fechaInicio ? parseLocalDate(fechaInicio) : new Date())}
+          minDate={fechaInicio ? parseLocalDate(fechaInicio) : undefined}
+          maxDate={new Date(2100, 0, 1)}
+          onAccept={(d) => { if (d) setFechaFin(toDateStr(d)); setShowPickerEnd(false); }}
+          onCancel={() => setShowPickerEnd(false)}
+        />
 
         <Text style={[styles.label, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>COLOR</Text>
         <View style={styles.colorRow}>

@@ -162,7 +162,10 @@ Color 100% del tema (`primary`/`secondary`/`getContrastText`). Semana **lunes-pr
 
 - **`<P3RDatePicker visible value minDate maxDate onAccept onCancel />`** — modal completo
   (overlay scrim + pop `Easing.back`). Controlado por `visible`. `onAccept(Date)` al pulsar
-  ACEPTAR. Uso: **Nueva/Editar Misión → Fecha límite** (sustituyó al picker nativo).
+  ACEPTAR. Uso: **Nueva/Editar Misión → Fecha límite** y **Nuevo/Editar Arco → INICIO/FIN**
+  (`ManageArcModal`, con `minDate` = inicio en el picker de FIN), ambos sustituyeron al picker
+  nativo. Nota: las fechas de arco se guardan como `'yyyy-mm-dd'`; convertir a `Date` con un
+  parse **local** (`new Date(y, m-1, d)`), nunca `new Date(str)`/`toISOString` (desfasan a UTC).
 - **`<P3RCalendarPanel ... />`** — solo el panel (sin overlay), para incrustar. Props extra:
   - `onPick(Date)` — se dispara en **cada** tap de día (sin esperar a Aceptar).
   - `hideFooter` — oculta HOY/CANCELAR/ACEPTAR (modo "navegar mes"). 
