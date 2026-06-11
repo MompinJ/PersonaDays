@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// En Expo Go (SDK 53+) expo-notifications avisa que el PUSH remoto no esta
+// disponible. Solo usamos notificaciones LOCALES (que si funcionan), asi que ese
+// warning es ruido: lo silenciamos para no asustar. No afecta al build standalone.
+LogBox.ignoreLogs([
+  /Android Push notifications.*removed from Expo Go/,
+  'expo-notifications',
+]);
 
 // Fonts
 import { useFonts } from 'expo-font';
@@ -27,6 +35,7 @@ import { GameProvider, useGame } from './src/context/GameContext';
 import { AlertProvider } from './src/context/AlertContext';
 import { EventFlashProvider } from './src/context/EventFlashContext';
 import { PALETTES } from './src/themes/palettes';
+import { LoadingScreen } from './src/components/UI/LoadingScreen';
 
 const DEFAULT_PALETTE = Object.values(PALETTES)[0] as any;
 
@@ -35,12 +44,7 @@ function RootNavigation() {
   const Stack = createNativeStackNavigator();
 
   if (isLoading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: DEFAULT_PALETTE.background }]}> 
-        <ActivityIndicator size="large" color={DEFAULT_PALETTE.primary} />
-        <Text style={[styles.loadingText, { color: DEFAULT_PALETTE.text }]}>Cargando usuario...</Text>
-      </View>
-    );
+    return <LoadingScreen palette={DEFAULT_PALETTE} />;
   }
 
   if (!player) {
@@ -96,12 +100,7 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   if (!isDbReady) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: DEFAULT_PALETTE.background }]}> 
-        <ActivityIndicator size="large" color={DEFAULT_PALETTE.primary} />
-        <Text style={[styles.loadingText, { color: DEFAULT_PALETTE.text }]}>Invocando a tu Persona...</Text>
-      </View>
-    );
+    return <LoadingScreen palette={DEFAULT_PALETTE} />;
   }
 
   return (
@@ -117,24 +116,3 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#0A1628',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  }
-});
