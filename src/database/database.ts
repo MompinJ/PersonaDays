@@ -42,6 +42,40 @@ export const checkAndSeedData = async () => {
   }
 };
 
+// Version del schema para migraciones versionadas. SUBIR al agregar una migracion.
+export const SCHEMA_VERSION = 1;
+
+// Migraciones de schema FUTURAS. El schema base lo construye CREATE TABLE IF NOT
+// EXISTS (+ los ALTER idempotentes) en initDatabase; eso deja cualquier DB (nueva
+// o pre-sistema) en SCHEMA_VERSION (baseline). Para un cambio futuro: agrega aqui
+// { version: N, up }, sube SCHEMA_VERSION a N, y refleja el cambio tambien en el
+// CREATE de arriba (para instalaciones nuevas). Se aplican en orden, una sola vez;
+// el progreso vive en PRAGMA user_version.
+const MIGRATIONS: { version: number; up: () => Promise<void> }[] = [
+  // { version: 2, up: async () => { await db.execAsync('ALTER TABLE ... ADD COLUMN ...;'); } },
+];
+
+const runMigrations = async () => {
+  try {
+    const row: any = await db.getFirstAsync('PRAGMA user_version;');
+    const current: number = (row && row.user_version) || 0;
+    if (current === 0) {
+      // DB nueva o anterior al sistema: ya esta en el schema actual (CREATE IF NOT
+      // EXISTS + ALTERs) -> baseline a SCHEMA_VERSION sin re-migrar.
+      await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+      return;
+    }
+    const pending = MIGRATIONS.filter((m) => m.version > current).sort((a, b) => a.version - b.version);
+    for (const m of pending) {
+      console.log(`Migración DB -> v${m.version}`);
+      await m.up();
+      await db.execAsync(`PRAGMA user_version = ${m.version};`);
+    }
+  } catch (e) {
+    console.error('Error en migraciones versionadas:', e);
+  }
+};
+
 export const initDatabase = async () => {
   try {
     await db.execAsync('PRAGMA foreign_keys = ON;');
@@ -246,7 +280,27 @@ export const initDatabase = async () => {
       console.error('Error comprobando/creando columna id_arco en logs:', e);
     }
 
+    // --- Indices (perf): idempotentes, aceleran los queries calientes ---
+    // logs por fecha (Tendencias agrupa por dia), filtros de misiones, joins de
+    // impacto/stat, slots de arcanos, arco activo y finanzas por fecha.
+    try {
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_logs_fecha ON logs(fecha_completada);
+        CREATE INDEX IF NOT EXISTS idx_logs_mision ON logs(id_mision);
+        CREATE INDEX IF NOT EXISTS idx_misiones_estado ON misiones(activa, completada, tipo);
+        CREATE INDEX IF NOT EXISTS idx_misiones_arco ON misiones(id_arco);
+        CREATE INDEX IF NOT EXISTS idx_impacto_mision ON impacto_mision(id_mision);
+        CREATE INDEX IF NOT EXISTS idx_jugador_stat ON jugador_stat(id_jugador, id_stat);
+        CREATE INDEX IF NOT EXISTS idx_slots_jugador ON jugador_arcanos_slots(id_jugador, numero_slot);
+        CREATE INDEX IF NOT EXISTS idx_arcos_estado ON arcos(estado);
+        CREATE INDEX IF NOT EXISTS idx_finanzas_fecha ON finanzas(fecha);
+      `);
+    } catch (e) {
+      console.error('Error creando índices:', e);
+    }
 
+    // --- Migraciones versionadas (cambios de schema futuros) ---
+    await runMigrations();
 
     // Insertar arcanos base (usamos INSERT OR REPLACE para garantizar id fijo)
     await db.execAsync(`
