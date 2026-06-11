@@ -26,20 +26,6 @@ export const arcDisplayColor = (arc: any, themePrimary: string): string => {
 };
 
 /**
- * Comprueba si un arco tiene sub-arcos activos (que impedirían finalizarlo).
- * Solo aplica a arcos padre (id_arco_padre == null).
- */
-export const hasActiveSubArcs = async (arc: any): Promise<boolean> => {
-  if (!arc || arc.id_arco_padre != null) return false;
-  const res: any[] = await db.getAllAsync(
-    'SELECT count(*) as c FROM arcos WHERE id_arco_padre = ? AND estado = ?',
-    [arc.id_arco, 'ACTIVO']
-  );
-  const count = (res && res.length > 0 && res[0].c) ? res[0].c : 0;
-  return count > 0;
-};
-
-/**
  * Finaliza un arco dentro de una transacción:
  *  1. Marca el arco como COMPLETADO y fija fecha_fin.
  *  2. Otorga un bonus FIJO de XP al stat relacionado (no la suma de misiones,

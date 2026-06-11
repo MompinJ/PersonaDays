@@ -139,7 +139,7 @@ export const initDatabase = async () => {
         descripcion TEXT,
         fecha_inicio TEXT NOT NULL,
         fecha_fin TEXT,
-        id_arco_padre INTEGER,
+        id_arco_padre INTEGER, -- inerte: la feature de sub-arcos se retiro; columna conservada para no migrar
         id_stat_relacionado INTEGER,
         color_hex TEXT DEFAULT '#00D4FF',
         estado TEXT DEFAULT 'ACTIVO',

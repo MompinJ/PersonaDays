@@ -93,7 +93,10 @@ const irACrearMision = () => {
       const day = today.getDay(); // 0..6
       const deltaSinceMonday = (day + 6) % 7; // 0 if Monday
       const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - deltaSinceMonday);
-      const mondayStr = monday.toISOString().split('T')[0];
+      // Formatear en LOCAL (no toISOString, que pasa a UTC y desfasa el lunes
+      // un dia en zonas horarias positivas -> el reset semanal compararia mal).
+      const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+      const mondayStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
 
       const resSem: any = await db.runAsync(
         'UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = ? AND completada = 1 AND date(fecha_completada) < ?',

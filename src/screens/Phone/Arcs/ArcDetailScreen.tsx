@@ -8,7 +8,7 @@ import { useTheme } from '../../../themes/useTheme';
 import ManageArcModal from '../../../components/Arcs/ManageArcModal';
 import { useGame } from '../../../context/GameContext';
 import { usePlayerStats } from '../../../hooks/usePlayerStats';
-import { finalizeArcWithRewards, hasActiveSubArcs } from '../../../services/arcService';
+import { finalizeArcWithRewards } from '../../../services/arcService';
 import { useEventFlash } from '../../../context/EventFlashContext';
 import { db } from '../../../database';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
@@ -62,16 +62,6 @@ export const ArcDetailScreen = ({ route, navigation }: Props) => {
 
   const handleFinishArc = async () => {
     if (!arc) return;
-    try {
-      if (await hasActiveSubArcs(arc)) {
-        showAlert('NO PUEDES FINALIZAR ESTE ARCO', 'Debes completar primero el sub-arco activo antes de cerrar el capítulo principal.');
-        return;
-      }
-    } catch (e: any) {
-      console.error('Error comprobando sub-arcos activos:', e);
-      showAlert('ERROR', 'No se pudo comprobar sub-arcos activos. ' + (e?.message || ''));
-      return;
-    }
     showAlert('FINALIZAR ARCO', '¿Estás seguro de que deseas cerrar este capítulo?', [
       { text: 'CANCELAR', style: 'cancel' },
       { text: 'FINALIZAR', onPress: async () => {

@@ -98,10 +98,10 @@ export const useHomeSummary = () => {
         })
         .filter(Boolean) as HomeBaseStat[];
 
-      // --- Arco activo (prioriza arco padre) + progreso ---
+      // --- Arco activo + progreso ---
       let activeArc: HomeActiveArc | null = null;
       const arcRows: any[] = await db.getAllAsync(
-        "SELECT * FROM arcos WHERE estado = 'ACTIVO' ORDER BY (id_arco_padre IS NULL) DESC, id_arco DESC LIMIT 1"
+        "SELECT * FROM arcos WHERE estado = 'ACTIVO' ORDER BY id_arco DESC LIMIT 1"
       );
       if (arcRows && arcRows.length > 0) {
         const a = arcRows[0];

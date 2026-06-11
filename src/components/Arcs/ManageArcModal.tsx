@@ -20,7 +20,6 @@ const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; 
   const [color, setColor] = useState(COLORS[0]);
   const [statRel, setStatRel] = useState<number | null>(null);
   const [statsOptions, setStatsOptions] = useState<Array<{ id_stat: number; nombre: string }>>([]);
-  const [isSubArc, setIsSubArc] = useState(false);
 
   const [showPickerStart, setShowPickerStart] = useState(false);
   const [showPickerEnd, setShowPickerEnd] = useState(false);
@@ -43,9 +42,8 @@ const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; 
       setFechaFin(arc.fecha_fin || '');
       setColor(arc.color_hex || COLORS[0]);
       setStatRel(arc.id_stat_relacionado || null);
-      setIsSubArc(!!arc.id_arco_padre);
     } else {
-      setNombre(''); setDescripcion(''); setFechaInicio(''); setFechaFin(''); setColor(theme.primary); setStatRel(null); setIsSubArc(false);
+      setNombre(''); setDescripcion(''); setFechaInicio(''); setFechaFin(''); setColor(theme.primary); setStatRel(null);
     }
   }, [arc, visible]);
 
@@ -61,11 +59,10 @@ const ManageArcModal = ({ visible, arc, onClose, onSaved }: { visible: boolean; 
       return;
     }
     try {
-      const parentId = null;
       if (arc && arc.id_arco) {
-        await db.runAsync('UPDATE arcos SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, color_hex = ?, id_stat_relacionado = ?, id_arco_padre = ? WHERE id_arco = ?', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel, parentId, arc.id_arco]);
+        await db.runAsync('UPDATE arcos SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, color_hex = ?, id_stat_relacionado = ? WHERE id_arco = ?', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel, arc.id_arco]);
       } else {
-        await db.runAsync('INSERT INTO arcos (nombre, descripcion, fecha_inicio, fecha_fin, color_hex, id_stat_relacionado, id_arco_padre) VALUES (?, ?, ?, ?, ?, ?, ?)', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel, parentId]);
+        await db.runAsync('INSERT INTO arcos (nombre, descripcion, fecha_inicio, fecha_fin, color_hex, id_stat_relacionado) VALUES (?, ?, ?, ?, ?, ?)', [nombre, descripcion, fechaInicio, fechaFin || null, color, statRel]);
       }
       if (onSaved) onSaved();
     } catch (e) {

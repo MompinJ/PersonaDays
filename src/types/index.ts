@@ -154,7 +154,6 @@ export interface Arco {
 	descripcion?: string;
 	fecha_inicio: string;
 	fecha_fin?: string;
-	id_arco_padre?: number; // FK
 	id_stat_relacionado?: number; // FK
 	color_hex: string;
 	estado: ArcState;
