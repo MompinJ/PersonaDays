@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PersonaDays · Logo · 5 direcciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Barlow+Condensed:wght@500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:'Exo 2',sans-serif; background:#11151c; }
+
+  /* ---- per-card dark navy stage ---- */
+  .lg-stage{
+    position:absolute; inset:0; overflow:hidden;
+    --ink:#0A1628; --ink2:#06101E; --acc:#00D4FF; --acc2:#0E80B8; --acc-lo:#055E86;
+    --text:#EAF2FF; --dim:#7E90BC; --faint:#445574; --ink-on:#04131A;
+    background:
+      radial-gradient(120% 75% at 50% -8%, color-mix(in srgb,var(--acc) 16%, var(--ink)) 0%, var(--ink) 58%),
+      var(--ink2);
+    color:var(--text);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:38px 26px 22px;
+  }
+  .lg-stage::before{ /* faint scanline */
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+  .lg-hero{ flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; width:100%; }
+  .skb{ transform:skewX(-10deg); }
+  .uskb{ display:inline-block; transform:skewX(10deg); }
+
+  /* ===== wordmark (shared) ===== */
+  .lg-wm{ font-family:'Anton'; line-height:.86; letter-spacing:.01em; text-transform:uppercase;
+    transform:skewX(-8deg); text-align:center; text-shadow:0 3px 0 rgba(0,0,0,.5); }
+  .lg-wm .p{ color:var(--text); }
+  .lg-wm .d{ color:var(--acc); text-shadow:0 0 24px color-mix(in srgb,var(--acc) 50%, transparent), 0 3px 0 rgba(0,0,0,.5); }
+  .lg-eyebrow{ font-family:'Barlow Condensed'; font-weight:700; font-size:11px; letter-spacing:.42em;
+    color:var(--acc); text-transform:uppercase; transform:skewX(-8deg); text-align:center; }
+
+  /* ===== card footer: app icon proof ===== */
+  .lg-foot{ display:flex; align-items:center; gap:14px; width:100%; z-index:2;
+    border-top:1px solid color-mix(in srgb,var(--acc) 14%, transparent); padding-top:16px; }
+  .lg-squircle{ width:58px; height:58px; flex:0 0 58px; border-radius:14px; position:relative; overflow:hidden;
+    background:linear-gradient(150deg, #102544, var(--ink2)); border:1px solid color-mix(in srgb,var(--acc) 26%, transparent);
+    display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.5); }
+  .lg-squircle::after{ content:""; position:absolute; inset:0; border-radius:14px; pointer-events:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08); }
+  .lg-foot-txt{ display:flex; flex-direction:column; gap:3px; }
+  .lg-foot-lab{ font-family:'Bebas Neue'; font-size:16px; letter-spacing:.12em; color:var(--text); }
+  .lg-foot-sub{ font-family:'Barlow Condensed'; font-weight:600; font-size:10.5px; letter-spacing:.18em;
+    color:var(--dim); text-transform:uppercase; }
+
+  /* ===== 1 · SHARD MONOGRAM ===== */
+  .em-shard{ position:relative; width:128px; height:128px; }
+  .em-shard .body{ position:absolute; inset:0; background:var(--acc);
+    clip-path:polygon(14% 0,100% 0,86% 100%,0 100%); box-shadow:9px 9px 0 var(--acc-lo); }
+  .em-shard .notch{ position:absolute; top:0; right:0; width:0; height:0;
+    border-top:22px solid var(--ink2); border-left:22px solid transparent; }
+  .em-shard .mono{ position:absolute; inset:0; display:grid; place-items:center; font-family:'Anton';
+    font-size:84px; color:var(--ink-on); transform:skewX(-9deg); text-shadow:0 2px 0 rgba(255,255,255,.25); }
+  .em-shard .bar{ position:absolute; left:-14px; top:50%; width:18px; height:5px; background:var(--acc);
+    transform:skewX(-10deg); box-shadow:0 0 12px var(--acc); }
+
+  /* ===== 2 · ARCANO ===== */
+  .em-card{ position:relative; width:118px; height:174px; }
+  .em-card .metal{ position:absolute; inset:0;
+    background:linear-gradient(135deg,#3E6E8C 0%,#1B3A52 40%,#0C2438 70%,#2C5470 100%);
+    clip-path:polygon(9% 0,91% 0,100% 7%,100% 93%,91% 100%,9% 100%,0 93%,0 7%);
+    filter:drop-shadow(0 10px 16px rgba(0,0,0,.55)) drop-shadow(0 0 22px color-mix(in srgb,var(--acc) 34%, transparent)); }
+  .em-card .panel{ position:absolute; inset:3px; overflow:hidden;
+    clip-path:polygon(9% 0,91% 0,100% 7%,100% 93%,91% 100%,9% 100%,0 93%,0 7%);
+    background:radial-gradient(120% 80% at 50% 26%, color-mix(in srgb,var(--acc) 14%, var(--ink)) 0%, var(--ink2) 70%); }
+  .em-card .lattice{ position:absolute; inset:0; opacity:.6;
+    background-image:repeating-linear-gradient(45deg, color-mix(in srgb,var(--acc) 20%, transparent) 0 1px, transparent 1px 13px),
+      repeating-linear-gradient(-45deg, color-mix(in srgb,var(--acc) 20%, transparent) 0 1px, transparent 1px 13px);
+    -webkit-mask-image:radial-gradient(110% 90% at 50% 30%, #000 38%, transparent 86%); }
+  .em-card .rom{ position:absolute; left:0; right:0; top:7%; text-align:center; font-family:'Big Shoulders Display';
+    font-weight:900; font-size:78px; line-height:.8; color:transparent;
+    -webkit-text-stroke:1.6px color-mix(in srgb,var(--acc) 55%, transparent); opacity:.5; }
+  .em-card .en{ position:absolute; top:11px; left:0; right:0; text-align:center; font-family:'Barlow Condensed';
+    font-weight:700; font-size:9px; letter-spacing:.3em; color:color-mix(in srgb,var(--acc) 80%, var(--text)); }
+  .em-card .sigil{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); color:var(--acc);
+    filter:drop-shadow(0 2px 10px rgba(0,0,0,.5)); }
+  .em-card .name{ position:absolute; left:0; right:0; bottom:14px; text-align:center; font-family:'Anton';
+    font-size:15px; letter-spacing:.04em; color:var(--text); transform:skewX(-6deg); }
+  .em-card .corner{ position:absolute; width:7px; height:7px; background:var(--acc); transform:rotate(45deg);
+    box-shadow:0 0 8px var(--acc); }
+  .em-card .corner.tl{ left:7px; top:9px; } .em-card .corner.tr{ right:7px; top:9px; }
+  .em-card .corner.bl{ left:7px; bottom:9px; } .em-card .corner.br{ right:7px; bottom:9px; }
+
+  /* ===== generic emblem glow ===== */
+  .em-glow{ position:absolute; left:50%; top:50%; width:200px; height:200px; transform:translate(-50%,-50%);
+    background:radial-gradient(closest-side, color-mix(in srgb,var(--acc) 24%, transparent), transparent 72%);
+    pointer-events:none; z-index:0; }
+
+  /* ===== 5 · WORDMARK (type-led) ===== */
+  .em-type{ position:relative; display:flex; flex-direction:column; align-items:center; gap:0; }
+  .em-type .l1{ font-family:'Anton'; font-size:42px; letter-spacing:.04em; color:transparent;
+    -webkit-text-stroke:1.6px var(--text); transform:skewX(-9deg); text-transform:uppercase; line-height:.9; }
+  .em-type .l2wrap{ position:relative; margin-top:6px; }
+  .em-type .l2bg{ position:absolute; inset:-6px -16px; background:var(--acc); transform:skewX(-12deg);
+    clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); box-shadow:7px 7px 0 var(--acc-lo); }
+  .em-type .l2{ position:relative; font-family:'Anton'; font-size:62px; letter-spacing:.03em; color:var(--ink-on);
+    transform:skewX(-9deg); text-transform:uppercase; line-height:.9; padding:0 6px; }
+  .em-type .tick{ position:absolute; left:-22px; top:8px; width:14px; height:42px; background:var(--acc);
+    transform:skewX(-12deg); box-shadow:0 0 14px var(--acc); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="logo-content.jsx"></script>
+</body>
+</html>
