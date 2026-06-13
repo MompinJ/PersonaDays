@@ -40,7 +40,7 @@ import { LoadingScreen } from './src/components/UI/LoadingScreen';
 const DEFAULT_PALETTE = Object.values(PALETTES)[0] as any;
 
 function RootNavigation() {
-  const { player, isLoading } = useGame();
+  const { player, isLoading, theme } = useGame();
   const Stack = createNativeStackNavigator();
 
   // Gate de tiempo minimo: la pantalla de carga se ve al menos 2s aunque la DB
@@ -52,7 +52,10 @@ function RootNavigation() {
   }, []);
 
   if (isLoading || !minElapsed) {
-    return <LoadingScreen palette={DEFAULT_PALETTE} />;
+    // theme es el del personaje en cuanto GameContext lee al jugador; mientras
+    // tanto es el default (azul). El acento se pinta de azul -> color del
+    // personaje conforme avanza la barra.
+    return <LoadingScreen palette={theme || DEFAULT_PALETTE} character={(player?.character_theme as string) || undefined} />;
   }
 
   if (!player) {

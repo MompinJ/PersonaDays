@@ -24,6 +24,26 @@ const FONTS = {
   bebas: 'BebasNeue_400Regular',
 };
 
+// Azul de arranque: el acento "nace" aqui y se va pintando del color del
+// personaje conforme avanza la carga (lerp por % en lerpColor de abajo).
+const PAINT_FROM = { primary: '#00D4FF', secondary: '#0077C8' };
+
+const hexToRgb = (h: string): [number, number, number] => {
+  const s = h.replace('#', '');
+  const full = s.length === 3 ? s.split('').map((c) => c + c).join('') : s;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+// Mezcla lineal de dos colores hex (t: 0 = a, 1 = b).
+const lerpColor = (a: string, b: string, t: number): string => {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+};
+
 const PHASES: [number, string][] = [
   [0, 'ESTABLECIENDO VÍNCULO'],
   [22, 'SINCRONIZANDO ARCANOS'],
@@ -110,8 +130,14 @@ const Pct = ({ v, text, faint, acc }: { v: number; text: string; faint: string; 
 };
 
 export const LoadingScreen = ({ palette, character = 'MAKOTO' }: { palette: Palette; character?: string }) => {
-  const acc = palette.primary;
-  const acc2 = palette.secondary;
+  const [pct, setPct] = useState(0);
+
+  // El acento se va "pintando" del azul de arranque al color del personaje segun
+  // el % de carga. Se cuantiza a pasos de 4% para no re-renderizar el emblema en
+  // cada frame (React.memo lo salta cuando el color no cambia de paso).
+  const paintT = Math.min(1, Math.round((pct / 100) / 0.04) * 0.04);
+  const acc = lerpColor(PAINT_FROM.primary, palette.primary, paintT);
+  const acc2 = lerpColor(PAINT_FROM.secondary, palette.secondary, paintT);
   const ink = palette.background;
   const text = palette.text;
   const dim = palette.textDim;
@@ -119,7 +145,6 @@ export const LoadingScreen = ({ palette, character = 'MAKOTO' }: { palette: Pale
   const ink2 = '#04070D';
   const faint = dim + '66';
 
-  const [pct, setPct] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
   const enter = useRef(new Animated.Value(0)).current;
