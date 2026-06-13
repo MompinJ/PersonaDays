@@ -13,6 +13,8 @@ import { ActionGlyph } from '../../components/UI/ActionGlyphs';
 import { db } from '../../database'; // Tu conexión DB
 import { Mision, MissionType, MissionFrequency } from '../../types'; // Tus tipos
 import { completeMission } from '../../services/missionService';
+import { isMissionScheduledToday, compareTodayMissions } from '../../services/missionFilters';
+import { syncMissionReminders } from '../../services/notificationService';
 import { MissionItem } from '../../components/Missions/MissionItem';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { useNavigation } from '@react-navigation/native';
@@ -21,10 +23,22 @@ import { RootStackParamList } from '../../navigation/types';
 import { useGame } from '../../context/GameContext';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 
+// 'ALL' = vista TODAS: todas las misiones programadas para hoy, sin importar el tipo.
+type Filtro = MissionType | 'ALL';
+
+const FILTROS: { key: Filtro; label: string }[] = [
+  { key: 'ALL', label: 'TODAS' },
+  { key: MissionType.DIARIA, label: 'DIARIA' },
+  { key: MissionType.SEMANAL, label: 'SEMANAL' },
+  { key: MissionType.ARCO, label: 'ARCO' },
+  { key: MissionType.EXTRA, label: 'EXTRA' },
+  { key: MissionType.BOSS, label: 'BOSS' },
+];
+
 export const MissionsScreen = () => {
   // 1. Estado para guardar la lista de misiones que vienen de la BD
   const [misiones, setMisiones] = useState<Mision[]>([]);
-  const [filtroActual, setFiltroActual] = useState<MissionType>(MissionType.DIARIA);
+  const [filtroActual, setFiltroActual] = useState<Filtro>('ALL');
   const [selectedMission, setSelectedMission] = useState<Mision | null>(null);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -52,6 +66,9 @@ export const MissionsScreen = () => {
       // service y corre dentro de una transaccion. Si algo falla, hace ROLLBACK.
       const result = await completeMission(id, player);
       if (!result) return; // no existe o ya estaba completada
+
+      // Cancelar/reagendar notificaciones (la mision dejo de estar pendiente)
+      syncMissionReminders().catch(() => {});
 
       // Refrescar vistas
       try { refreshStats && refreshStats(); } catch(e) { console.log('refreshStats error', e); }
@@ -84,7 +101,7 @@ const irACrearMision = () => {
     try {
       // DIARIAS: si completada y fecha_completada < hoy -> reset
       const resDiarias: any = await db.runAsync(
-        "UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = 'DIARIA' AND completada = 1 AND date(fecha_completada) < date('now', 'localtime')"
+        "UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = 'DIARIA' AND completada = 1 AND date(fecha_completada, 'localtime') < date('now', 'localtime')"
       );
       console.log('Misiones diarias reiniciadas:', resDiarias && (resDiarias.changes || resDiarias.rowsAffected || 0));
 
@@ -99,7 +116,7 @@ const irACrearMision = () => {
       const mondayStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
 
       const resSem: any = await db.runAsync(
-        'UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = ? AND completada = 1 AND date(fecha_completada) < ?',
+        'UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE tipo = ? AND completada = 1 AND date(fecha_completada, \'localtime\') < ?',
         [MissionType.SEMANAL, mondayStr]
       );
       console.log('Misiones semanales reiniciadas:', resSem && (resSem.changes || resSem.rowsAffected || 0));
@@ -127,7 +144,10 @@ const irACrearMision = () => {
   LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
   LEFT JOIN stats s ON im.id_stat = s.id_stat
   WHERE m.activa = 1 AND m.completada = 0
-  ORDER BY m.completada ASC, m.fecha_creacion DESC;
+  ORDER BY m.completada ASC,
+           CASE WHEN m.hora_mision IS NULL THEN 1 ELSE 0 END,
+           m.hora_mision ASC,
+           m.fecha_creacion DESC;
 `;
           const resultados = await db.getAllAsync<Mision>(query);
           if (isActive) {
@@ -153,6 +173,14 @@ const irACrearMision = () => {
     if (!misiones) return [];
     const todayIndex = new Date().getDay(); // 0=Dom,1=Lun...
     try {
+      // Vista TODAS: misiones de cualquier tipo programadas para hoy, ordenadas
+      // por horario y con EXTRA/BOSS al final.
+      if (filtroActual === 'ALL') {
+        return misiones
+          .filter(m => isMissionScheduledToday(m, todayIndex))
+          .slice()
+          .sort(compareTodayMissions);
+      }
       return misiones.filter(m => {
         // type must match current tab
         if (m.tipo !== filtroActual) return false;
@@ -181,23 +209,23 @@ const irACrearMision = () => {
     }
   }, [misiones, filtroActual]);
 
-  const renderFiltro = (tipo: MissionType, i: number) => {
-    const active = filtroActual === tipo;
+  const renderFiltro = (f: { key: Filtro; label: string }, i: number) => {
+    const active = filtroActual === f.key;
     const sk = [-15, 12, -16, 13, -12][i % 5];
     const st = [10, 22, 4, 18, 8][i % 5];
-    const accent = tipo === MissionType.BOSS ? theme.error : (i % 2 === 0 ? theme.primary : theme.secondary);
+    const accent = f.key === MissionType.BOSS ? theme.error : (i % 2 === 0 ? theme.primary : theme.secondary);
     return (
       <TouchableOpacity
-        key={tipo}
+        key={f.key}
         activeOpacity={0.85}
         style={[
           styles.filterChip,
           { marginTop: st, backgroundColor: active ? accent : theme.surface, borderColor: accent, transform: [{ skewX: `${sk}deg` }] },
         ]}
-        onPress={() => setFiltroActual(tipo)}
+        onPress={() => setFiltroActual(f.key)}
       >
         <Text style={[styles.filterText, { color: active ? getContrastText(accent) : theme.textDim, fontFamily: theme.fonts?.heading, transform: [{ skewX: `${-sk}deg` }] }]}>
-          {tipo}
+          {f.label}
         </Text>
       </TouchableOpacity>
     );
@@ -212,11 +240,7 @@ const irACrearMision = () => {
       {/* Zona de Filtros (Scroll Horizontal) */}
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20, alignItems: 'flex-start' }}>
-          {renderFiltro(MissionType.DIARIA, 0)}
-          {renderFiltro(MissionType.SEMANAL, 1)}
-          {renderFiltro(MissionType.ARCO, 2)}
-          {renderFiltro(MissionType.EXTRA, 3)}
-          {renderFiltro(MissionType.BOSS, 4)}
+          {FILTROS.map((f, i) => renderFiltro(f, i))}
         </ScrollView>
       </View>
 
@@ -240,7 +264,7 @@ const irACrearMision = () => {
             <View style={styles.emptyWrap}>
               <Ionicons name="checkmark-done-circle-outline" size={56} color={theme.textDim} />
               <Text style={[styles.emptyText, { color: theme.textDim, fontFamily: theme.fonts?.bold }]}>
-                Sin misiones {String(filtroActual).toLowerCase()}
+                {filtroActual === 'ALL' ? 'Sin misiones para hoy' : `Sin misiones ${String(filtroActual).toLowerCase()}`}
               </Text>
               <Text style={[styles.emptySub, { color: theme.textDim, fontFamily: theme.fonts?.body }]}>
                 Pulsa + para crear una nueva

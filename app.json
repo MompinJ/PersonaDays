@@ -24,7 +24,9 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.PersonaDays",
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +35,18 @@
       "expo-sqlite",
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-notifications"
-    ]
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PersonaDays accede a tus fotos para añadirlas a la galería del arco."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7c9047a2-00ca-4a13-9f65-e40f873274b2"
+      }
+    }
   }
 }

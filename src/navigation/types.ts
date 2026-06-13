@@ -22,6 +22,7 @@ export type RootStackParamList = {
   Trends: undefined;
   Arcs: undefined;
   ArcDetail: { arc: any } | undefined;
+  ArcResults: { arc: any } | undefined;
   Arcana: undefined;
   ArcanaShop: undefined;
   ListsMenuScreen: undefined;

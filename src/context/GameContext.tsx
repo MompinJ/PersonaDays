@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Jugador, CharacterTheme } from '../types';
-import { db } from '../database/database';
+import { db, ensureDatabase } from '../database/database';
 import { recalcPlayerLevel } from '../services/playerService';
 import { PALETTES, ThemeColors, DEFAULT_FONTS } from '../themes/palettes';
 
@@ -23,6 +23,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const loadPlayerData = async () => {
     setIsLoading(true);
     try {
+      // Esperar a que la DB este inicializada (tablas/migraciones) antes de leer.
+      await ensureDatabase();
       const result: any = await db.getAllAsync('SELECT * FROM jugadores LIMIT 1');
       if (result && Array.isArray(result) && result.length > 0) {
         const p = result[0] as Jugador;

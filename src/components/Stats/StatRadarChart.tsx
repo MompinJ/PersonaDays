@@ -9,9 +9,13 @@ interface Props {
   selectedStatsIds?: number[]; // IDs seleccionados (puede ser undefined)
   size?: number;
   color?: string;
+  // Serie de comparacion (ej: stats al INICIO del arco). Mapa id_stat -> nivel.
+  // Si se pasa, se dibuja un poligono punteado/tenue DEBAJO del solido (la serie
+  // principal `stats` actua como "fin"). Stats que no existian al inicio -> 0.
+  baselineValues?: Record<number, number>;
 }
 
-export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: Props) => {
+export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color, baselineValues }: Props) => {
   const theme = useTheme();
   const strokeColor = color || theme.primary;
 
@@ -70,6 +74,16 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
     const coords = getCoordinates(val, i, axisMax);
     return `${coords.x},${coords.y}`;
   }).join(' ');
+
+  // Serie de comparacion (inicio del arco): mismo getCoordinates, valores del
+  // baseline por id_stat (0 si la stat no existia entonces).
+  const hasBaseline = !!baselineValues;
+  const baselinePoints = hasBaseline ? statsToShow.map((stat, i) => {
+    const val = baselineValues![stat.id_stat] ?? 0;
+    const axisMax = statMaxes[i];
+    const coords = getCoordinates(val, i, axisMax);
+    return `${coords.x},${coords.y}`;
+  }).join(' ') : '';
 
   // Renderiza la "telaraña" de fondo
   const renderGrid = () => {
@@ -149,13 +163,25 @@ export const StatRadarChart = ({ stats, selectedStatsIds, size = 250, color }: P
           );
         })}
 
-        {/* 3. Polígono de Datos (El Fill) */}
-        <Polygon 
-          points={dataPoints} 
-          fill={strokeColor} 
-          fillOpacity="0.4" 
-          stroke={strokeColor} 
-          strokeWidth="2" 
+        {/* 3a. Polígono de comparación (inicio): punteado/tenue, debajo del sólido */}
+        {hasBaseline ? (
+          <Polygon
+            points={baselinePoints}
+            fill="none"
+            stroke={strokeColor}
+            strokeOpacity={0.35}
+            strokeWidth="2"
+            strokeDasharray="4 3"
+          />
+        ) : null}
+
+        {/* 3b. Polígono de Datos (El Fill) */}
+        <Polygon
+          points={dataPoints}
+          fill={strokeColor}
+          fillOpacity="0.4"
+          stroke={strokeColor}
+          strokeWidth="2"
         />
 
         {/* 4. Puntos en los vértices */}

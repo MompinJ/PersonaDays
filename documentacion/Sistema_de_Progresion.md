@@ -85,15 +85,27 @@ Lazy, evaluada al completar misión (`updateStreakOnActivity` en `playerService`
 
 ## 8. Bonus al finalizar un arco
 
-Bonus **FIJO** `ARC_COMPLETION_BONUS_XP = 1000` al stat relacionado del arco
-(`arcService.ts`).
+Bonus **ESCALADO por duración + esfuerzo** al stat relacionado del arco
+(`arcService.ts`, `computeArcXp`):
 
-**Por qué fijo y no la suma de misiones:** antes sumaba `recompensa_exp` de todas
-las misiones completadas del arco, pero esa XP **ya se otorgó** al completar cada
-misión una a una → era doble conteo (bug). Ahora el arco da una recompensa propia
-y distinta. Las misiones de tipo ARCO NO dan XP extra por el stat; dan la XP normal
-de su dificultad, y su único trato especial es que su impacto se asigna al stat del
-arco automáticamente.
+```
+xp = round( clamp(dias * TASA_DIARIA, XP_MIN, XP_MAX) * factor_completitud )
+```
+
+- `dias = arcElapsedDays(arc)` (mínimo 1).
+- `factor_completitud` = misiones tipo ARCO completadas/total, `clamp(0.25, 1)`; si el
+  arco no tiene misiones ARCO el factor es **1** (se valora la etapa vivida).
+- Constantes: `TASA_DIARIA = 25`, `XP_MIN = 250`, `XP_MAX = 3000`.
+
+**Por qué escalado y no fijo:** el fijo (1000) premiaba igual una etapa de 3 días que
+una de un año. Escalar **solo** por días premiaría alargar el arco (procrastinación),
+por eso se multiplica por la completitud: un arco largo y productivo paga mucho, uno
+largo y vacío paga poco, y el tope evita números absurdos. La XP otorgada se guarda en
+`arcos.xp_otorgado`.
+
+**No hay doble conteo:** las misiones de tipo ARCO NO dan XP extra por el stat; dan la
+XP normal de su dificultad al completarse, y su único trato especial es que su impacto
+se asigna al stat del arco. El bonus del cierre es una recompensa propia y distinta.
 
 ---
 

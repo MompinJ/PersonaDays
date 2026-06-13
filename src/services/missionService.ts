@@ -57,6 +57,12 @@ export const completeMission = async (
     const mision = mRows[0];
     if (mision.completada) { await db.execAsync('ROLLBACK;'); return null; }
 
+    // OJO: fecha_completada se guarda en UTC (datetime('now')). Toda consulta que
+    // compare por "dia" debe convertir con el modificador 'localtime' de SQLite
+    // (date(fecha_completada, 'localtime')); de lo contrario una mision completada
+    // por la tarde/noche local cuenta como del dia siguiente (UTC) y aparece en el
+    // "historial de hoy" equivocado o no resetea bien. NO cambiar a localtime aqui
+    // sin migrar las filas existentes (romperia el doble-ajuste del modificador).
     await db.runAsync(
       "UPDATE misiones SET completada = 1, fecha_completada = datetime('now') WHERE id_mision = ?",
       [missionId]
@@ -182,6 +188,15 @@ export const revertMission = async (missionId: number, player: any): Promise<boo
     }
 
     await db.runAsync('UPDATE misiones SET completada = 0, fecha_completada = NULL WHERE id_mision = ?', [missionId]);
+
+    // Espejo del INSERT en logs de completeMission: borrar SOLO el log mas
+    // reciente de esta mision (la complecion que estamos revirtiendo). No se
+    // borran logs de dias previos (misiones repetibles), asi Tendencias/XP por
+    // semana no quedan inflados con un log huerfano.
+    await db.runAsync(
+      'DELETE FROM logs WHERE id_log = (SELECT id_log FROM logs WHERE id_mision = ? ORDER BY id_log DESC LIMIT 1)',
+      [missionId]
+    );
 
     await recalcPlayerLevel(playerId);
 

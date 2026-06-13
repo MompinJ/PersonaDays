@@ -11,6 +11,7 @@ import { useAlert } from '../../context/AlertContext';
 import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { MissionDetailModal } from '../../components/Missions/MissionDetailModal';
 import { revertMission } from '../../services/missionService';
+import { syncMissionReminders } from '../../services/notificationService';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
 
@@ -94,7 +95,7 @@ export const CompletedMissionsScreen = () => {
              FROM misiones m
              LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
              LEFT JOIN stats s ON im.id_stat = s.id_stat
-             WHERE m.completada = 1 AND date(m.fecha_completada) = date('now')
+             WHERE m.completada = 1 AND date(m.fecha_completada, 'localtime') = date('now', 'localtime')
              ORDER BY m.fecha_completada DESC;`
           );
           if (active) { setCompleted(rows || []); setFirstLoad(false); }
@@ -115,7 +116,7 @@ export const CompletedMissionsScreen = () => {
              FROM misiones m
              LEFT JOIN impacto_mision im ON m.id_mision = im.id_mision
              LEFT JOIN stats s ON im.id_stat = s.id_stat
-             WHERE m.completada = 1 AND date(m.fecha_completada) = date('now')
+             WHERE m.completada = 1 AND date(m.fecha_completada, 'localtime') = date('now', 'localtime')
              ORDER BY m.fecha_completada DESC;`
       );
       setCompleted(rows || []);
@@ -157,6 +158,9 @@ export const CompletedMissionsScreen = () => {
       // recalcula niveles y el nivel del jugador, todo en una transaccion.
       // NO toca yenes (completar tampoco los otorga). Hace ROLLBACK si falla.
       await revertMission(mision.id_mision, player);
+
+      // La mision vuelve a estar pendiente: reagendar sus notificaciones
+      syncMissionReminders().catch(() => {});
 
       // Refrescar UI y datos globales
       try { await refreshStats(); } catch(e){/* ignore */}
@@ -204,8 +208,18 @@ export const CompletedMissionsScreen = () => {
         )}
       </Animated.View>
 
-      {/* Modal de detalle similar a MissionsScreen */}
-      <MissionDetailModal visible={!!selectedMission} mission={selectedMission} onClose={() => setSelectedMission(null)} />
+      {/* Modal de detalle similar a MissionsScreen.
+          onRestore: cierra el modal y abre el dialogo de confirmacion de revert. */}
+      <MissionDetailModal
+        visible={!!selectedMission}
+        mission={selectedMission}
+        onClose={() => setSelectedMission(null)}
+        onRestore={() => {
+          const m = selectedMission;
+          setSelectedMission(null);
+          if (m) handleRevertMission(m);
+        }}
+      />
     </View>
   );
 };

@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { P3RDatePicker } from '../../components/UI/P3RDatePicker';
+import { P3RTimePicker } from '../../components/UI/P3RTimePicker';
 import { db } from '../../database';
 import { MissionType, MissionFrequency, Stat } from '../../types'; // Asegúrate de tener MissionFrequency en types
 import { MISSION_XP } from '../../services/missionService';
+import { syncMissionReminders } from '../../services/notificationService';
 import { DaySelector } from '../../components/Missions/DaySelector';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { getContrastText } from '../../utils/colorUtils';
@@ -34,6 +36,11 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
 
   // Nuevo: Fecha
   const [tieneExpiracion, setTieneExpiracion] = useState(false);
+
+  // Hora opcional de la mision ('HH:MM' | null) + notificacion local a esa hora
+  const [horaMision, setHoraMision] = useState<string | null>(null);
+  const [mostrarTimePicker, setMostrarTimePicker] = useState(false);
+  const [notificar, setNotificar] = useState(false);
 
   // Stats disponibles y selección
   const [availableStats, setAvailableStats] = useState<Stat[]>([]);
@@ -108,6 +115,8 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       setDiasSeleccionados(dias);
       setTieneExpiracion(!!missionToEdit.fecha_expiracion);
       if (missionToEdit.fecha_expiracion) setFechaExpiracion(new Date(missionToEdit.fecha_expiracion));
+      setHoraMision(missionToEdit.hora_mision || null);
+      setNotificar(!!missionToEdit.notificar);
 
       // Mantener id_arco del edit si existe
       setMissionArcId(missionToEdit.id_arco || null);
@@ -197,10 +206,10 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
           // Actualizar misión existente
           try {
             const idArcVal = (tipo === MissionType.ARCO) ? missionArcId : null;
-            const updateParams = [nombre, tipo, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal, missionToEdit.id_mision];
+            const updateParams = [nombre, tipo, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal, horaMision, notificar && horaMision ? 1 : 0, missionToEdit.id_mision];
             console.log('SQL UPDATE misiones -> id:', missionToEdit.id_mision, 'params:', updateParams);
             const resUpdate: any = await db.runAsync(
-              `UPDATE misiones SET nombre = ?, tipo = ?, fecha_expiracion = ?, recompensa_exp = ?, recompensa_yenes = ?, frecuencia_repeticion = ?, dias_repeticion = ?, id_arco = ? WHERE id_mision = ?`,
+              `UPDATE misiones SET nombre = ?, tipo = ?, fecha_expiracion = ?, recompensa_exp = ?, recompensa_yenes = ?, frecuencia_repeticion = ?, dias_repeticion = ?, id_arco = ?, hora_mision = ?, notificar = ? WHERE id_mision = ?`,
               updateParams
             );
             console.log('UPDATE result:', resUpdate);
@@ -232,9 +241,10 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
             `INSERT INTO misiones (
               nombre, tipo, fecha_creacion, activa, completada,
               fecha_expiracion, recompensa_exp, recompensa_yenes,
-              frecuencia_repeticion, dias_repeticion, id_arco
-            ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)`,
-            [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal]
+              frecuencia_repeticion, dias_repeticion, id_arco,
+              hora_mision, notificar
+            ) VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [nombre, tipo, fechaCreacion, fechaFinal, xp, recompensaYenes, frecuenciaVal, diasString, idArcVal, horaMision, notificar && horaMision ? 1 : 0]
           );
 
           const insertId = res && (res.lastInsertRowId || res.insertId) ? (res.lastInsertRowId || res.insertId) : null;
@@ -247,6 +257,8 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
         }
 
         await db.execAsync('COMMIT;');
+        // Reagendar notificaciones desde la DB (fire-and-forget)
+        syncMissionReminders().catch(() => {});
         navigation.goBack();
       } catch (txErr) {
         console.error('ERROR SQL:', txErr);
@@ -269,6 +281,8 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
       } catch (e) { /* ignore if not exists */ }
       await db.runAsync('DELETE FROM misiones WHERE id_mision = ?', [missionToEdit.id_mision]);
       await db.execAsync('COMMIT;');
+      // Cancelar/reagendar notificaciones tras el borrado (fire-and-forget)
+      syncMissionReminders().catch(() => {});
       navigation.goBack();
     } catch (err) {
       console.error('Error borrando misión:', err);
@@ -450,6 +464,52 @@ export const CreateMissionScreen = ({ route, navigation }: any) => {
             onCancel={() => setMostrarPicker(false)}
           />
 
+          {/* 8. HORA (opcional) - mismo lenguaje visual que FECHA LIMITE */}
+          <SectionTag text="HORA  ·  OPCIONAL" />
+          <View style={styles.horaRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setMostrarTimePicker(true)}
+              style={[styles.fechaToggle, { backgroundColor: horaMision ? colors.primary : colors.surface, borderColor: colors.primary }]}
+            >
+              <Ionicons name={horaMision ? 'alarm' : 'alarm-outline'} size={22} color={horaMision ? colors.textInverse : colors.textDim} style={styles.unskew} />
+              <Text style={[styles.fechaToggleText, { color: horaMision ? colors.textInverse : colors.textDim, fontFamily: colors.fonts?.heading }]}>
+                {horaMision ? horaMision : 'SIN HORA'}
+              </Text>
+            </TouchableOpacity>
+            {horaMision && (
+              <TouchableOpacity
+                onPress={() => { setHoraMision(null); setNotificar(false); }}
+                hitSlop={10}
+                style={styles.horaClear}
+              >
+                <Ionicons name="close-circle" size={26} color={colors.textDim} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {horaMision && (
+            <View style={[styles.notifRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name={notificar ? 'notifications' : 'notifications-outline'} size={20} color={notificar ? colors.primary : colors.textDim} />
+              <Text style={[styles.notifText, { color: notificar ? colors.text : colors.textDim, fontFamily: colors.fonts?.condensed }]}>
+                NOTIFICARME A ESTA HORA
+              </Text>
+              <Switch
+                value={notificar}
+                onValueChange={setNotificar}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={notificar ? colors.text : colors.textDim}
+              />
+            </View>
+          )}
+
+          <P3RTimePicker
+            visible={mostrarTimePicker}
+            value={horaMision}
+            onAccept={(h) => { setHoraMision(h); setMostrarTimePicker(false); }}
+            onCancel={() => setMostrarTimePicker(false)}
+          />
+
         </ScrollView>
 
         {/* FOOTER */}
@@ -521,6 +581,12 @@ const styles = StyleSheet.create({
 
   row: { flexDirection: 'row', gap: 14 },
   difficultyBtn: { flex: 1, padding: 14, borderRadius: 3, borderWidth: 1.5, alignItems: 'center', transform: [{ skewX: '-10deg' }] },
+
+  // HORA opcional
+  horaRow: { flexDirection: 'row', alignItems: 'center' },
+  horaClear: { marginLeft: 14, padding: 4 },
+  notifRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, marginTop: 12, gap: 10 },
+  notifText: { flex: 1, fontSize: 13, letterSpacing: 1 },
 
   dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateDisplay: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 8, gap: 10, marginTop: 12, borderWidth: 1 },

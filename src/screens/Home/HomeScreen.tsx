@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated, Easing, InteractionManager } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, Easing, InteractionManager, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,14 +7,22 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGame } from '../../context/GameContext';
 import { RootStackParamList } from '../../navigation/types';
 import { useFocusEntrance } from '../../hooks/useFocusEntrance';
-import { useHomeSummary } from '../../hooks/useHomeSummary';
+import { useHomeSummary, type HomeArcanaSlot } from '../../hooks/useHomeSummary';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { PersonaTile } from '../../components/UI/PersonaTile';
 import { PersonaSlash } from '../../components/UI/PersonaSlash';
 import { PersonaCount } from '../../components/UI/PersonaCount';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { StatIcon } from '../../components/Stats/StatIcon';
+import { CutCard, StatEmblem } from '../../components/Arcana/ArcanaBits';
+import { getContrastText } from '../../utils/colorUtils';
 import { arcDisplayColor } from '../../services/arcService';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+// 3 slots de arcano en fila (mismo maximo que la pantalla de Arcanos).
+const ARC_SLOT_GAP = 8;
+const ARC_SLOT_W = Math.floor((SCREEN_W - 40 - ARC_SLOT_GAP * 2) / 3);
+const ARC_SLOT_H = 84;
 
 // Formatea con separador de miles (¥) sin librerias.
 const fmt = (n: number) => Math.round(n).toLocaleString('es-MX');
@@ -46,6 +54,37 @@ const ProgressBar = ({ pct, color, track }: { pct: number; color: string; track:
   );
 };
 
+// Tarjeta compacta de un arcano equipado (reusa el marco angular de Arcanos).
+// slot null = slot desbloqueado pero vacio.
+const ArcanaSlotMini = ({ slot, theme, screenBg }: { slot: HomeArcanaSlot | null; theme: any; screenBg: string }) => {
+  if (!slot) {
+    return (
+      <View style={[styles.arcSlotEmpty, { borderColor: theme.border }]}>
+        <Ionicons name="add" size={18} color={theme.textDim} />
+        <Text style={[styles.arcSlotEmptyLab, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>VACÍO</Text>
+      </View>
+    );
+  }
+  const jewel = slot.color;
+  return (
+    <CutCard w={ARC_SLOT_W} h={ARC_SLOT_H} color={jewel} panelBg={theme.surface} screenBg={screenBg} cut={11} borderWidth={1.5}>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: jewel, opacity: 0.08 }]} />
+      <Text style={[styles.arcSlotRom, { color: jewel, fontFamily: theme.fonts?.display }]}>{slot.rom}</Text>
+      <View style={styles.arcSlotInner}>
+        <StatEmblem stat={slot.statEs} size={17} color={jewel} />
+        <Text numberOfLines={1} style={[styles.arcSlotName, { color: theme.text, fontFamily: theme.fonts?.title }]}>
+          {slot.nombre.toUpperCase()}
+        </Text>
+      </View>
+      <View style={[styles.arcSlotPill, { backgroundColor: slot.locked ? jewel : theme.success }]}>
+        <Text style={[styles.arcSlotPillT, { color: getContrastText(slot.locked ? jewel : theme.success), fontFamily: theme.fonts?.condensed }]}>
+          {slot.locked ? `${slot.diasRestantes}D` : 'LIBRE'}
+        </Text>
+      </View>
+    </CutCard>
+  );
+};
+
 export const HomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { theme, player } = useGame();
@@ -63,7 +102,11 @@ export const HomeScreen = () => {
 
   const goTab = (tab: string) => navigation.navigate('MainTabs', { screen: tab } as any);
 
-  const { today, baseStats, activeArc, finanzas, streak } = data;
+  const { today, baseStats, activeArc, finanzas, streak, arcanaSlots, slotsTotal } = data;
+  // Slots a pintar: uno por slot desbloqueado, con su arcano (o vacio).
+  const arcSlotsView = Array.from({ length: Math.max(1, slotsTotal) }, (_, i) =>
+    arcanaSlots.find((a) => a.slot === i + 1) || null
+  );
   const allDone = today.total > 0 && today.done >= today.total;
   const missPct = today.total === 0 ? 0 : Math.round((today.done / today.total) * 100);
   const balancePositive = finanzas.balance >= 0;
@@ -112,18 +155,50 @@ export const HomeScreen = () => {
             </View>
           </View>
 
-          {/* ===== ACCESO ARCANOS ===== */}
-          <PressableScale
-            containerStyle={{ marginTop: 22 }}
-            style={[styles.arcanaAccess, { backgroundColor: theme.surface, borderColor: theme.primary }]}
-            onPress={() => navigation.navigate('Arcana')}
-          >
-            <View style={styles.arcanaInner}>
-              <Ionicons name="sparkles" size={18} color={theme.primary} />
-              <Text style={[styles.arcanaText, { color: theme.text, fontFamily: theme.fonts?.heading }]}>ARCANOS</Text>
+          {/* ===== ARCANOS (slots activos) ===== */}
+          <View style={styles.arcanaHeadRow}>
+            <PersonaShard label="ARCANOS" />
+            <View style={styles.arcanaHeadRight}>
+              <Text style={[styles.arcanaHeadCount, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>
+                {arcanaSlots.length}/{slotsTotal}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textDim} />
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textDim} />
-          </PressableScale>
+          </View>
+          <Pressable onPress={() => navigation.navigate('Arcana')}>
+            <View style={styles.arcSlotsRow}>
+              {arcSlotsView.map((slot, i) => (
+                <ArcanaSlotMini key={i} slot={slot} theme={theme} screenBg={theme.background} />
+              ))}
+            </View>
+            {arcanaSlots.length === 0 && (
+              <Text style={[styles.arcHint, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>
+                SIN ARCANOS EQUIPADOS · PULSA PARA EQUIPAR
+              </Text>
+            )}
+          </Pressable>
+
+          {/* ===== ACCESOS RAPIDOS ===== */}
+          <View style={styles.quickRow}>
+            <PressableScale
+              containerStyle={styles.quickItem}
+              style={[styles.quickTile, { backgroundColor: theme.surface, borderColor: theme.secondary }]}
+              onPress={() => navigation.navigate('ListsMenuScreen')}
+            >
+              <View style={[styles.quickAccent, { backgroundColor: theme.secondary }]} />
+              <Ionicons name="document-text" size={20} color={theme.secondary} />
+              <Text style={[styles.quickText, { color: theme.text, fontFamily: theme.fonts?.heading }]}>NOTAS</Text>
+            </PressableScale>
+            <PressableScale
+              containerStyle={styles.quickItem}
+              style={[styles.quickTile, { backgroundColor: theme.surface, borderColor: theme.primary }]}
+              onPress={() => navigation.navigate('Calendar')}
+            >
+              <View style={[styles.quickAccent, { backgroundColor: theme.primary }]} />
+              <Ionicons name="calendar" size={20} color={theme.primary} />
+              <Text style={[styles.quickText, { color: theme.text, fontFamily: theme.fonts?.heading }]}>CALENDARIO</Text>
+            </PressableScale>
+          </View>
 
           {/* ===== MISIONES DE HOY ===== */}
           <View style={styles.tagWrap}><PersonaShard label="MISIONES DE HOY" /></View>
@@ -134,7 +209,7 @@ export const HomeScreen = () => {
                 <Text style={[styles.missSlash, { color: theme.textDim, fontFamily: theme.fonts?.display }]}>/{String(today.total).padStart(2, '0')}</Text>
               </View>
               <Text style={[styles.missLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>
-                {today.total === 0 ? 'SIN DIARIAS HOY' : allDone ? 'DIA COMPLETO' : 'COMPLETADAS HOY'}
+                {today.total === 0 ? 'SIN MISIONES HOY' : allDone ? 'DIA COMPLETO' : 'COMPLETADAS HOY'}
               </Text>
             </View>
             <ProgressBar pct={missPct} color={allDone ? theme.success : theme.primary} track={theme.inactive} />
@@ -192,17 +267,16 @@ export const HomeScreen = () => {
               {(() => {
                 const arcColor = arcDisplayColor(activeArc.arc, theme.primary);
                 return (
-                  <PersonaTile accent={arcColor} skew={-4} onPress={() => navigation.navigate('ArcDetail', { arc: activeArc.arc })}>
+                  <PersonaTile accent={arcColor} skew={-4} onPress={() => navigation.navigate('Arcs')}>
                     <View style={styles.arcTop}>
                       <Text numberOfLines={1} style={[styles.arcName, { color: theme.text, fontFamily: theme.fonts?.heading }]}>
                         {activeArc.nombre.toUpperCase()}
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-                        <PersonaCount value={activeArc.pct} pad={2} fontSize={34} color={arcColor} />
-                        <Text style={[styles.arcPct, { color: theme.textDim, fontFamily: theme.fonts?.display }]}>%</Text>
+                        <PersonaCount value={activeArc.dias} pad={2} fontSize={34} color={arcColor} />
+                        <Text style={[styles.arcPct, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{activeArc.dias === 1 ? 'DÍA' : 'DÍAS'}</Text>
                       </View>
                     </View>
-                    <ProgressBar pct={activeArc.pct} color={arcColor} track={theme.inactive} />
                   </PersonaTile>
                 );
               })()}
@@ -258,10 +332,26 @@ const styles = StyleSheet.create({
   // Section tag
   tagWrap: { marginTop: 26, marginBottom: 14 },
 
-  // Acceso a Arcanos
-  arcanaAccess: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 3, paddingVertical: 13, paddingHorizontal: 16, transform: [{ skewX: '-4deg' }] },
-  arcanaInner: { flexDirection: 'row', alignItems: 'center', transform: [{ skewX: '4deg' }] },
-  arcanaText: { fontSize: 16, letterSpacing: 1.5, marginLeft: 10 },
+  // Arcanos (slots activos)
+  arcanaHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 12 },
+  arcanaHeadRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  arcanaHeadCount: { fontSize: 12, letterSpacing: 1 },
+  arcSlotsRow: { flexDirection: 'row', gap: ARC_SLOT_GAP },
+  arcSlotEmpty: { width: ARC_SLOT_W, height: ARC_SLOT_H, borderRadius: 3, borderWidth: 1.5, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' },
+  arcSlotEmptyLab: { fontSize: 10, letterSpacing: 1.5, marginTop: 3 },
+  arcSlotInner: { position: 'absolute', left: 9, right: 8, top: 9, bottom: 9, justifyContent: 'space-between' },
+  arcSlotName: { fontSize: 12, letterSpacing: 0.2 },
+  arcSlotRom: { position: 'absolute', right: 5, bottom: 0, fontSize: 28, opacity: 0.16, includeFontPadding: false },
+  arcSlotPill: { position: 'absolute', top: 6, right: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 2, transform: [{ skewX: '-10deg' }] },
+  arcSlotPillT: { fontSize: 10, letterSpacing: 0.5 },
+  arcHint: { fontSize: 11, letterSpacing: 1, marginTop: 10, textAlign: 'center' },
+
+  // Accesos rapidos (Notas / Calendario)
+  quickRow: { flexDirection: 'row', gap: 12, marginTop: 14 },
+  quickItem: { flex: 1 },
+  quickTile: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 3, paddingVertical: 14, paddingHorizontal: 14, paddingLeft: 18, overflow: 'hidden' },
+  quickAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, transform: [{ skewX: '-12deg' }], marginLeft: -3 },
+  quickText: { fontSize: 14, letterSpacing: 1, marginLeft: 10 },
 
   // Misiones tile
   missTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
@@ -287,7 +377,7 @@ const styles = StyleSheet.create({
   // Arco
   arcTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
   arcName: { fontSize: 19, letterSpacing: 0.5, marginRight: 10, flex: 1 },
-  arcPct: { fontSize: 18, marginLeft: 1, marginBottom: 3 },
+  arcPct: { fontSize: 12, letterSpacing: 1, marginLeft: 6, marginBottom: 7 },
 
   // Finanzas
   finRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },

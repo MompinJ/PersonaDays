@@ -5,12 +5,27 @@ import { useState, useCallback } from 'react';
 import { db } from '../database';
 import { getCurrentStreak } from '../services/playerService';
 import { resolveStatKey, type StatKey } from '../components/Stats/stats';
-import { MissionType, MissionFrequency } from '../types';
+import { arcElapsedDays } from '../services/arcService';
+import { isMissionScheduledToday, compareTodayMissions } from '../services/missionFilters';
+import { ARCANA_LOCK_DAYS } from '../data/arcanaEffects';
+import { arcanaColor, daysUntil } from '../data/arcanaMeta';
 
 export interface HomeTodayMissions {
-  total: number;                 // misiones diarias programadas para hoy
+  total: number;                 // todas las misiones programadas para hoy (vista TODAS)
   done: number;                  // de esas, completadas hoy
   pending: { id: number; nombre: string }[]; // pendientes (para la lista corta)
+}
+
+// Un arcano equipado en un slot activo, con su tiempo de bloqueo restante.
+export interface HomeArcanaSlot {
+  slot: number;
+  id_arcano: number;
+  nombre: string;
+  rom: string;          // numeral romano (simbolo)
+  statEs: string;       // stat asociado
+  color: string;        // jewel
+  locked: boolean;      // sigue bloqueado (no se puede quitar)
+  diasRestantes: number; // dias hasta que se libere (0 si ya esta libre)
 }
 
 export interface HomeBaseStat {
@@ -23,7 +38,7 @@ export interface HomeActiveArc {
   id_arco: number;
   nombre: string;
   color_hex: string;
-  pct: number;
+  dias: number; // dias que lleva el arco (la progresion del arco es TIEMPO)
   arc: any; // fila completa del arco (para navegar a ArcDetail)
 }
 
@@ -38,6 +53,8 @@ export interface HomeSummary {
   baseStats: HomeBaseStat[];
   activeArc: HomeActiveArc | null;
   finanzas: HomeFinanzas;
+  arcanaSlots: HomeArcanaSlot[]; // arcanos equipados (slots ocupados)
+  slotsTotal: number;            // slots desbloqueados (para pintar los vacios)
 }
 
 const EMPTY: HomeSummary = {
@@ -46,17 +63,8 @@ const EMPTY: HomeSummary = {
   baseStats: [],
   activeArc: null,
   finanzas: { balance: 0, gastoMes: 0 },
-};
-
-// Replica el filtro de "misiones de hoy" de MissionsScreen: una diaria entra si
-// sus dias_repeticion incluyen el indice de hoy, o si es EVERY_DAY / sin dias.
-const isScheduledToday = (m: any, todayIndex: number): boolean => {
-  const diasRaw = m.dias_repeticion;
-  if (diasRaw && String(diasRaw).trim().length > 0) {
-    const dias = String(diasRaw).split(',').map((d: string) => d.trim()).filter(Boolean);
-    return dias.includes(String(todayIndex));
-  }
-  return m.frecuencia_repeticion === MissionFrequency.EVERY_DAY || !diasRaw || String(diasRaw).trim() === '';
+  arcanaSlots: [],
+  slotsTotal: 1,
 };
 
 export const useHomeSummary = () => {
@@ -69,16 +77,24 @@ export const useHomeSummary = () => {
       if (!players || players.length === 0) { setData(EMPTY); return; }
       const playerId = players[0].id_jugador;
 
-      // --- Misiones de hoy (diarias activas) ---
-      const diarias: any[] = await db.getAllAsync(
-        'SELECT id_mision, nombre, completada, dias_repeticion, frecuencia_repeticion FROM misiones WHERE tipo = ? AND activa = 1',
-        [MissionType.DIARIA]
+      // --- Misiones de hoy (vista TODAS: cualquier tipo programado para hoy) ---
+      // Mismo criterio que la pestaña TODAS de Requests. Una completada cuenta solo
+      // si se completo HOY (done_today); asi una semanal/extra hecha otro dia no
+      // infla el contador ni reaparece.
+      const activas: any[] = await db.getAllAsync(
+        `SELECT id_mision, nombre, completada, dias_repeticion, frecuencia_repeticion, tipo, hora_mision, fecha_creacion,
+                (CASE WHEN completada = 1 AND date(fecha_completada, 'localtime') = date('now','localtime') THEN 1 ELSE 0 END) AS done_today
+           FROM misiones WHERE activa = 1`
       );
       const todayIndex = new Date().getDay(); // 0=Dom..6=Sab
-      const hoy = (diarias || []).filter(m => isScheduledToday(m, todayIndex));
+      const hoy = (activas || []).filter(
+        m => isMissionScheduledToday(m, todayIndex) && (m.completada !== 1 || m.done_today === 1)
+      );
       const done = hoy.filter(m => m.completada === 1).length;
       const pending = hoy
         .filter(m => m.completada !== 1)
+        .slice()
+        .sort(compareTodayMissions)
         .map(m => ({ id: m.id_mision as number, nombre: m.nombre as string }));
 
       // --- Atributos base (5 predefinidos) ---
@@ -105,15 +121,39 @@ export const useHomeSummary = () => {
       );
       if (arcRows && arcRows.length > 0) {
         const a = arcRows[0];
-        const pr: any[] = await db.getAllAsync(
-          'SELECT count(*) as total, sum(case when completada=1 then 1 else 0 end) as comp FROM misiones WHERE id_arco = ?',
-          [a.id_arco]
-        );
-        const total = pr?.[0]?.total || 0;
-        const comp = pr?.[0]?.comp || 0;
-        const pct = total === 0 ? 0 : Math.round((comp / total) * 100);
-        activeArc = { id_arco: a.id_arco, nombre: a.nombre, color_hex: a.color_hex, pct, arc: a };
+        activeArc = { id_arco: a.id_arco, nombre: a.nombre, color_hex: a.color_hex, dias: arcElapsedDays(a), arc: a };
       }
+
+      // --- Arcanos equipados (slots activos) + tiempo de bloqueo ---
+      const slotsRow: any = await db.getFirstAsync(
+        'SELECT slots_desbloqueados FROM jugadores WHERE id_jugador = ?',
+        [playerId]
+      );
+      const slotsTotal = slotsRow?.slots_desbloqueados ?? 1;
+      const equipRows: any[] = await db.getAllAsync(
+        `SELECT s.numero_slot, s.id_arcano,
+                date(s.fecha_equipado, ?) as bloqueado_hasta,
+                date('now','localtime') as hoy,
+                a.nombre_arcano, a.simbolo, a.stat_asociado
+           FROM jugador_arcanos_slots s
+           JOIN arcanos a ON a.id_arcano = s.id_arcano
+          WHERE s.id_jugador = ?
+          ORDER BY s.numero_slot ASC`,
+        [`+${ARCANA_LOCK_DAYS} days`, playerId]
+      );
+      const arcanaSlots: HomeArcanaSlot[] = (equipRows || []).map((r) => {
+        const locked = r.hoy < r.bloqueado_hasta;
+        return {
+          slot: r.numero_slot,
+          id_arcano: r.id_arcano,
+          nombre: r.nombre_arcano,
+          rom: r.simbolo,
+          statEs: r.stat_asociado,
+          color: arcanaColor(r.id_arcano),
+          locked,
+          diasRestantes: locked ? daysUntil(r.bloqueado_hasta) : 0,
+        };
+      });
 
       // --- Finanzas: balance historico + gasto del mes ---
       const fin: any[] = await db.getAllAsync(
@@ -138,6 +178,8 @@ export const useHomeSummary = () => {
         baseStats,
         activeArc,
         finanzas: { balance: ingresos - gastos, gastoMes },
+        arcanaSlots,
+        slotsTotal,
       });
     } catch (e) {
       console.error('Error cargando resumen de Home:', e);

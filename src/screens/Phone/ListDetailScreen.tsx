@@ -18,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { PhoneHeader } from '../../components/Phone/PhoneHeader';
+import { useAlert } from '../../context/AlertContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ListDetailScreen'>;
 
@@ -38,6 +39,7 @@ const getTextFromNode = (node: ASTNode): string => {
 export const ListDetailScreen = ({ route, navigation }: Props) => {
   const { listId, title: paramTitle } = route.params || { listId: null, title: '' };
   const theme = useTheme();
+  const { showAlert } = useAlert();
 
   const [headerTitle, setHeaderTitle] = useState(paramTitle || 'Cargando...');
   const [content, setContent] = useState('');
@@ -45,6 +47,9 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
   const [hasChanges, setHasChanges] = useState(false);
   const [selection, setSelection] = useState<Selection>({ start: 0, end: 0 });
   const inputRef = useRef<TextInput>(null);
+  // Ref (no estado): el listener beforeRemove debe verlo en el mismo tick del
+  // goBack tras borrar, para no re-guardar una nota que ya no existe.
+  const deletedRef = useRef(false);
 
   // 1. Carga de Datos
   useEffect(() => {
@@ -74,7 +79,7 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
   // 2. Auto-guardado
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', async () => {
-      if (hasChanges) await saveToDB(content);
+      if (hasChanges && !deletedRef.current) await saveToDB(content);
     });
     return unsubscribe;
   }, [navigation, hasChanges, content]);
@@ -93,6 +98,24 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
   const handleTextChange = (text: string) => {
     setContent(text);
     setHasChanges(true);
+  };
+
+  // Borrar la nota con confirmacion (boton en el header)
+  const handleDelete = () => {
+    showAlert('ELIMINAR NOTA', `¿Eliminar "${headerTitle}"? Esta acción no se puede deshacer.`, [
+      { text: 'CANCELAR', style: 'cancel' },
+      { text: 'ELIMINAR', style: 'destructive', onPress: async () => {
+        if (!listId) return;
+        try {
+          await db.runAsync('DELETE FROM custom_lists WHERE id_list = ?', [listId]);
+          deletedRef.current = true;
+          navigation.goBack();
+        } catch (e) {
+          console.error('Error eliminando nota', e);
+          showAlert('ERROR', 'No se pudo eliminar la nota.');
+        }
+      } },
+    ]);
   };
 
   // 3. Toggle Checkbox (Lógica robusta por coincidencia de línea)
@@ -191,7 +214,15 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <PhoneHeader title={headerTitle} showBackButton={true} />
+      <PhoneHeader
+        title={headerTitle}
+        showBackButton={true}
+        rightAction={
+          <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <MaterialCommunityIcons name="trash-can-outline" size={24} color={theme.error} />
+          </TouchableOpacity>
+        }
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

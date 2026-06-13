@@ -8,6 +8,7 @@ import { CustomList } from '../../types';
 import { PhoneHeader } from '../../components/Phone/PhoneHeader';
 import { PersonaModal } from '../../components/UI/PersonaModal';
 import { PressableScale } from '../../components/UI/PressableScale';
+import { useAlert } from '../../context/AlertContext';
 
 const CreateNoteModal = ({ visible, onClose, onCreate }: any) => {
   const theme = useTheme();
@@ -54,7 +55,7 @@ const CreateNoteModal = ({ visible, onClose, onCreate }: any) => {
 };
 
 // Tarjeta de nota estilo P3R (inclinada, escalonada, titulo grande, fecha grande)
-const NoteCard = ({ item, index, formatDate, getPreview, onPress }: any) => {
+const NoteCard = ({ item, index, formatDate, getPreview, onPress, onLongPress }: any) => {
   const theme = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -76,6 +77,8 @@ const NoteCard = ({ item, index, formatDate, getPreview, onPress }: any) => {
         activeOpacity={0.9}
         style={[styles.card, { backgroundColor: theme.surface, borderColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={420}
       >
         <View style={[styles.cardAccent, { backgroundColor: accent }]} />
         <View style={[styles.cardInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
@@ -101,6 +104,7 @@ const NoteCard = ({ item, index, formatDate, getPreview, onPress }: any) => {
 
 export const ListsMenuScreen = () => {
   const theme = useTheme();
+  const { showAlert } = useAlert();
   const [notes, setNotes] = useState<CustomList[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const navigation: any = useNavigation();
@@ -153,6 +157,22 @@ export const ListsMenuScreen = () => {
     return firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
   };
 
+  // Borrado con confirmacion (long-press en la tarjeta)
+  const handleDelete = (note: CustomList) => {
+    showAlert('ELIMINAR NOTA', `¿Eliminar "${note.title}"? Esta acción no se puede deshacer.`, [
+      { text: 'CANCELAR', style: 'cancel' },
+      { text: 'ELIMINAR', style: 'destructive', onPress: async () => {
+        try {
+          await db.runAsync('DELETE FROM custom_lists WHERE id_list = ?', [note.id_list]);
+          load();
+        } catch (e) {
+          console.error('Error eliminando nota', e);
+          showAlert('ERROR', 'No se pudo eliminar la nota.');
+        }
+      } },
+    ]);
+  };
+
   const handleCreate = (noteId: number) => {
     setShowCreate(false);
     // Navegar inmediatamente a la nueva nota
@@ -177,6 +197,7 @@ export const ListsMenuScreen = () => {
             formatDate={formatDate}
             getPreview={getPreview}
             onPress={() => navigation.navigate('ListDetailScreen', { listId: item.id_list, title: item.title })}
+            onLongPress={() => handleDelete(item)}
           />
         )}
         ListEmptyComponent={

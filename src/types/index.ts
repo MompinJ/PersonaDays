@@ -125,6 +125,8 @@ export interface Mision {
 	fecha_expiracion?: string;
 	fecha_completada?: string;
 	dias_repeticion?: string | null;
+	hora_mision?: string | null; // 'HH:MM' (24h) o null = sin hora
+	notificar?: number;          // 1 = agendar notificacion local a la hora
 	// Campos opcionales traídos por joins
 	id_stat?: number;
 	nombre_stat?: string;
@@ -158,6 +160,31 @@ export interface Arco {
 	color_hex: string;
 	estado: ArcState;
 	resumen_final?: string;
+	anthem_titulo?: string;
+	anthem_url?: string;
+	anthem_cover_url?: string; // caratula cacheada (Spotify oEmbed)
+	frase_protagonica?: string;
+	snapshot_inicio?: string; // JSON de stats al crear el arco
+	snapshot_fin?: string;    // JSON de stats al finalizar
+	xp_otorgado?: number;     // XP escalado otorgado al cerrar
+}
+
+// Fila de la galeria de fotos de un arco
+export interface ArcoFoto {
+	id_foto: number;
+	id_arco: number;
+	archivo: string; // nombre relativo dentro de documentDirectory
+	fecha?: string;
+	caption?: string;
+}
+
+// Forma de cada entrada en los snapshots JSON (snapshot_inicio / snapshot_fin)
+export interface ArcoStatSnapshot {
+	id_stat: number;
+	nombre: string;
+	nivel_actual: number;
+	experiencia_actual: number;
+	nivel_maximo: number;
 }
 
 export interface JugadorArcanoSlot {

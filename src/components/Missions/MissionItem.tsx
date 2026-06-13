@@ -55,13 +55,15 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress, leftActionLabel, ind
     ? new Date(mision.fecha_expiracion).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
     : '';
 
-  // Accion de swipe (completar)
+  // Accion de swipe (completar). El fondo imita la inclinacion y tamaño de la
+  // tarjeta (mismo rotate + skewX) para que el borde donde se encuentran sea
+  // paralelo; el contenido (icono + texto) se contra-inclina para quedar derecho.
   const renderLeftActions = (_progress: any, dragX: any) => {
     const s = dragX.interpolate({ inputRange: [0, 100], outputRange: [0.4, 1], extrapolate: 'clamp' });
     const label = leftActionLabel || 'COMPLETAR';
     return (
-      <View style={[styles.actionContainer, { backgroundColor: accent }]}>
-        <Animated.View style={{ flexDirection: 'row', alignItems: 'center', transform: [{ scale: s }] }}>
+      <View style={[styles.actionContainer, { backgroundColor: accent, borderColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}>
+        <Animated.View style={{ flexDirection: 'row', alignItems: 'center', transform: [{ skewX: `${-sk}deg` }, { rotate: `${-rot}deg` }, { scale: s }] }}>
           <Ionicons name="checkmark-circle" size={28} color={getContrastText(accent)} />
           <Text style={[styles.actionText, { color: getContrastText(accent), fontFamily: colors.fonts?.heading }]}>{label}</Text>
         </Animated.View>
@@ -123,6 +125,15 @@ export const MissionItem = ({ mision, onSwipeLeft, onPress, leftActionLabel, ind
                 </Text>
 
                 <View style={styles.metaRow}>
+                  {m.hora_mision && (
+                    <View style={styles.dateWrap}>
+                      <Ionicons name="alarm-outline" size={13} color={accent} />
+                      <Text style={[styles.metaText, { color: accent, fontFamily: colors.fonts?.condensed }]}>{m.hora_mision}</Text>
+                      {!!m.notificar && (
+                        <Ionicons name="notifications" size={11} color={accent} style={{ marginLeft: 3 }} />
+                      )}
+                    </View>
+                  )}
                   {mision.frecuencia_repeticion !== MissionFrequency.ONE_OFF && (
                     <Ionicons name="repeat" size={14} color={colors.textDim} style={{ marginRight: 6 }} />
                   )}

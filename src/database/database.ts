@@ -3,56 +3,87 @@ import * as SQLite from 'expo-sqlite';
 // Abrimos la base de datos (sync wrapper usado en el proyecto)
 export const db = SQLite.openDatabaseSync('personadays.db');
 
-// Función para poblar datos iniciales si la app está vacía
-export const checkAndSeedData = async () => {
+// Siembra el catalogo de las 5 stats base (ids fijos). NO crea jugador: el
+// protagonista se crea en el onboarding (SetupScreen -> createPlayer), que
+// ademas inserta sus filas de jugador_stat. Idempotente (INSERT OR IGNORE),
+// se puede ejecutar en cada arranque.
+export const seedStatCatalog = async () => {
   try {
-    const result: any = await db.getAllAsync('SELECT count(*) as count FROM jugadores');
-    if (!result || result.length === 0 || result[0].count === 0) {
-      console.log('🌱 Sembrando datos iniciales del protagonista...');
-
-      await db.execAsync(`
-      -- 1. Crear al Protagonista (Makoto por defecto)
-      INSERT OR IGNORE INTO jugadores (id_jugador, nombre_jugador, nivel_jugador, vida, yenes, slots_desbloqueados, character_theme, created_at)
-      VALUES (1, 'Invitado', 1, 10, 5000, 1, 'MAKOTO', datetime('now'));
-
-      -- 2. Crear las 5 Stats Sociales (Estilo Persona)
-      -- IDs fijos para facilitar referencias
-      INSERT OR IGNORE INTO stats (id_stat, nombre, descripcion, tipo, dificultad) VALUES
-      (1, 'Conocimiento', 'Tu capacidad académica y resolución de problemas.', 'PREDEFINED', 1.0),
-      (2, 'Coraje', 'Tu valentía para enfrentar situaciones difíciles.', 'PREDEFINED', 1.0),
-      (3, 'Destreza', 'Habilidad manual y precisión técnica.', 'PREDEFINED', 1.0),
-      (4, 'Gentileza', 'Tu empatía y capacidad de cuidar a otros.', 'PREDEFINED', 1.0),
-      (5, 'Carisma', 'Tu habilidad para atraer e influir en los demás.', 'PREDEFINED', 1.0);
-
-      -- 3. Vincular Stats al Jugador (Inicializar en Nivel 1)
-      -- nivel_actual SIEMPRE coherente con experiencia_actual (0 XP -> nivel 1).
-      -- Sembrar niveles altos con 0 XP desincronizaba nivel<->XP (bug historico).
-      INSERT OR IGNORE INTO jugador_stat (id_jugador, id_stat, nivel_actual, experiencia_actual, nivel_maximo) VALUES
-      (1, 1, 1, 0, 99), -- Conocimiento
-      (1, 2, 1, 0, 99), -- Coraje
-      (1, 3, 1, 0, 99), -- Destreza
-      (1, 4, 1, 0, 99), -- Gentileza
-      (1, 5, 1, 0, 99); -- Carisma
-      `);
-
-      console.log('✨ ¡Protagonista creado! Datos iniciales listos.');
-    }
+    await db.execAsync(`
+    INSERT OR IGNORE INTO stats (id_stat, nombre, descripcion, tipo, dificultad) VALUES
+    (1, 'Conocimiento', 'Tu capacidad académica y resolución de problemas.', 'PREDEFINED', 1.0),
+    (2, 'Coraje', 'Tu valentía para enfrentar situaciones difíciles.', 'PREDEFINED', 1.0),
+    (3, 'Destreza', 'Habilidad manual y precisión técnica.', 'PREDEFINED', 1.0),
+    (4, 'Gentileza', 'Tu empatía y capacidad de cuidar a otros.', 'PREDEFINED', 1.0),
+    (5, 'Carisma', 'Tu habilidad para atraer e influir en los demás.', 'PREDEFINED', 1.0);
+    `);
   } catch (err) {
-    console.error('Error en checkAndSeedData:', err);
+    console.error('Error en seedStatCatalog:', err);
   }
 };
 
 // Version del schema para migraciones versionadas. SUBIR al agregar una migracion.
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 4;
 
-// Migraciones de schema FUTURAS. El schema base lo construye CREATE TABLE IF NOT
-// EXISTS (+ los ALTER idempotentes) en initDatabase; eso deja cualquier DB (nueva
-// o pre-sistema) en SCHEMA_VERSION (baseline). Para un cambio futuro: agrega aqui
-// { version: N, up }, sube SCHEMA_VERSION a N, y refleja el cambio tambien en el
-// CREATE de arriba (para instalaciones nuevas). Se aplican en orden, una sola vez;
-// el progreso vive en PRAGMA user_version.
+// Agrega una columna solo si no existe (PRAGMA table_info). Permite que las
+// migraciones sean idempotentes y reutilizables desde el camino de baseline.
+const ensureColumn = async (tabla: string, columna: string, ddl: string) => {
+  const cols: any[] = await db.getAllAsync(`PRAGMA table_info('${tabla}');`);
+  const existe = Array.isArray(cols) && cols.some((c: any) => c.name === columna);
+  if (!existe) {
+    await db.execAsync(`ALTER TABLE ${tabla} ADD COLUMN ${ddl};`);
+  }
+};
+
+// Migraciones de schema. El schema base lo construye CREATE TABLE IF NOT
+// EXISTS (+ los ALTER idempotentes) en initDatabase. Para un cambio futuro:
+// agrega aqui { version: N, up }, sube SCHEMA_VERSION a N, y refleja el cambio
+// tambien en el CREATE de arriba (para instalaciones nuevas). Se aplican en
+// orden, una sola vez; el progreso vive en PRAGMA user_version.
+// IMPORTANTE: cada up() debe ser IDEMPOTENTE (usa ensureColumn), porque el
+// baseline de DBs pre-sistema (user_version 0 con tablas viejas) las re-ejecuta.
 const MIGRATIONS: { version: number; up: () => Promise<void> }[] = [
-  // { version: 2, up: async () => { await db.execAsync('ALTER TABLE ... ADD COLUMN ...;'); } },
+  {
+    // v2: hora opcional por mision ('HH:MM') + flag de notificacion local.
+    version: 2,
+    up: async () => {
+      await ensureColumn('misiones', 'hora_mision', 'hora_mision TEXT DEFAULT NULL');
+      await ensureColumn('misiones', 'notificar', 'notificar INTEGER DEFAULT 0');
+    },
+  },
+  {
+    // v3: Arcos como capsula del tiempo. Anthem (banda sonora), frase que define
+    // el arco, snapshots de stats (inicio/fin para el radar comparativo), XP
+    // otorgado al cerrar, y tabla de fotos (galeria). CREATE TABLE IF NOT EXISTS
+    // NO agrega columnas a una tabla 'arcos' ya existente, por eso van por ensureColumn.
+    version: 3,
+    up: async () => {
+      await ensureColumn('arcos', 'anthem_titulo', 'anthem_titulo TEXT');
+      await ensureColumn('arcos', 'anthem_url', 'anthem_url TEXT');
+      await ensureColumn('arcos', 'frase_protagonica', 'frase_protagonica TEXT');
+      await ensureColumn('arcos', 'snapshot_inicio', 'snapshot_inicio TEXT');
+      await ensureColumn('arcos', 'snapshot_fin', 'snapshot_fin TEXT');
+      await ensureColumn('arcos', 'xp_otorgado', 'xp_otorgado INTEGER');
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS arco_fotos (
+          id_foto INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_arco INTEGER NOT NULL,
+          archivo TEXT NOT NULL,
+          fecha TEXT,
+          caption TEXT,
+          FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
+        );
+      `);
+    },
+  },
+  {
+    // v4: caratula del anthem (Spotify oEmbed) cacheada para decorar las tarjetas
+    // sin re-fetch en cada render.
+    version: 4,
+    up: async () => {
+      await ensureColumn('arcos', 'anthem_cover_url', 'anthem_cover_url TEXT');
+    },
+  },
 ];
 
 const runMigrations = async () => {
@@ -60,8 +91,12 @@ const runMigrations = async () => {
     const row: any = await db.getFirstAsync('PRAGMA user_version;');
     const current: number = (row && row.user_version) || 0;
     if (current === 0) {
-      // DB nueva o anterior al sistema: ya esta en el schema actual (CREATE IF NOT
-      // EXISTS + ALTERs) -> baseline a SCHEMA_VERSION sin re-migrar.
+      // DB nueva (el CREATE ya trae el schema final) o pre-sistema (tablas
+      // viejas sin columnas nuevas): como los up() son idempotentes, los
+      // corremos todos para nivelar y luego baseline a SCHEMA_VERSION.
+      for (const m of MIGRATIONS.sort((a, b) => a.version - b.version)) {
+        await m.up();
+      }
       await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
       return;
     }
@@ -180,8 +215,27 @@ export const initDatabase = async () => {
         color_hex TEXT DEFAULT '#00D4FF',
         estado TEXT DEFAULT 'ACTIVO',
         resumen_final TEXT,
+        anthem_titulo TEXT,
+        anthem_url TEXT,
+        anthem_cover_url TEXT,
+        frase_protagonica TEXT,
+        snapshot_inicio TEXT,
+        snapshot_fin TEXT,
+        xp_otorgado INTEGER,
         FOREIGN KEY (id_arco_padre) REFERENCES arcos(id_arco),
         FOREIGN KEY (id_stat_relacionado) REFERENCES stats(id_stat)
+      );
+
+      -- TABLA ARCO_FOTOS (Galeria / Memories de cada arco)
+      -- 'archivo' guarda SOLO el nombre relativo; la ruta absoluta se reconstruye
+      -- con documentDirectory al leer (el prefijo cambia entre reinstalaciones).
+      CREATE TABLE IF NOT EXISTS arco_fotos (
+        id_foto INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_arco INTEGER NOT NULL,
+        archivo TEXT NOT NULL,
+        fecha TEXT,
+        caption TEXT,
+        FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
       );
 
       -- TABLA MISIONES
@@ -200,6 +254,8 @@ export const initDatabase = async () => {
         fecha_expiracion TEXT,
         fecha_completada TEXT,
         dias_repeticion TEXT,
+        hora_mision TEXT DEFAULT NULL,
+        notificar INTEGER DEFAULT 0,
         FOREIGN KEY (id_arco) REFERENCES arcos(id_arco)
       );
 
@@ -294,6 +350,8 @@ export const initDatabase = async () => {
         CREATE INDEX IF NOT EXISTS idx_slots_jugador ON jugador_arcanos_slots(id_jugador, numero_slot);
         CREATE INDEX IF NOT EXISTS idx_arcos_estado ON arcos(estado);
         CREATE INDEX IF NOT EXISTS idx_finanzas_fecha ON finanzas(fecha);
+        CREATE INDEX IF NOT EXISTS idx_logs_arco ON logs(id_arco);
+        CREATE INDEX IF NOT EXISTS idx_arco_fotos_arco ON arco_fotos(id_arco);
       `);
     } catch (e) {
       console.error('Error creando índices:', e);
@@ -349,8 +407,10 @@ export const initDatabase = async () => {
       console.error('Error inicializando categorías financieras:', e);
     }
 
-    // Llamada al seed para poblar jugador y stats si está vacío
-    await checkAndSeedData();
+    // Catalogo de stats base. El jugador NO se siembra: lo crea el onboarding.
+    // OJO: resetDatabase (Ajustes) deja la app sin jugador hasta recargar; el
+    // onboarding aparece en el siguiente arranque.
+    await seedStatCatalog();
 
     // Reparar cualquier desincronizacion nivel_actual <-> experiencia_actual
     // (datos sembrados con niveles altos y 0 XP, o instalaciones previas al fix).
@@ -367,4 +427,13 @@ export const initDatabase = async () => {
   } catch (error) {
     console.error('❌ Error al inicializar la base de datos:', error);
   }
+};
+
+// Promesa memoizada de initDatabase(): permite esperar la inicializacion desde
+// varios sitios (App, GameContext) sin correrla dos veces. initDatabase atrapa
+// sus propios errores, asi que esta promesa siempre resuelve.
+let initPromise: Promise<void> | null = null;
+export const ensureDatabase = (): Promise<void> => {
+  if (!initPromise) initPromise = initDatabase();
+  return initPromise;
 };

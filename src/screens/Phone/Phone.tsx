@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
 import { useNavigation } from '@react-navigation/native';
@@ -35,6 +35,10 @@ export const PhoneMenuScreen = () => {
       </View>
 
       <Animated.View style={[{ flex: 1 }, introStyle]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
         <View style={styles.grid}>
           {tiles.map((t, i) => {
             const accent = i % 2 === 0 ? theme.primary : theme.secondary;
@@ -60,6 +64,7 @@ export const PhoneMenuScreen = () => {
             );
           })}
         </View>
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -70,6 +75,7 @@ export default PhoneMenuScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 50, paddingHorizontal: 18 },
   headerWrap: { marginBottom: 18, marginTop: 4 },
+  scrollContent: { paddingBottom: 160 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tileWrap: { width: '48%', marginBottom: 16 },
   tile: { aspectRatio: 1, borderWidth: 2, borderRadius: 8, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 10 },

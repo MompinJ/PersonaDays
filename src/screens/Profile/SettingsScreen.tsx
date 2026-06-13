@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, Switch, DevSettings } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../themes/useTheme';
 import { db, initDatabase } from '../../database';
 import { useAlert } from '../../context/AlertContext';
 import { PersonaShard } from '../../components/UI/PersonaShard';
-import { loadConfig, saveConfig, syncRoutineReminders, requestPermission, NotifConfig } from '../../services/notificationService';
+import { loadConfig, saveConfig, syncMissionReminders, requestPermission, NotifConfig } from '../../services/notificationService';
 import { exportBackup, importBackup } from '../../services/backupService';
 
 export const SettingsScreen = () => {
@@ -17,16 +16,15 @@ export const SettingsScreen = () => {
 
   const intro = useRef(new Animated.Value(0)).current;
 
-  // --- Recordatorios (notificaciones por bloques de rutina) ---
+  // --- Recordatorios (notificaciones por mision con hora) ---
   const [notifCfg, setNotifCfg] = useState<NotifConfig | null>(null);
-  const [pickerBlockId, setPickerBlockId] = useState<string | null>(null);
 
   useEffect(() => { loadConfig().then(setNotifCfg); }, []);
 
   const applyCfg = async (next: NotifConfig) => {
     setNotifCfg(next);
     await saveConfig(next);
-    await syncRoutineReminders(next);
+    await syncMissionReminders();
   };
 
   const toggleMaster = async () => {
@@ -42,22 +40,6 @@ export const SettingsScreen = () => {
       await applyCfg({ ...notifCfg, enabled: false });
     }
   };
-
-  const toggleBlock = async (id: string) => {
-    if (!notifCfg) return;
-    const blocks = notifCfg.blocks.map(b => (b.id === id ? { ...b, enabled: !b.enabled } : b));
-    await applyCfg({ ...notifCfg, blocks });
-  };
-
-  const onPickTime = async (_event: any, date?: Date) => {
-    const id = pickerBlockId;
-    setPickerBlockId(null);
-    if (!date || !id || !notifCfg) return;
-    const blocks = notifCfg.blocks.map(b => (b.id === id ? { ...b, hour: date.getHours(), minute: date.getMinutes() } : b));
-    await applyCfg({ ...notifCfg, blocks });
-  };
-
-  const fmtTime = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   useEffect(() => {
     Animated.timing(intro, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
@@ -222,7 +204,7 @@ export const SettingsScreen = () => {
               <Ionicons name="notifications" size={24} color={theme.secondary} style={{ marginRight: 14 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.optionText, { color: theme.text, fontFamily: theme.fonts?.heading }]}>RECORDATORIOS</Text>
-                <Text style={[styles.optionSub, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>AVISOS POR BLOQUE DE RUTINA</Text>
+                <Text style={[styles.optionSub, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>AVISOS DE TUS MISIONES CON HORA</Text>
               </View>
               <Switch
                 value={!!notifCfg?.enabled}
@@ -232,29 +214,6 @@ export const SettingsScreen = () => {
               />
             </View>
           </View>
-
-          {notifCfg?.enabled && notifCfg.blocks.map((b) => (
-            <View key={b.id} style={[styles.blockRow, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-              <View style={[styles.blockAccent, { backgroundColor: b.enabled ? theme.secondary : theme.border }]} />
-              <Text style={[styles.blockLabel, { color: b.enabled ? theme.text : theme.textDim, fontFamily: theme.fonts?.heading }]} numberOfLines={1}>{b.label.toUpperCase()}</Text>
-              <TouchableOpacity onPress={() => setPickerBlockId(b.id)} disabled={!b.enabled} style={[styles.timePill, { borderColor: b.enabled ? theme.primary : theme.border }]}>
-                <Text style={[styles.timeText, { color: b.enabled ? theme.primary : theme.textDim, fontFamily: theme.fonts?.display }]}>{fmtTime(b.hour, b.minute)}</Text>
-              </TouchableOpacity>
-              <Switch
-                value={b.enabled}
-                onValueChange={() => toggleBlock(b.id)}
-                trackColor={{ true: theme.secondary, false: theme.border }}
-                thumbColor={theme.surface}
-              />
-            </View>
-          ))}
-
-          {pickerBlockId && notifCfg ? (() => {
-            const b = notifCfg.blocks.find(x => x.id === pickerBlockId);
-            const d = new Date();
-            if (b) { d.setHours(b.hour); d.setMinutes(b.minute); d.setSeconds(0); }
-            return <DateTimePicker value={d} mode="time" is24Hour display="default" onChange={onPickTime} />;
-          })() : null}
 
           {/* RESPALDO */}
           <View style={[styles.sectionTag, { marginTop: 26 }]}><PersonaShard label="RESPALDO" height={24} fontSize={11} color={theme.primary} /></View>
@@ -347,12 +306,6 @@ const styles = StyleSheet.create({
   optionInner: { flexDirection: 'row', alignItems: 'center' },
   optionText: { fontSize: 16, letterSpacing: 0.5 },
   optionSub: { fontSize: 10, letterSpacing: 1, marginTop: 1 },
-
-  blockRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, paddingVertical: 11, paddingHorizontal: 14, paddingLeft: 18, marginBottom: 10, marginLeft: 14, overflow: 'hidden' },
-  blockAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6 },
-  blockLabel: { flex: 1, fontSize: 13, letterSpacing: 0.5 },
-  timePill: { borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 5, marginRight: 12, transform: [{ skewX: '-10deg' }] },
-  timeText: { fontSize: 17, letterSpacing: 1, transform: [{ skewX: '10deg' }] },
 
   dangerCard: { borderWidth: 2, paddingVertical: 16, paddingHorizontal: 16, paddingLeft: 22, marginBottom: 12, overflow: 'hidden' },
   dangerAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, transform: [{ skewX: '-14deg' }], marginLeft: -3 },

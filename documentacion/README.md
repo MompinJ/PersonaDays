@@ -40,12 +40,13 @@ El motor de acción diaria. Las misiones representan tareas, hábitos o pendient
 * **Impacto:** Cada misión está vinculada a un Stat específico. Al completarla, el usuario gana XP para ese atributo (con el bonus de los arcanos equipados) y dinero (Yenes).
 * **Repetición:** Lógica compleja de recurrencia por días de la semana (ej: "Solo Lunes y Miércoles").
 
-### 3. 🏹 Arcos (Sistema Narrativo)
-Gestión de objetivos a largo plazo.
-* **Concepto:** Agrupa misiones bajo un "Capítulo" de vida (ej: "Arco de la Tesis", "Arco del Gimnasio").
-* **Regla de Oro:** Solo puede existir **1 Arco Activo** a la vez, enfocando al jugador en una meta principal.
-* **Progreso:** Barra de porcentaje basada en las misiones completadas dentro del arco.
-* **Historial:** Los arcos finalizados se guardan como trofeos en el historial.
+### 3. 🏹 Arcos (Sistema Narrativo / Cápsula del tiempo)
+Gestión de objetivos a largo plazo como capítulos de vida.
+* **Concepto:** Agrupa misiones bajo un "Capítulo" de vida (ej: "Arco de la Tesis", "Arco del Gimnasio"). Además guarda anthem (banda sonora con carátula de Spotify), galería de fotos, una frase que lo define y un journal de reflexiones.
+* **Regla de Oro:** Solo puede existir **1 Arco Activo** a la vez. Nace ACTIVO y solo se cierra cuando el usuario lo marca (la columna `estado` es la fuente única).
+* **Progreso = tiempo:** se muestran los **días** que ha durado el arco, no un porcentaje de misiones.
+* **Cierre:** XP escalado por duración × completitud, y pantalla de **resultados** con radar comparativo de stats inicio-vs-fin, grind del periodo y balance.
+* **Historial:** Los arcos finalizados se guardan como trofeos; al abrirlos se ve su pantalla de resultados.
 
 ### 4. 💴 Economía (Real Life Wallet)
 Gestión financiera inmersiva.

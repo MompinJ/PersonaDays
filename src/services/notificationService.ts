@@ -1,42 +1,36 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../database';
 
-// Servicio de recordatorios locales por "bloques de rutina".
-// El usuario configura unos pocos horarios (manana/tarde/noche); cada bloque
-// activo agenda UNA notificacion local diaria que lo invita a abrir la app y
-// revisar sus misiones. Sin push remoto (no requiere dev build; corre en Expo Go).
+// Servicio de recordatorios locales POR MISION.
+// Cada mision con hora (hora_mision 'HH:MM') y notificar = 1 agenda una
+// notificacion local a esa hora. Sin push remoto (corre en Expo Go).
 //
-// La config vive en AsyncStorage (no SQLite). La fuente de verdad de lo agendado
-// es esta config: syncRoutineReminders() cancela todo y reagenda desde aqui, asi
-// que no hace falta trackear ids de notificacion.
+// La fuente de verdad es la DB: syncMissionReminders() cancela todo lo agendado
+// y reagenda desde el query de misiones pendientes, asi que no hace falta
+// trackear ids de notificacion. Se llama al arrancar y tras crear / editar /
+// borrar / completar / revertir misiones y al tocar el master switch.
+//
+// La config (master switch) vive en AsyncStorage con la MISMA clave que el
+// sistema anterior de "bloques de rutina": el enabled del usuario se conserva
+// y los bloques viejos se ignoran (el primer sync cancela sus notificaciones).
 
 const STORAGE_KEY = 'NOTIF_CONFIG';
 const ANDROID_CHANNEL = 'reminders';
 
-export interface RoutineBlock {
-  id: string;
-  label: string;   // titulo de la notificacion
-  hour: number;    // 0-23
-  minute: number;  // 0-59
-  enabled: boolean;
-}
-
 export interface NotifConfig {
-  enabled: boolean;       // master switch
-  blocks: RoutineBlock[];
+  enabled: boolean; // master switch
 }
 
 export const DEFAULT_CONFIG: NotifConfig = {
   enabled: false,
-  blocks: [
-    { id: 'manana', label: 'Rutina de la mañana', hour: 8, minute: 0, enabled: true },
-    { id: 'tarde', label: 'Rutina de la tarde', hour: 14, minute: 0, enabled: true },
-    { id: 'noche', label: 'Rutina de la noche', hour: 21, minute: 0, enabled: true },
-  ],
 };
 
-const REMINDER_BODY = 'Toca para revisar tus misiones de hoy.';
+const REMINDER_BODY = 'Toca para completar tu encargo.';
+
+// Limite defensivo: iOS permite ~64 notificaciones locales agendadas.
+const MAX_SCHEDULED = 60;
 
 let handlerSet = false;
 
@@ -75,10 +69,8 @@ export const loadConfig = async (): Promise<NotifConfig> => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CONFIG;
     const parsed = JSON.parse(raw);
-    return {
-      enabled: !!parsed.enabled,
-      blocks: Array.isArray(parsed.blocks) && parsed.blocks.length > 0 ? parsed.blocks : DEFAULT_CONFIG.blocks,
-    };
+    // La config vieja traia tambien 'blocks'; solo nos importa el master.
+    return { enabled: !!parsed.enabled };
   } catch (e) {
     console.warn('Error leyendo config de notificaciones, usando defaults:', e);
     return DEFAULT_CONFIG;
@@ -108,36 +100,104 @@ export const requestPermission = async (): Promise<boolean> => {
   return req.status === 'granted';
 };
 
-/**
- * Cancela todo lo agendado y reagenda desde la config: un trigger diario por
- * bloque activo, solo si el master esta encendido y hay permiso. Devuelve cuantas
- * notificaciones quedaron agendadas.
- */
-export const syncRoutineReminders = async (cfg?: NotifConfig): Promise<number> => {
-  const config = cfg || (await loadConfig());
+// 'HH:MM' -> {hour, minute}; null si el formato no es valido
+const parseHora = (v?: string | null): { hour: number; minute: number } | null => {
+  if (!v) return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(v).trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+};
 
-  // Siempre limpiamos primero: la config es la fuente de verdad.
+/**
+ * Cancela todo lo agendado y reagenda desde la DB: misiones activas, no
+ * completadas, con hora y notificar = 1. Devuelve cuantas notificaciones
+ * quedaron agendadas.
+ *
+ * Triggers por tipo:
+ *  - DIARIA con todos los dias (o sin dias) -> un trigger DAILY.
+ *  - DIARIA con dias parciales -> un trigger WEEKLY por dia marcado
+ *    (dias_repeticion guarda indices getDay() 0=Dom; expo usa weekday 1=Dom).
+ *  - SEMANAL/ARCO/EXTRA/BOSS -> trigger DAILY a esa hora mientras sigan
+ *    pendientes: actua como recordatorio insistente y el propio resync lo
+ *    cancela al completarse/borrarse la mision.
+ */
+export const syncMissionReminders = async (): Promise<number> => {
+  // Siempre limpiamos primero: la DB es la fuente de verdad. Esto tambien
+  // cancela las notificaciones del sistema viejo de bloques de rutina.
   await Notifications.cancelAllScheduledNotificationsAsync();
 
+  const config = await loadConfig();
   if (!config.enabled) return 0;
   if (!(await hasPermission())) return 0;
 
+  let missions: any[] = [];
+  try {
+    // DIARIA primero: si chocamos con el tope, se priorizan las recurrentes.
+    missions = await db.getAllAsync(
+      `SELECT id_mision, nombre, tipo, dias_repeticion, hora_mision
+       FROM misiones
+       WHERE activa = 1 AND completada = 0 AND notificar = 1 AND hora_mision IS NOT NULL
+       ORDER BY CASE WHEN tipo = 'DIARIA' THEN 0 ELSE 1 END, hora_mision ASC`
+    );
+  } catch (e) {
+    console.error('Error leyendo misiones para notificaciones:', e);
+    return 0;
+  }
+
   let scheduled = 0;
-  for (const block of config.blocks) {
-    if (!block.enabled) continue;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: block.label,
-        body: REMINDER_BODY,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: block.hour,
-        minute: block.minute,
-        channelId: ANDROID_CHANNEL,
-      },
-    });
-    scheduled += 1;
+  for (const m of missions) {
+    if (scheduled >= MAX_SCHEDULED) {
+      console.warn(`Tope de ${MAX_SCHEDULED} notificaciones alcanzado; el resto no se agenda.`);
+      break;
+    }
+    const hm = parseHora(m.hora_mision);
+    if (!hm) continue;
+
+    const content = {
+      title: m.nombre,
+      body: REMINDER_BODY,
+    };
+
+    const dias = String(m.dias_repeticion || '')
+      .split(',')
+      .map((d: string) => parseInt(d.trim(), 10))
+      .filter((d: number) => !isNaN(d) && d >= 0 && d <= 6);
+
+    try {
+      if (m.tipo === 'DIARIA' && dias.length > 0 && dias.length < 7) {
+        // Un trigger semanal por dia marcado
+        for (const d of dias) {
+          if (scheduled >= MAX_SCHEDULED) break;
+          await Notifications.scheduleNotificationAsync({
+            content,
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+              weekday: d + 1, // getDay() 0=Dom -> expo 1=Dom
+              hour: hm.hour,
+              minute: hm.minute,
+              channelId: ANDROID_CHANNEL,
+            },
+          });
+          scheduled += 1;
+        }
+      } else {
+        await Notifications.scheduleNotificationAsync({
+          content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: hm.hour,
+            minute: hm.minute,
+            channelId: ANDROID_CHANNEL,
+          },
+        });
+        scheduled += 1;
+      }
+    } catch (e) {
+      console.error(`Error agendando notificacion de la mision ${m.id_mision}:`, e);
+    }
   }
   return scheduled;
 };

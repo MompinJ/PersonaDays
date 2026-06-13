@@ -13,7 +13,7 @@ import ArcCard from '../../../components/Arcs/ArcCard';
 import ManageArcModal from '../../../components/Arcs/ManageArcModal';
 import { useGame } from '../../../context/GameContext';
 import { useAlert } from '../../../context/AlertContext';
-import { finalizeArcWithRewards } from '../../../services/arcService';
+import { finalizeArcWithRewards, getArcState } from '../../../services/arcService';
 import { useEventFlash } from '../../../context/EventFlashContext';
 import { usePlayerStats } from '../../../hooks/usePlayerStats';
 import { useNavigation } from '@react-navigation/native';
@@ -56,7 +56,7 @@ export const ArcsScreen = () => {
   const swipeableRef = useRef<any>(null);
 
   const onCreate = () => {
-    const activeCount = arcs.filter(a => getState(a) === 'ACTIVO').length;
+    const activeCount = arcs.filter(a => getArcState(a) === 'ACTIVO').length;
     if (activeCount > 0) {
       showAlert('Límite Alcanzado', 'Solo puede existir 1 Arco Activo en este momento.');
       return;
@@ -66,29 +66,20 @@ export const ArcsScreen = () => {
   };
   const onSaved = () => { setShowModal(false); loadArcs(); };
 
-  const getState = (arcItem: any) => {
-    const now = new Date();
-    const start = new Date(arcItem.fecha_inicio);
-    const end = arcItem.fecha_fin ? new Date(arcItem.fecha_fin) : null;
-    if (end && now > end) return 'COMPLETADO';
-    if (now >= start && (!end || now <= end)) return 'ACTIVO';
-    return 'PENDIENTE';
-  };
-
   const [activeTab, setActiveTab] = useState<'ACTIVOS' | 'HISTORIAL'>('ACTIVOS');
 
   const filtered = arcs.filter(a => {
-    const s = getState(a);
-    if (activeTab === 'ACTIVOS') return s === 'ACTIVO' || s === 'PENDIENTE';
-    return s === 'COMPLETADO';
+    const s = getArcState(a);
+    if (activeTab === 'ACTIVOS') return s === 'ACTIVO';
+    return s === 'COMPLETADO' || s === 'ABANDONADO';
   });
 
-  const activeArcs = arcs.filter(a => getState(a) === 'ACTIVO');
+  const activeArcs = arcs.filter(a => getArcState(a) === 'ACTIVO');
 
   const renderItem = ({ item }: { item: any }) => (
     <ArcCard
       arc={item}
-      onPress={() => navigation.navigate('ArcDetail', { arc: item })}
+      onPress={() => navigation.navigate(getArcState(item) === 'ACTIVO' ? 'ArcDetail' : 'ArcResults', { arc: item })}
     />
   );
 
@@ -147,6 +138,7 @@ export const ArcsScreen = () => {
                           try { refreshUser && refreshUser(); } catch(e){}
                           loadArcs();
                           flash({ kind: 'complete', title: 'CAPÍTULO CERRADO', subtitle: arc?.nombre, xp: grantedXP > 0 ? grantedXP : undefined });
+                          navigation.navigate('ArcResults', { arc });
                         } catch (err) {
                           console.error('Error finalizando arco:', err);
                           try { swipeableRef.current && swipeableRef.current.close(); } catch(e){}

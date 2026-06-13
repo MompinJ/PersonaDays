@@ -27,8 +27,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Servicios (Lógica)
-import { initDatabase } from './src/database';
-import { initNotifications, syncRoutineReminders } from './src/services/notificationService';
+import { ensureDatabase } from './src/database';
+import { initNotifications, syncMissionReminders } from './src/services/notificationService';
 
 // Context
 import { GameProvider, useGame } from './src/context/GameContext';
@@ -43,7 +43,15 @@ function RootNavigation() {
   const { player, isLoading } = useGame();
   const Stack = createNativeStackNavigator();
 
-  if (isLoading) {
+  // Gate de tiempo minimo: la pantalla de carga se ve al menos 2s aunque la DB
+  // y el jugador carguen al instante (antes parpadeaba y no se alcanzaba a ver).
+  const [minElapsed, setMinElapsed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (isLoading || !minElapsed) {
     return <LoadingScreen palette={DEFAULT_PALETTE} />;
   }
 
@@ -62,8 +70,6 @@ function RootNavigation() {
 }
 
 export default function App() {
-  const [isDbReady, setIsDbReady] = useState(false);
-
   const [fontsLoaded] = useFonts({
     Anton_400Regular,
     Exo2_400Regular,
@@ -77,19 +83,16 @@ export default function App() {
 
   useEffect(() => {
     const setup = async () => {
-      try {
-        await initDatabase();
-        setIsDbReady(true);
-      } catch (e) {
-        console.error('Error inicializando DB:', e);
-        setIsDbReady(true); // permitimos que la app intente seguir aunque falle
-      }
+      // ensureDatabase memoiza initDatabase(): GameContext espera esta misma
+      // promesa antes de leer al jugador (la LoadingScreen de RootNavigation
+      // cubre todo el arranque; aqui no se bloquea el render).
+      await ensureDatabase();
       // Recordatorios: setup del handler y reagendado desde la config guardada.
       // No pide permisos aqui (eso ocurre al activar en Ajustes). Si el master
       // esta off o no hay permiso, queda todo cancelado.
       try {
         await initNotifications();
-        await syncRoutineReminders();
+        await syncMissionReminders();
       } catch (e) {
         console.error('Error inicializando notificaciones:', e);
       }
@@ -98,10 +101,6 @@ export default function App() {
   }, []);
 
   if (!fontsLoaded) return null;
-
-  if (!isDbReady) {
-    return <LoadingScreen palette={DEFAULT_PALETTE} />;
-  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: DEFAULT_PALETTE.background }}>

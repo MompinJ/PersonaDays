@@ -114,17 +114,15 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
   // ---------- confirmar ----------
   const handleSelect = async () => {
     try {
+      // El jugador SIEMPRE existe aqui: en onboarding lo creo SetupScreen
+      // (createPlayer) y en modo edicion ya estaba. Solo actualizamos el tema.
       const rows: any = await db.getAllAsync('SELECT id_jugador FROM jugadores LIMIT 1');
       const playerId = rows && rows.length > 0 ? rows[0].id_jugador : null;
-      if (playerId) {
-        await db.runAsync('UPDATE jugadores SET character_theme = ? WHERE id_jugador = ?', [ch.id, playerId]);
-      } else {
-        const fecha = new Date().toISOString();
-        await db.runAsync(
-          'INSERT INTO jugadores (nombre_jugador, nivel_jugador, vida, yenes, character_theme, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-          ['Invitado', 1, 10, 5000, ch.id, fecha]
-        );
+      if (!playerId) {
+        console.error('CharacterSelection: no existe jugador; el onboarding debio crearlo.');
+        return;
       }
+      await db.runAsync('UPDATE jugadores SET character_theme = ? WHERE id_jugador = ?', [ch.id, playerId]);
       await refreshUser();
       if (isEditing) navigation.goBack();
     } catch (error) {
@@ -188,8 +186,11 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
         </Pressable>
 
         <Animated.View style={[styles.cardWrap, cardTransform]} {...pan.panHandlers}>
-          {/* glow exterior (elevation/shadow del color) */}
-          <View style={[styles.cardGlow, { shadowColor: t.primary }]}>
+          {/* glow exterior (elevation/shadow del color). El fondo es OBLIGATORIO:
+              en Android una vista con elevation sin backgroundColor produce
+              artefactos blancos en el borde mientras el ancestro anima
+              translate/rotate/opacity (el flash lateral al arrastrar). */}
+          <View style={[styles.cardGlow, { shadowColor: t.primary, backgroundColor: t.background }]}>
             <View style={[styles.cardInner, { backgroundColor: t.background }]}>
 
               {/* 1. romaji gigante de fondo */}
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
 
   cardWrap: { width: CARD_W, height: CARD_H },
   cardGlow: {
-    width: CARD_W, height: CARD_H,
+    width: CARD_W, height: CARD_H, borderRadius: 3,
     elevation: 16, shadowOpacity: 0.55, shadowRadius: 22, shadowOffset: { width: 0, height: 12 },
   },
   cardInner: { width: CARD_W, height: CARD_H, borderRadius: 3, overflow: 'hidden' },
