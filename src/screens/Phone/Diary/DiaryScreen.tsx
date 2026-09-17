@@ -7,21 +7,10 @@ import { PhoneHeader } from '../../../components/Phone/PhoneHeader';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
 import { getContrastText } from '../../../utils/colorUtils';
 import {
-  getEntradas, getRacha, getAnimosDelMes, hoyClave, parseClave, esHoy,
-  ANIMOS, Entrada, XP_POR_ENTRADA, STATS_DIARIO,
+  getEntradas, getRacha, getResumenMes, hoyClave, parseClave,
+  ANIMOS, Entrada, ResumenMes, XP_POR_ENTRADA, STATS_DIARIO,
 } from '../../../services/diaryService';
-
-// Color del animo: del rojo (pesimo) al verde (excelente), pasando por el tema.
-const colorAnimo = (a: number | null | undefined, theme: any): string => {
-  switch (a) {
-    case 1: return theme.error;
-    case 2: return theme.secondary;
-    case 3: return theme.textDim;
-    case 4: return theme.primary;
-    case 5: return theme.success;
-    default: return theme.inactive;
-  }
-};
+import { MoodWave, colorAnimo } from '../../../components/Diary/MoodWave';
 
 const MESES = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
 const DOW = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
@@ -87,7 +76,7 @@ export const DiaryScreen = () => {
 
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [racha, setRacha] = useState(0);
-  const [animosMes, setAnimosMes] = useState<Record<string, number>>({});
+  const [mesResumen, setMesResumen] = useState<ResumenMes>({ animos: {}, escritos: 0, promedio: null });
 
   const hoy = hoyClave();
   const hoyDate = parseClave(hoy);
@@ -95,10 +84,10 @@ export const DiaryScreen = () => {
 
   const load = async () => {
     try {
-      const [e, r, a] = await Promise.all([getEntradas(), getRacha(), getAnimosDelMes(mesActual)]);
+      const [e, r, m] = await Promise.all([getEntradas(), getRacha(), getResumenMes(mesActual)]);
       setEntradas(e);
       setRacha(r);
-      setAnimosMes(a);
+      setMesResumen(m);
     } catch (err) { console.error('Error cargando diario', err); }
   };
 
@@ -150,7 +139,11 @@ export const DiaryScreen = () => {
         )}
       </TouchableOpacity>
 
-      {/* RACHA + TIRA DEL MES */}
+      {/* RACHA + ONDA DEL MES.
+          Era una tira de cuadros por dia, pero parecia un calendario malo (no
+          se distinguia que dia era cada cuadro) y el Calendario de verdad ya
+          da acceso a cada entrada. Lo que aporta esta tarjeta es otra cosa: la
+          FORMA del mes. */}
       <View style={[styles.mesCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.mesHead}>
           <MaterialCommunityIcons name="fire" size={17} color={racha > 0 ? theme.secondary : theme.textDim} />
@@ -166,29 +159,23 @@ export const DiaryScreen = () => {
           </Text>
         </View>
 
-        <View style={styles.tira}>
-          {Array.from({ length: diasDelMes }, (_, i) => {
-            const dia = i + 1;
-            const clave = `${mesActual}-${String(dia).padStart(2, '0')}`;
-            const animo = animosMes[clave];
-            const futuro = dia > hoyDate.getDate();
-            return (
-              <TouchableOpacity
-                key={clave}
-                activeOpacity={futuro ? 1 : 0.7}
-                onPress={() => !futuro && abrir(clave)}
-                style={[styles.tiraDia, {
-                  backgroundColor: animo ? colorAnimo(animo, theme) : theme.background,
-                  borderColor: dia === hoyDate.getDate() ? theme.primary : theme.border,
-                  opacity: futuro ? 0.3 : 1,
-                }]}
-              />
-            );
-          })}
+        <MoodWave
+          animos={mesResumen.animos}
+          mes={mesActual}
+          hastaDia={hoyDate.getDate()}
+          diasDelMes={diasDelMes}
+        />
+
+        <View style={[styles.mesPie, { borderTopColor: theme.border }]}>
+          <Text style={[styles.mesPieText, { color: theme.textDim }]}>
+            {mesResumen.escritos} {mesResumen.escritos === 1 ? 'día escrito' : 'días escritos'} de {hoyDate.getDate()}
+          </Text>
+          {mesResumen.promedio != null && (
+            <Text style={[styles.mesPieText, { color: colorAnimo(Math.round(mesResumen.promedio), theme) }]}>
+              ánimo medio {mesResumen.promedio.toFixed(1)}
+            </Text>
+          )}
         </View>
-        <Text style={[styles.tiraPie, { color: theme.textDim }]}>
-          Cada cuadro es un día: su color es cómo te fue. Toca uno para escribirlo.
-        </Text>
       </View>
 
       {pasadas.length > 0 && (
@@ -231,9 +218,8 @@ const styles = StyleSheet.create({
   mesRacha: { fontSize: 22 },
   mesRachaLabel: { fontSize: 10, letterSpacing: 1.3 },
   mesNombre: { fontSize: 10, letterSpacing: 1.5 },
-  tira: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  tiraDia: { width: 22, height: 22, borderRadius: 2, borderWidth: 1, transform: [{ skewX: '-12deg' }] },
-  tiraPie: { fontSize: 10, marginTop: 10, lineHeight: 14 },
+  mesPie: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, marginTop: 12, paddingTop: 10 },
+  mesPieText: { fontSize: 11 },
 
   tagWrap: { marginBottom: 12 },
 

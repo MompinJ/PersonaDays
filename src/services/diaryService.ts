@@ -173,15 +173,30 @@ export const getFechasConEntrada = async (desde: string, hasta: string): Promise
   return (rows || []).map((r) => r.fecha);
 };
 
-/** Animo por dia de un mes ('YYYY-MM'), para la tira del mes. */
-export const getAnimosDelMes = async (mes: string): Promise<Record<string, number>> => {
+export interface ResumenMes {
+  /** 'YYYY-MM-DD' -> animo (1..5). Solo los dias que marcaron animo. */
+  animos: Record<string, number>;
+  /** Dias con texto escrito, lleven animo o no. */
+  escritos: number;
+  /** Media del animo del mes, o null si nadie marco ninguno. */
+  promedio: number | null;
+}
+
+/** Lo que alimenta la onda del mes: animo por dia mas un par de cifras. */
+export const getResumenMes = async (mes: string): Promise<ResumenMes> => {
   const rows: any[] = await db.getAllAsync(
-    'SELECT fecha, animo FROM diario WHERE substr(fecha,1,7) = ? AND animo IS NOT NULL',
+    "SELECT fecha, animo, TRIM(COALESCE(contenido,'')) <> '' AS escrito FROM diario WHERE substr(fecha,1,7) = ?",
     [mes]
   );
-  const map: Record<string, number> = {};
-  (rows || []).forEach((r) => { map[r.fecha] = r.animo; });
-  return map;
+  const animos: Record<string, number> = {};
+  let escritos = 0;
+  let suma = 0;
+  let conAnimo = 0;
+  (rows || []).forEach((r) => {
+    if (r.escrito) escritos += 1;
+    if (r.animo != null) { animos[r.fecha] = r.animo; suma += r.animo; conAnimo += 1; }
+  });
+  return { animos, escritos, promedio: conAnimo > 0 ? suma / conAnimo : null };
 };
 
 /**
