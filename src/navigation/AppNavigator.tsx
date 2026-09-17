@@ -29,6 +29,8 @@ import { ArcDetailScreen } from '../screens/Phone/Arcs/ArcDetailScreen';
 import { ArcResultsScreen } from '../screens/Phone/Arcs/ArcResultsScreen';
 import ManageCategoriesScreen from '../screens/Economy/ManageCategoriesScreen';
 import FinanceReportScreen from '../screens/Economy/FinanceReportScreen';
+import MediaLibraryScreen from '../screens/Phone/Media/MediaLibraryScreen';
+import MediaDetailScreen from '../screens/Phone/Media/MediaDetailScreen';
 import { ArcanaScreen } from '../screens/Arcana/ArcanaScreen';
 import { ArcanaShopScreen } from '../screens/Arcana/ArcanaShopScreen';
 import PhoneMenuScreen from '../screens/Phone/Phone';
@@ -139,6 +141,8 @@ export const AppNavigator = () => {
         <Stack.Screen name="Arcana" component={ArcanaScreen} />
         <Stack.Screen name="ArcanaShop" component={ArcanaShopScreen} />
         <Stack.Screen name="FinanceReport" component={FinanceReportScreen} />
+        <Stack.Screen name="MediaLibrary" component={MediaLibraryScreen} />
+        <Stack.Screen name="MediaDetail" component={MediaDetailScreen} />
         <Stack.Screen name="ManageMissions" component={ManageMissionsScreen} />
         <Stack.Screen name="CreateMission" component={CreateMissionScreen} />
         <Stack.Screen name="CompletedMissions" component={CompletedMissionsScreen} />

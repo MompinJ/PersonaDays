@@ -22,6 +22,7 @@ export const PhoneMenuScreen = () => {
     { key: 'arcs', label: 'ARCOS', glyph: 'arcos', action: () => navigation.navigate('Arcs') },
     { key: 'shop', label: 'EMPORIO', glyph: 'emporio', action: () => navigation.navigate('ArcanaShop') },
     { key: 'lists', label: 'NOTAS', glyph: 'notas', action: () => navigation.navigate('ListsMenuScreen') },
+    { key: 'media', label: 'BIBLIOTECA', glyph: 'biblioteca', action: () => navigation.navigate('MediaLibrary') },
     { key: 'trends', label: 'TENDENCIAS', glyph: 'tendencias', action: () => navigation.navigate('Trends') },
     { key: 'gallery', label: 'GALERÍA', glyph: 'galeria', soon: true },
     { key: 'mail', label: 'CORREO', glyph: 'correo', soon: true },

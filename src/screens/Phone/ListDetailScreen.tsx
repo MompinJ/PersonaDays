@@ -77,9 +77,14 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
   }, [listId]);
 
   // 2. Auto-guardado
+  // El listener es async pero la navegacion no lo espera, asi que la lista de
+  // notas podia recargarse antes del UPDATE y enseñar el preview viejo.
+  // Frenamos la salida, guardamos y reemitimos la accion.
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', async () => {
-      if (hasChanges && !deletedRef.current) await saveToDB(content);
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (!hasChanges || deletedRef.current) return;
+      e.preventDefault();
+      saveToDB(content).finally(() => navigation.dispatch(e.data.action));
     });
     return unsubscribe;
   }, [navigation, hasChanges, content]);
@@ -180,6 +185,23 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
         );
       }
 
+      // --- CASO LISTA NUMERADA ---
+      // `parent` es la cadena de ancestros; si hay un ordered_list arriba, el
+      // item lleva su numero en vez de vineta. node.index es 0-based, y
+      // `start` respeta una lista que empiece en otro numero (ej. "5. ").
+      const ordered = Array.isArray(parent) && parent.some((p: any) => p?.type === 'ordered_list');
+      if (ordered) {
+        const lista: any = parent.find((p: any) => p?.type === 'ordered_list');
+        const inicio = lista?.attributes?.start;
+        const numero = (inicio ? inicio + node.index : node.index + 1);
+        return (
+          <View key={node.key} style={styles.bulletRow}>
+            <Text style={[styles.orderedIcon, { color: theme.primary }]}>{numero}.</Text>
+            <View style={{ flex: 1, justifyContent: 'center' }}>{children}</View>
+          </View>
+        );
+      }
+
       // --- CASO BULLET NORMAL ---
       return (
         <View key={node.key} style={styles.bulletRow}>
@@ -207,9 +229,25 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
     setContent(newContent);
     setHasChanges(true);
     setTimeout(() => {
-      const newPos = selection.start + textToInsert.length;
       inputRef.current?.focus();
     }, 50);
+  };
+
+  // Lista numerada: continua la numeracion de la linea anterior en vez de
+  // reiniciar siempre en 1, que obligaria a corregir a mano cada renglon.
+  const insertNumbered = () => {
+    const antes = content.substring(0, selection.start);
+    const lineaActual = antes.slice(antes.lastIndexOf('\n') + 1);
+    // Si ya hay texto en la linea, el marcador arranca en su propio renglon.
+    const salto = lineaActual.trim().length > 0 ? '\n' : '';
+    const previas = antes.split('\n');
+    let numero = 1;
+    for (let i = previas.length - 1; i >= 0; i--) {
+      const m = previas[i].match(/^\s*(\d+)[.)]\s/);
+      if (m) { numero = parseInt(m[1], 10) + 1; break; }
+      if (previas[i].trim() !== '') break;  // se corto la lista
+    }
+    insertText(`${salto}${numero}. `);
   };
 
   return (
@@ -281,6 +319,9 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('- ')}>
                   <MaterialCommunityIcons name="format-list-bulleted" size={24} color={theme.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolBtn} onPress={insertNumbered}>
+                  <MaterialCommunityIcons name="format-list-numbered" size={24} color={theme.primary} />
                 </TouchableOpacity>
 
                 <View style={{ flex: 1 }} />
@@ -374,6 +415,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#00D4FF', // Cyan hardcoded o theme.primary si está disponible aquí
     marginTop: -2
+  },
+  // minWidth fijo: sin el, "10." empuja su texto mas a la derecha que "1." y la
+  // lista se ve desalineada.
+  orderedIcon: {
+    marginRight: 8,
+    minWidth: 22,
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '900',
+    textAlign: 'right',
   },
   textNoMargin: {
     fontSize: 16,

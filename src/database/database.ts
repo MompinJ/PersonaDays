@@ -23,7 +23,7 @@ export const seedStatCatalog = async () => {
 };
 
 // Version del schema para migraciones versionadas. SUBIR al agregar una migracion.
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 // Agrega una columna solo si no existe (PRAGMA table_info). Permite que las
 // migraciones sean idempotentes y reutilizables desde el camino de baseline.
@@ -118,6 +118,47 @@ const MIGRATIONS: { version: number; up: () => Promise<void> }[] = [
       await db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_liquidaciones_finanza ON finanza_liquidaciones(id_finanza);
         CREATE INDEX IF NOT EXISTS idx_finanzas_categoria ON finanzas(id_categoria);
+      `);
+    },
+  },
+  {
+    // v6: Biblioteca de animes y mangas.
+    // media_temas va aparte porque una obra de varias temporadas acumula varios
+    // openings, endings y OSTs: no caben como tres columnas de la obra.
+    version: 6,
+    up: async () => {
+      await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS media_obras (
+        id_obra INTEGER PRIMARY KEY AUTOINCREMENT,
+        titulo TEXT NOT NULL,
+        tipo TEXT NOT NULL DEFAULT 'ANIME',
+        estado TEXT NOT NULL DEFAULT 'PENDIENTE',
+        rango TEXT,
+        reflexion TEXT,
+        progreso INTEGER DEFAULT 0,
+        total INTEGER,
+        favorito INTEGER DEFAULT 0,
+        etiquetas TEXT,
+        fecha_inicio TEXT,
+        fecha_fin TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS media_temas (
+        id_tema INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_obra INTEGER NOT NULL,
+        clase TEXT NOT NULL,
+        numero INTEGER,
+        titulo TEXT,
+        artista TEXT,
+        rango TEXT,
+        FOREIGN KEY (id_obra) REFERENCES media_obras(id_obra) ON DELETE CASCADE
+      );
+      `);
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_media_temas_obra ON media_temas(id_obra);
+        CREATE INDEX IF NOT EXISTS idx_media_obras_tipo ON media_obras(tipo, estado);
       `);
     },
   },
@@ -364,6 +405,37 @@ export const initDatabase = async () => {
         FOREIGN KEY (id_categoria) REFERENCES financial_categories(id_categoria)
       );
 
+      -- BIBLIOTECA: obras (anime/manga) y sus temas musicales.
+      -- 'etiquetas' es una lista separada por comas; no merece tabla propia
+      -- mientras solo sirva para filtrar en local.
+      CREATE TABLE IF NOT EXISTS media_obras (
+        id_obra INTEGER PRIMARY KEY AUTOINCREMENT,
+        titulo TEXT NOT NULL,
+        tipo TEXT NOT NULL DEFAULT 'ANIME',
+        estado TEXT NOT NULL DEFAULT 'PENDIENTE',
+        rango TEXT,
+        reflexion TEXT,
+        progreso INTEGER DEFAULT 0,
+        total INTEGER,
+        favorito INTEGER DEFAULT 0,
+        etiquetas TEXT,
+        fecha_inicio TEXT,
+        fecha_fin TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS media_temas (
+        id_tema INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_obra INTEGER NOT NULL,
+        clase TEXT NOT NULL,
+        numero INTEGER,
+        titulo TEXT,
+        artista TEXT,
+        rango TEXT,
+        FOREIGN KEY (id_obra) REFERENCES media_obras(id_obra) ON DELETE CASCADE
+      );
+
       -- TABLA FINANZA_LIQUIDACIONES (partes que otra persona debe cubrir)
       -- Una fila por deudor: 'monto' es su parte, 'monto_pagado' lo que ya abono
       -- (permite pagos parciales). El costo real del movimiento padre es
@@ -409,6 +481,7 @@ export const initDatabase = async () => {
         CREATE INDEX IF NOT EXISTS idx_logs_arco ON logs(id_arco);
         CREATE INDEX IF NOT EXISTS idx_arco_fotos_arco ON arco_fotos(id_arco);
         CREATE INDEX IF NOT EXISTS idx_finanzas_tipo_fecha ON finanzas(tipo, fecha);
+        CREATE INDEX IF NOT EXISTS idx_media_obras_orden ON media_obras(updated_at);
       `);
     } catch (e) {
       console.error('Error creando índices:', e);
