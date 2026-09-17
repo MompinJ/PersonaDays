@@ -14,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryIcon, getCategory } from '../../components/category-icons';
 import { getContrastText, distinguishColors } from '../../utils/colorUtils';
 import { PersonaShard } from '../../components/UI/PersonaShard';
-import { PersonaPanel, PersonaFigure, PersonaDivider } from '../../components/UI/PersonaPanel';
+import { PersonaPanel, PersonaFigure } from '../../components/UI/PersonaPanel';
 import {
   getTransactions, getBreakdownByCategory, getPeriodSummary, getLiquidaciones,
   getReceivables, Transaction, Liquidacion, Receivable, PeriodSummary,

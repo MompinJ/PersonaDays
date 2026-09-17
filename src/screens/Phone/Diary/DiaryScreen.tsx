@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../themes/useTheme';
 import { PhoneHeader } from '../../../components/Phone/PhoneHeader';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
-import { PersonaPanel } from '../../../components/UI/PersonaPanel';
+import { PersonaPanel, PersonaDivider } from '../../../components/UI/PersonaPanel';
 import { getContrastText } from '../../../utils/colorUtils';
 import {
   getEntradas, getRacha, getResumenMes, hoyClave, parseClave,
@@ -171,7 +171,8 @@ export const DiaryScreen = () => {
           diasDelMes={diasDelMes}
         />
 
-        <View style={[styles.mesPie, { borderTopColor: theme.border }]}>
+        <PersonaDivider style={{ marginTop: 12 }} />
+        <View style={styles.mesPie}>
           <Text style={[styles.mesPieText, { color: theme.textDim }]}>
             {mesResumen.escritos} {mesResumen.escritos === 1 ? 'día escrito' : 'días escritos'} de {hoyDate.getDate()}
           </Text>
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
   mesRacha: { fontSize: 22 },
   mesRachaLabel: { fontSize: 10, letterSpacing: 1.3 },
   mesNombre: { fontSize: 10, letterSpacing: 1.5 },
-  mesPie: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, marginTop: 12, paddingTop: 10 },
+  mesPie: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
   mesPieText: { fontSize: 11 },
 
   tagWrap: { marginBottom: 12 },

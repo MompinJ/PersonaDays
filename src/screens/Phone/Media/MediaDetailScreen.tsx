@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../themes/useTheme';
 import { PhoneHeader } from '../../../components/Phone/PhoneHeader';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
+import { PersonaField } from '../../../components/UI/PersonaPanel';
 import { P3RDatePicker } from '../../../components/UI/P3RDatePicker';
 import { useAlert } from '../../../context/AlertContext';
 import { getContrastText } from '../../../utils/colorUtils';
@@ -208,8 +209,7 @@ export const MediaDetailScreen = () => {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* TÍTULO */}
-          <View style={[styles.inputWrap, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.inputAccent, { backgroundColor: rango ? colorRango(rango, theme) : theme.primary }]} />
+          <PersonaField accent={rango ? colorRango(rango, theme) : theme.primary}>
             <TextInput
               value={titulo}
               onChangeText={(t) => { setTitulo(t); marcar(); }}
@@ -217,7 +217,7 @@ export const MediaDetailScreen = () => {
               placeholderTextColor={theme.textDim}
               style={[styles.tituloInput, { color: theme.text, fontFamily: theme.fonts?.heading }]}
             />
-          </View>
+          </PersonaField>
 
           {/* TIPO */}
           <View style={styles.rowGap}>
@@ -463,9 +463,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 18, paddingBottom: 90 },
 
-  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 3, overflow: 'hidden' },
-  inputAccent: { width: 7, alignSelf: 'stretch', transform: [{ skewX: '-12deg' }], marginLeft: -2 },
-  tituloInput: { flex: 1, paddingVertical: 13, paddingHorizontal: 14, fontSize: 19, letterSpacing: 0.4 },
+  tituloInput: { paddingVertical: 13, paddingRight: 14, fontSize: 19, letterSpacing: 0.4 },
 
   rowGap: { flexDirection: 'row', gap: 12, marginTop: 14 },
   segBtn: { flex: 1, borderWidth: 1.5, borderRadius: 3, paddingVertical: 11, alignItems: 'center', transform: [{ skewX: '-11deg' }] },

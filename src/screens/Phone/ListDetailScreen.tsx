@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../../themes/useTheme';
 import { db } from '../../database';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -86,7 +86,7 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <PhoneHeader
         title={headerTitle}
         showBackButton={true}
@@ -111,7 +111,7 @@ export const ListDetailScreen = ({ route, navigation }: Props) => {
           emptyText="_Lista vacía..._"
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 

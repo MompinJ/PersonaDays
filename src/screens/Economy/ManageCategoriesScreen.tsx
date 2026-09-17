@@ -10,6 +10,7 @@ import { getContrastText, colorsAreClose } from '../../utils/colorUtils';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { PersonaModal } from '../../components/UI/PersonaModal';
+import { PersonaField } from '../../components/UI/PersonaPanel';
 import {
   getCategories, getCategoryUsage, createCategory, updateCategory, deleteCategory,
   FinancialCategory, TipoMovimiento,
@@ -227,8 +228,7 @@ export const ManageCategoriesScreen = () => {
       )}
 
       {/* Nombre: input con acento inclinado (estilo objetivo) */}
-      <View style={[styles.inputWrap, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <View style={[styles.inputAccent, { backgroundColor: theme.primary }]} />
+      <PersonaField>
         <TextInput
           placeholder="NOMBRE DE LA CATEGORÍA"
           placeholderTextColor={theme.textDim}
@@ -236,7 +236,7 @@ export const ManageCategoriesScreen = () => {
           onChangeText={setName}
           style={[styles.input, { color: theme.text, fontFamily: theme.fonts?.heading }]}
         />
-      </View>
+      </PersonaField>
 
       {/* Tipo: GASTO (error) / INGRESO (success) como parallelogramos */}
       <View style={styles.typeRow}>
@@ -421,9 +421,7 @@ const styles = StyleSheet.create({
   editBannerText: { flex: 1, fontSize: 13 },
 
   // Input nombre
-  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 3, overflow: 'hidden' },
-  inputAccent: { width: 7, alignSelf: 'stretch', transform: [{ skewX: '-12deg' }], marginLeft: -2 },
-  input: { flex: 1, paddingVertical: 13, paddingHorizontal: 14, fontSize: 15, letterSpacing: 0.5 },
+  input: { paddingVertical: 13, paddingRight: 14, fontSize: 15, letterSpacing: 0.5 },
 
   // Tipo toggle
   typeRow: { flexDirection: 'row', marginTop: 16 },
