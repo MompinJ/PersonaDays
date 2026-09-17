@@ -142,10 +142,12 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
     opacity: infoAnim,
     transform: [{ translateY: infoAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
   };
+  // Solo translateX: el driver nativo no soporta skewX y lo descarta al
+  // serializar el transform, asi que la inclinacion se aplica en un View
+  // normal por dentro (styles.blade), no aqui.
   const bladeTransform = {
     transform: [
       { translateX: bladeP.interpolate({ inputRange: [0, 1], outputRange: [-CARD_W * 1.7, SW * 2.2] }) },
-      { skewX: '-14deg' },
     ],
   };
 
@@ -325,9 +327,12 @@ export const CharacterSelectionScreen = ({ navigation, route }: Props) => {
       {/* ============ FLASH a pantalla completa ============ */}
       <Animated.View pointerEvents="none" style={[styles.flash, { opacity: flashOp }]}>
         <View style={[styles.flashWash, { backgroundColor: t.primary, opacity: 0.12 }]} />
-        <Animated.View style={[styles.blade, bladeTransform]}>
-          <View style={[styles.bladeCore, { backgroundColor: t.primary }]} />
-          <View style={styles.bladeHot} />
+        <Animated.View style={[styles.bladeTrack, bladeTransform]}>
+          <View style={styles.blade}>
+            <View style={[styles.bladeCore, { backgroundColor: t.primary }]} />
+            <View style={styles.bladeGlow} />
+            <View style={styles.bladeHot} />
+          </View>
         </Animated.View>
       </Animated.View>
     </View>
@@ -426,7 +431,15 @@ const styles = StyleSheet.create({
   // Flash
   flash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90, justifyContent: 'center' },
   flashWash: { ...StyleSheet.absoluteFillObject },
-  blade: { position: 'absolute', top: -20, bottom: -20, width: SW * 0.62, left: 0, flexDirection: 'row' },
-  bladeCore: { flex: 1, opacity: 0.5 },
-  bladeHot: { position: 'absolute', left: '42%', top: 0, bottom: 0, width: '16%', backgroundColor: '#fff', opacity: 0.85 },
+  // La "cuchilla" del corte entre personajes. Antes su filo era una banda
+  // BLANCA de 16% de un blade que ya medía 62% de la pantalla -unos 70px de
+  // blanco casi solido- y encima vertical: cruzaba la pantalla como una losa y
+  // se leia como un fallo de render, no como un efecto. Ahora el filo es fino
+  // de verdad, va en el borde de ataque y el conjunto se inclina, que es el
+  // gesto de P3R. El overhang es grande para que el skew no descubra esquinas.
+  bladeTrack: { position: 'absolute', top: -140, bottom: -140, width: SW * 0.2, left: 0 },
+  blade: { flex: 1, flexDirection: 'row', transform: [{ skewX: '-16deg' }] },
+  bladeCore: { flex: 1, opacity: 0.3 },
+  bladeGlow: { position: 'absolute', right: 4, top: 0, bottom: 0, width: 14, backgroundColor: '#fff', opacity: 0.1 },
+  bladeHot: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, backgroundColor: '#fff', opacity: 0.5 },
 });
