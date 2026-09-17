@@ -44,6 +44,10 @@ export const PersonaModal = ({ visible, onClose, children, title, width, cardSty
           >
             <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.primary, shadowColor: theme.primary }, cardStyle]}>
               <View style={[styles.topAccent, { backgroundColor: theme.primary }]} />
+              {/* Esquina mordida: P3R corta en vez de redondear. Es un cuadrado
+                  rotado 45 grados del color del backdrop, ya que RN no tiene
+                  clip-path. */}
+              <View pointerEvents="none" style={styles.cut} />
               {title ? (
                 <View style={styles.titleRow}>
                   <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
@@ -63,8 +67,11 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   kav: { width: '100%', alignItems: 'center' },
   card: {
-    borderWidth: 2,
-    borderRadius: 8,
+    // Sin borde perimetral: con el, la esquina mordida quedaba como un
+    // triangulo negro DENTRO de un marco recto, que se lee como una mancha en
+    // vez de como un corte. El acento superior grueso ya ancla la tarjeta.
+    borderWidth: 0,
+    borderRadius: 0,
     padding: 20,
     paddingTop: 22,
     overflow: 'hidden',
@@ -73,7 +80,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
   },
-  topAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 6 },
+  topAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 8 },
+  cut: {
+    position: 'absolute', bottom: -24, right: -24, width: 48, height: 48,
+    backgroundColor: 'rgba(0,0,0,0.85)', transform: [{ rotate: '45deg' }],
+  },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   titleAccent: { width: 6, height: 24, marginRight: 10, transform: [{ skewX: '-20deg' }] },
   title: { fontSize: 22, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },

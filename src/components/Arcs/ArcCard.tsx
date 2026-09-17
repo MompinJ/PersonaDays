@@ -76,7 +76,7 @@ const ArcCard = ({ arc, onPress, containerStyle, style, mode }: { arc: any; onPr
 };
 
 const styles = StyleSheet.create({
-  card: { minHeight: 190, padding: 20, paddingLeft: 26, borderWidth: 2, borderRadius: 10, marginBottom: 18, justifyContent: 'flex-start', overflow: 'hidden' },
+  card: { minHeight: 190, padding: 20, paddingLeft: 26, borderLeftWidth: 8, marginBottom: 18, justifyContent: 'flex-start', overflow: 'hidden' },
   heroCard: { flex: 1, width: '100%' },
   accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 9, transform: [{ skewX: '-12deg' }], marginLeft: -3 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

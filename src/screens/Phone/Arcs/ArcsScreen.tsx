@@ -147,7 +147,7 @@ export const ArcsScreen = () => {
                       } }
                     ]);
                   }}
-                  containerStyle={{ borderRadius: 14, overflow: 'hidden', height: '100%' }}
+                  containerStyle={{ overflow: 'hidden', height: '100%' }}
                 >
                   <ArcCard arc={arc} mode="HERO" style={{ flex: 1 }} onPress={() => navigation.navigate('ArcDetail', { arc })} />
                 </Swipeable>

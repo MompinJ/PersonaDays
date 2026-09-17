@@ -55,8 +55,10 @@ export const PhoneMenuScreen = () => {
                 onPress={dimmed ? () => showAlert('PRÓXIMAMENTE', `${t.label} llegará pronto.`) : (t as any).action}
               >
                 <View style={[styles.tileAccent, { backgroundColor: c }]} />
-                <MenuGlyph name={t.glyph} size={40} color={c} active={!dimmed} />
-                <Text style={[styles.tileLabel, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{t.label}</Text>
+                <View style={styles.tileInner}>
+                  <MenuGlyph name={t.glyph} size={40} color={c} active={!dimmed} />
+                  <Text style={[styles.tileLabel, { color: theme.text, fontFamily: theme.fonts?.heading }]}>{t.label}</Text>
+                </View>
                 {dimmed && (
                   <View style={[styles.soonTag, { backgroundColor: theme.textDim }]}>
                     <Text style={[styles.soonText, { color: theme.background, fontFamily: theme.fonts?.heading }]}>PRÓXIMAMENTE</Text>
@@ -80,8 +82,9 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 160 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tileWrap: { width: '48%', marginBottom: 16 },
-  tile: { aspectRatio: 1, borderWidth: 2, borderRadius: 8, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 10 },
+  tile: { aspectRatio: 1, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 10, transform: [{ skewX: '-6deg' }] },
   tileAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
+  tileInner: { alignItems: 'center', transform: [{ skewX: '6deg' }] },
   tileLabel: { marginTop: 12, fontSize: 15, letterSpacing: 1.5 },
   soonTag: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 3, alignItems: 'center', transform: [{ skewX: '-10deg' }], marginHorizontal: -4 },
   soonText: { fontSize: 9, letterSpacing: 1, transform: [{ skewX: '10deg' }] },

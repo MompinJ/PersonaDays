@@ -6,6 +6,7 @@ import { useTheme } from '../../../themes/useTheme';
 import { PhoneHeader } from '../../../components/Phone/PhoneHeader';
 import { PersonaModal } from '../../../components/UI/PersonaModal';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
+import { PersonaPanel } from '../../../components/UI/PersonaPanel';
 import { getContrastText } from '../../../utils/colorUtils';
 import { RankSeal, colorRango } from '../../../components/Media/Rank';
 import {
@@ -114,9 +115,8 @@ const ObraCard = ({ item, index, onPress, onFav }: {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={onPress}
-        style={[styles.card, { backgroundColor: theme.surface, borderColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
+        style={[styles.card, { backgroundColor: theme.surface, borderLeftColor: accent, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
       >
-        <View style={[styles.cardAccent, { backgroundColor: accent }]} />
         <View style={[styles.cardInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
           <View style={{ flex: 1 }}>
             <View style={styles.cardTitleRow}>
@@ -194,7 +194,7 @@ export const MediaLibraryScreen = () => {
     <View>
       {/* Resumen */}
       {resumen && resumen.total > 0 && (
-        <View style={[styles.resumen, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <PersonaPanel accent={theme.primary} cut={18} bar={6} style={styles.resumen}>
           {[
             { label: 'EN TOTAL', valor: String(resumen.total), color: theme.text },
             { label: 'COMPLETADOS', valor: String(resumen.completados), color: theme.success },
@@ -206,7 +206,7 @@ export const MediaLibraryScreen = () => {
               <Text style={[styles.resumenLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{t.label}</Text>
             </View>
           ))}
-        </View>
+        </PersonaPanel>
       )}
 
       {/* Buscador */}
@@ -319,7 +319,7 @@ export const MediaLibraryScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  resumen: { flexDirection: 'row', borderWidth: 1, borderRadius: 12, paddingVertical: 12, marginBottom: 14 },
+  resumen: { flexDirection: 'row', paddingVertical: 12, paddingLeft: 14, paddingRight: 8, marginBottom: 14 },
   resumenItem: { flex: 1, alignItems: 'center' },
   resumenValor: { fontSize: 22 },
   resumenLabel: { fontSize: 9, letterSpacing: 1.1, marginTop: 1 },
@@ -336,8 +336,7 @@ const styles = StyleSheet.create({
   estadoText: { fontSize: 10, letterSpacing: 1 },
 
   // Tarjeta
-  card: { borderWidth: 1.5, borderRadius: 3, paddingVertical: 13, paddingLeft: 18, paddingRight: 12, overflow: 'hidden' },
-  cardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7 },
+  card: { borderLeftWidth: 7, paddingVertical: 13, paddingLeft: 14, paddingRight: 12 },
   cardInner: { flexDirection: 'row', alignItems: 'center' },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   cardTitle: { flex: 1, fontSize: 19, letterSpacing: 0.4 },

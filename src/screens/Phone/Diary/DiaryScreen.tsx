@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../themes/useTheme';
 import { PhoneHeader } from '../../../components/Phone/PhoneHeader';
 import { PersonaShard } from '../../../components/UI/PersonaShard';
+import { PersonaPanel } from '../../../components/UI/PersonaPanel';
 import { getContrastText } from '../../../utils/colorUtils';
 import {
   getEntradas, getRacha, getResumenMes, hoyClave, parseClave,
@@ -45,9 +46,8 @@ const EntradaCard = ({ item, index, onPress }: { item: Entrada; index: number; o
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={onPress}
-        style={[styles.card, { backgroundColor: theme.surface, borderColor: acc, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
+        style={[styles.card, { backgroundColor: theme.surface, borderLeftColor: acc, transform: [{ rotate: `${rot}deg` }, { skewX: `${sk}deg` }] }]}
       >
-        <View style={[styles.cardAccent, { backgroundColor: acc }]} />
         <View style={[styles.cardInner, { transform: [{ skewX: `${-sk}deg` }] }]}>
           <View style={styles.cardDate}>
             <Text style={[styles.cardDay, { color: theme.text, fontFamily: theme.fonts?.display }]}>{d.getDate()}</Text>
@@ -108,9 +108,13 @@ export const DiaryScreen = () => {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => abrir(hoy)}
-        style={[styles.hoy, { backgroundColor: theme.surface, borderColor: escritaHoy ? colorAnimo(entradaHoy?.animo, theme) : theme.primary }]}
+        style={styles.hoyTouch}
       >
-        <View style={[styles.hoyAccent, { backgroundColor: escritaHoy ? colorAnimo(entradaHoy?.animo, theme) : theme.primary }]} />
+        <PersonaPanel
+          accent={escritaHoy ? colorAnimo(entradaHoy?.animo, theme) : theme.primary}
+          cut={24}
+          style={styles.hoy}
+        >
         <Text style={[styles.hoyLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>
           {DOW[hoyDate.getDay()]} {hoyDate.getDate()} DE {MESES[hoyDate.getMonth()]}
         </Text>
@@ -137,6 +141,7 @@ export const DiaryScreen = () => {
             </Text>
           </>
         )}
+        </PersonaPanel>
       </TouchableOpacity>
 
       {/* RACHA + ONDA DEL MES.
@@ -144,7 +149,7 @@ export const DiaryScreen = () => {
           se distinguia que dia era cada cuadro) y el Calendario de verdad ya
           da acceso a cada entrada. Lo que aporta esta tarjeta es otra cosa: la
           FORMA del mes. */}
-      <View style={[styles.mesCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <PersonaPanel accent={theme.primary} cut={22} style={styles.mesCard}>
         <View style={styles.mesHead}>
           <MaterialCommunityIcons name="fire" size={17} color={racha > 0 ? theme.secondary : theme.textDim} />
           <Text style={[styles.mesRacha, { color: racha > 0 ? theme.secondary : theme.textDim, fontFamily: theme.fonts?.display }]}>
@@ -176,7 +181,7 @@ export const DiaryScreen = () => {
             </Text>
           )}
         </View>
-      </View>
+      </PersonaPanel>
 
       {pasadas.length > 0 && (
         <View style={styles.tagWrap}><PersonaShard label="ANTERIORES" /></View>
@@ -204,8 +209,8 @@ export const DiaryScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  hoy: { borderWidth: 1.5, borderRadius: 14, padding: 18, paddingLeft: 22, overflow: 'hidden', marginBottom: 16 },
-  hoyAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 8 },
+  hoyTouch: { marginBottom: 16 },
+  hoy: { paddingVertical: 18, paddingLeft: 24, paddingRight: 18 },
   hoyLabel: { fontSize: 10, letterSpacing: 1.8 },
   hoyTitulo: { fontSize: 26, letterSpacing: 0.8, marginTop: 6 },
   hoySub: { fontSize: 13, marginTop: 4 },
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
   hoyPie: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   hoyPieText: { fontSize: 10, letterSpacing: 1.3 },
 
-  mesCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 20 },
+  mesCard: { paddingVertical: 14, paddingLeft: 20, paddingRight: 14, marginBottom: 20 },
   mesHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   mesRacha: { fontSize: 22 },
   mesRachaLabel: { fontSize: 10, letterSpacing: 1.3 },
@@ -223,8 +228,7 @@ const styles = StyleSheet.create({
 
   tagWrap: { marginBottom: 12 },
 
-  card: { borderWidth: 1.5, borderRadius: 3, paddingVertical: 12, paddingLeft: 16, paddingRight: 12, overflow: 'hidden' },
-  cardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6 },
+  card: { borderLeftWidth: 7, paddingVertical: 12, paddingLeft: 14, paddingRight: 12 },
   cardInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardDate: { alignItems: 'center', minWidth: 38 },
   cardDay: { fontSize: 24, includeFontPadding: false },

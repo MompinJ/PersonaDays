@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   animoBtn: { flex: 1, height: 42, borderWidth: 1.5, borderRadius: 3, justifyContent: 'center', alignItems: 'center' },
   xpNota: { fontSize: 11, marginTop: 10 },
 
-  ctx: { borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 18, gap: 7 },
+  ctx: { borderLeftWidth: 5, paddingVertical: 12, paddingLeft: 14, paddingRight: 12, marginBottom: 18, gap: 7 },
   ctxRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ctxDot: { width: 12, height: 12, borderRadius: 3, transform: [{ skewX: '-20deg' }] },
   ctxText: { flex: 1, fontSize: 12 },

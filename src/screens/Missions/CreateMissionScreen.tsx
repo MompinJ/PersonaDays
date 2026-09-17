@@ -546,10 +546,10 @@ const styles = StyleSheet.create({
   sectionTag: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, transform: [{ skewX: '-20deg' }] },
   sectionTagText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.2, transform: [{ skewX: '20deg' }] },
 
-  section: { padding: 14, borderRadius: 10, borderWidth: 1 },
-  accentCard: { borderRadius: 10, borderWidth: 1, padding: 14, paddingLeft: 22, overflow: 'hidden' },
+  section: { paddingVertical: 14, paddingLeft: 18, paddingRight: 14, borderLeftWidth: 6 },
+  accentCard: { paddingVertical: 14, paddingLeft: 22, paddingRight: 14, borderLeftWidth: 7, overflow: 'hidden' },
   cardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
-  rewardCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 16, paddingLeft: 22, overflow: 'hidden' },
+  rewardCard: { flexDirection: 'row', alignItems: 'center', borderLeftWidth: 7, paddingVertical: 8, paddingRight: 16, paddingLeft: 22, overflow: 'hidden' },
   yenSign: { fontSize: 40, marginRight: 8, includeFontPadding: false },
   yenInput: { flex: 1, fontSize: 40, padding: 0, includeFontPadding: false },
 
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 9, marginRight: 14, justifyContent: 'center', transform: [{ skewX: '-12deg' }] },
   chipText: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, transform: [{ skewX: '12deg' }] },
 
-  arcLink: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 10 },
+  arcLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingLeft: 14, paddingRight: 10, borderLeftWidth: 6, marginTop: 10 },
 
   row: { flexDirection: 'row', gap: 14 },
   difficultyBtn: { flex: 1, padding: 14, borderRadius: 3, borderWidth: 1.5, alignItems: 'center', transform: [{ skewX: '-10deg' }] },
@@ -585,11 +585,11 @@ const styles = StyleSheet.create({
   // HORA opcional
   horaRow: { flexDirection: 'row', alignItems: 'center' },
   horaClear: { marginLeft: 14, padding: 4 },
-  notifRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, marginTop: 12, gap: 10 },
+  notifRow: { flexDirection: 'row', alignItems: 'center', borderLeftWidth: 6, paddingVertical: 10, paddingLeft: 14, paddingRight: 14, marginTop: 12, gap: 10 },
   notifText: { flex: 1, fontSize: 13, letterSpacing: 1 },
 
   dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  dateDisplay: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 8, gap: 10, marginTop: 12, borderWidth: 1 },
+  dateDisplay: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingLeft: 18, paddingRight: 14, gap: 10, marginTop: 12, borderLeftWidth: 6 },
   dateText: { fontSize: 16, fontWeight: 'bold', flex: 1 },
 
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 8 },

@@ -197,7 +197,7 @@ export const MarkdownEditor = ({
           style={[styles.doneBtn, { backgroundColor: theme.primary }]}
           onPress={() => { Keyboard.dismiss(); onEditingChange(false); onCommit?.(value); }}
         >
-          <Text style={{ fontWeight: 'bold', color: theme.textInverse }}>LISTO</Text>
+          <Text style={{ fontWeight: 'bold', color: theme.textInverse, transform: [{ skewX: '12deg' }] }}>LISTO</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   toolBtn: { padding: 8, marginHorizontal: 2 },
   toolText: { fontWeight: '900', fontSize: 16 },
   divider: { width: 1, height: 24, marginHorizontal: 8 },
-  doneBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  doneBtn: { paddingHorizontal: 20, paddingVertical: 8, transform: [{ skewX: '-12deg' }] },
 
   fab: { position: 'absolute', right: 20, bottom: 30, width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center', elevation: 5, zIndex: 10 },
 });

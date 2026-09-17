@@ -8,6 +8,7 @@ import { useAlert } from '../../context/AlertContext';
 import { exportFinanceMarkdown } from '../../services/financeExport';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { PressableScale } from '../../components/UI/PressableScale';
+import { PersonaPanel, PersonaFigure } from '../../components/UI/PersonaPanel';
 import { CategoryIcon, getCategory } from '../../components/category-icons';
 import { getContrastText, distinguishColors } from '../../utils/colorUtils';
 import {
@@ -103,20 +104,10 @@ const diasDelPeriodo = (start: string, end: string) => {
   return Math.max(1, Math.round((b - a) / 86400000));
 };
 
-// ---------- Tarjeta de cifra (paralelogramo con acento) ----------
-const Tile = ({ label, value, accent, sub }: { label: string; value: string; accent: string; sub?: string }) => {
-  const theme = useTheme();
-  return (
-    <View style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <View style={[styles.tileAccent, { backgroundColor: accent }]} />
-      <Text style={[styles.tileLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>{label}</Text>
-      <Text style={[styles.tileValue, { color: accent, fontFamily: theme.fonts?.display }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </Text>
-      {!!sub && <Text style={[styles.tileSub, { color: theme.textDim }]} numberOfLines={1}>{sub}</Text>}
-    </View>
-  );
-};
+// La cifra va sin caja: el peso tipografico hace la jerarquia (ver PersonaFigure).
+const Tile = ({ label, value, accent, sub }: { label: string; value: string; accent: string; sub?: string }) => (
+  <PersonaFigure value={value} label={label} color={accent} sub={sub} size={26} style={{ flex: 1 }} />
+);
 
 // ---------- Barra horizontal animada de una categoria ----------
 const CatBar = ({ cat, color, max, total, delay, open, onPress }: {
@@ -357,7 +348,7 @@ export const FinanceReportScreen = () => {
 
           {/* COMPARATIVA GLOBAL */}
           {prev && rango.compara && (
-            <View style={[styles.compareCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <PersonaPanel accent={theme.error} cut={16} bar={6} style={styles.compareCard}>
               {(() => {
                 const ant = prev.gastosNetos;
                 const act = resumen?.gastosNetos || 0;
@@ -379,7 +370,7 @@ export const FinanceReportScreen = () => {
                   </>
                 );
               })()}
-            </View>
+            </PersonaPanel>
           )}
 
           {/* DESGLOSE POR CATEGORIA */}
@@ -403,7 +394,7 @@ export const FinanceReportScreen = () => {
             })}
           </View>
 
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <PersonaPanel accent={theme.primary} cut={20} style={styles.card}>
             {cats.length === 0 ? (
               <Vacio texto="Sin movimientos en este periodo." />
             ) : (
@@ -423,13 +414,13 @@ export const FinanceReportScreen = () => {
                 <Text style={[styles.cardFoot, { color: theme.textDim }]}>Toca una categoría para ver el detalle.</Text>
               </>
             )}
-          </View>
+          </PersonaPanel>
 
           {/* VARIACIONES */}
           {variaciones.length > 0 && rango.compara && (
             <>
               <Tag text={`VS ${rango.compara}`} />
-              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <PersonaPanel accent={theme.primary} cut={20} style={styles.card}>
                 {variaciones.map((v) => {
                   const sube = v.delta > 0;
                   const acc = sube ? theme.error : theme.success;
@@ -447,13 +438,13 @@ export const FinanceReportScreen = () => {
                     </View>
                   );
                 })}
-              </View>
+              </PersonaPanel>
             </>
           )}
 
           {/* EVOLUCION 6 MESES */}
           <Tag text="ÚLTIMOS 6 MESES" />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <PersonaPanel accent={theme.primary} cut={20} style={styles.card}>
             {maxSerie <= 0 ? (
               <Vacio texto="Todavía no hay historial suficiente." />
             ) : (
@@ -482,11 +473,11 @@ export const FinanceReportScreen = () => {
                 </View>
               </>
             )}
-          </View>
+          </PersonaPanel>
 
           {/* TOP GASTOS */}
           <Tag text="LOS MÁS CAROS" />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <PersonaPanel accent={theme.primary} cut={20} style={styles.card}>
             {top.length === 0 ? (
               <Vacio texto="Sin gastos en este periodo." />
             ) : top.map((t, i) => (
@@ -507,13 +498,13 @@ export const FinanceReportScreen = () => {
                 <Text style={[styles.topAmount, { color: theme.error, fontFamily: theme.fonts?.display }]}>{yen(t.neto)}</Text>
               </View>
             ))}
-          </View>
+          </PersonaPanel>
 
           {/* POR COBRAR */}
           {deudas.length > 0 && (
             <>
               <Tag text="POR RECUPERAR" />
-              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.secondary }]}>
+              <PersonaPanel accent={theme.secondary} cut={20} style={styles.card}>
                 <View style={styles.debtHead}>
                   <Text style={[styles.debtHeadLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>DINERO QUE AÚN NO VUELVE</Text>
                   <Text style={[styles.debtHeadValue, { color: theme.secondary, fontFamily: theme.fonts?.display }]}>{yen(pendienteTotal)}</Text>
@@ -529,7 +520,7 @@ export const FinanceReportScreen = () => {
                   </View>
                 ))}
                 <Text style={[styles.cardFoot, { color: theme.textDim }]}>Se registran desde el movimiento, en Finanzas.</Text>
-              </View>
+              </PersonaPanel>
             </>
           )}
 
@@ -551,14 +542,9 @@ const styles = StyleSheet.create({
 
   periodoTitulo: { fontSize: 22, letterSpacing: 1, marginTop: 14, marginBottom: 12 },
 
-  tileGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  tile: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 13, paddingLeft: 16, overflow: 'hidden' },
-  tileAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6 },
-  tileLabel: { fontSize: 10, letterSpacing: 1.6 },
-  tileValue: { fontSize: 24, marginTop: 2 },
-  tileSub: { fontSize: 10, marginTop: 2 },
+  tileGrid: { flexDirection: 'row', gap: 18, marginBottom: 18 },
 
-  compareCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 13, marginTop: 4 },
+  compareCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 13, paddingLeft: 18, paddingRight: 13, marginTop: 6 },
   compareText: { flex: 1, fontSize: 13, lineHeight: 18 },
 
   tagWrap: { marginTop: 24, marginBottom: 12 },
@@ -567,18 +553,18 @@ const styles = StyleSheet.create({
   toggleBtn: { flex: 1, borderWidth: 1.5, borderRadius: 3, paddingVertical: 9, alignItems: 'center', transform: [{ skewX: '-11deg' }] },
   toggleText: { fontSize: 13, letterSpacing: 1.3, transform: [{ skewX: '11deg' }] },
 
-  card: { borderWidth: 1, borderRadius: 12, padding: 14 },
+  card: { paddingVertical: 14, paddingLeft: 18, paddingRight: 14 },
   cardFoot: { fontSize: 11, marginTop: 10, textAlign: 'center' },
   vacio: { fontSize: 13, textAlign: 'center', paddingVertical: 16 },
 
   // Barra de categoria
   catBlock: { marginBottom: 14 },
   catHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  catSwatch: { width: 24, height: 24, borderRadius: 2, justifyContent: 'center', alignItems: 'center' },
+  catSwatch: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center', transform: [{ skewX: '-10deg' }] },
   catName: { flex: 1, fontSize: 14 },
   catPct: { fontSize: 12, letterSpacing: 0.5 },
   catValue: { fontSize: 15, minWidth: 64, textAlign: 'right' },
-  catTrack: { height: 10, borderRadius: 2, overflow: 'hidden', transform: [{ skewX: '-12deg' }] },
+  catTrack: { height: 10, overflow: 'hidden', transform: [{ skewX: '-12deg' }] },
   catFill: { height: '100%' },
   catDetail: { marginTop: 7, paddingLeft: 32 },
   catDetailText: { fontSize: 11, lineHeight: 16 },
@@ -603,7 +589,7 @@ const styles = StyleSheet.create({
   // Top gastos
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   topRank: { fontSize: 17, width: 16, textAlign: 'center' },
-  topSwatch: { width: 26, height: 26, borderRadius: 2, justifyContent: 'center', alignItems: 'center' },
+  topSwatch: { width: 26, height: 26, justifyContent: 'center', alignItems: 'center', transform: [{ skewX: '-10deg' }] },
   topDesc: { fontSize: 14 },
   topSub: { fontSize: 11, marginTop: 1 },
   topAmount: { fontSize: 16 },

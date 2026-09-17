@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
   calendarWrapper: { flex: 1, justifyContent: 'center' },
   bgMonth: { position: 'absolute', right: 8, top: -28, fontSize: 120, lineHeight: 120, fontFamily: 'Anton_400Regular', opacity: 0.07, letterSpacing: -4 },
 
-  diaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 3, paddingVertical: 11, paddingHorizontal: 12, marginBottom: 14 },
+  diaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderLeftWidth: 6, paddingVertical: 11, paddingHorizontal: 12, marginBottom: 14 },
   diaryText: { flex: 1, fontSize: 13, letterSpacing: 0.5 },
   modeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 2 },
   modeDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8, transform: [{ skewX: '-12deg' }] },
   modeLabel: { fontSize: 12, letterSpacing: 1.5 },
 
-  missionRow: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingLeft: 18, borderWidth: 1, borderRadius: 8, marginBottom: 10, overflow: 'hidden' },
+  missionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingLeft: 18, paddingRight: 12, borderLeftWidth: 6, marginBottom: 10, overflow: 'hidden' },
   missionAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, transform: [{ skewX: '-12deg' }], marginLeft: -2 },
   missionTitle: { fontSize: 15 },
   missionMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 8 },

@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryIcon, getCategory } from '../../components/category-icons';
 import { getContrastText, distinguishColors } from '../../utils/colorUtils';
 import { PersonaShard } from '../../components/UI/PersonaShard';
+import { PersonaPanel, PersonaFigure, PersonaDivider } from '../../components/UI/PersonaPanel';
 import {
   getTransactions, getBreakdownByCategory, getPeriodSummary, getLiquidaciones,
   getReceivables, Transaction, Liquidacion, Receivable, PeriodSummary,
@@ -159,8 +160,7 @@ export const EconomyScreen = () => {
       {/* HERO: balance DEL MES. Antes sumaba toda la historia, que no es un
           saldo real (nunca se registro un saldo inicial) y ademas no casaba
           con el donut, que si era mensual. */}
-      <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <View style={[styles.heroAccent, { backgroundColor: theme.primary }]} />
+      <PersonaPanel accent={theme.primary} cut={22} style={styles.heroCard}>
         <Text style={[styles.heroLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>BALANCE DE {monthLabel}</Text>
         <Text
           style={[styles.heroBalance, { color: (resumen?.balance ?? 0) >= 0 ? theme.success : theme.error, fontFamily: theme.fonts?.display }]}
@@ -171,21 +171,20 @@ export const EconomyScreen = () => {
         </Text>
 
         <View style={styles.heroSplitRow}>
-          <View style={styles.heroSplitItem}>
-            <MaterialCommunityIcons name="arrow-up-bold" size={16} color={theme.success} />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={[styles.heroSplitLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>INGRESOS</Text>
-              <Text style={[styles.heroSplitValue, { color: theme.text, fontFamily: theme.fonts?.display }]}>¥{formatYen(resumen?.ingresosNetos ?? 0)}</Text>
-            </View>
-          </View>
-          <View style={[styles.heroDivider, { backgroundColor: theme.border }]} />
-          <View style={styles.heroSplitItem}>
-            <MaterialCommunityIcons name="arrow-down-bold" size={16} color={theme.error} />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={[styles.heroSplitLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>GASTOS</Text>
-              <Text style={[styles.heroSplitValue, { color: theme.text, fontFamily: theme.fonts?.display }]}>¥{formatYen(resumen?.gastosNetos ?? 0)}</Text>
-            </View>
-          </View>
+          <PersonaFigure
+            value={`¥${formatYen(resumen?.ingresosNetos ?? 0)}`}
+            label="INGRESOS"
+            color={theme.success}
+            size={22}
+            style={{ flex: 1 }}
+          />
+          <PersonaFigure
+            value={`¥${formatYen(resumen?.gastosNetos ?? 0)}`}
+            label="GASTOS"
+            color={theme.error}
+            size={22}
+            style={{ flex: 1 }}
+          />
         </View>
 
         <TouchableOpacity
@@ -196,13 +195,13 @@ export const EconomyScreen = () => {
           <MaterialCommunityIcons name="chart-box-outline" size={15} color={theme.primary} />
           <Text style={[styles.heroLinkText, { color: theme.primary, fontFamily: theme.fonts?.heading }]}>VER DESGLOSE COMPLETO</Text>
         </TouchableOpacity>
-      </View>
+      </PersonaPanel>
 
       {/* POR RECUPERAR: todo lo que salio pero sabes que vuelve */}
       {porCobrar.length > 0 && (
         <>
           <SectionTag text="POR RECUPERAR" />
-          <View style={[styles.debtCard, { backgroundColor: theme.surface, borderColor: theme.secondary }]}>
+          <PersonaPanel accent={theme.secondary} cut={20} style={styles.debtCard}>
             <View style={styles.debtHead}>
               <Text style={[styles.debtHeadLabel, { color: theme.textDim, fontFamily: theme.fonts?.condensed }]}>PENDIENTE DE VOLVER</Text>
               <Text style={[styles.debtHeadValue, { color: theme.secondary, fontFamily: theme.fonts?.display }]}>¥{formatYen(pendienteTotal)}</Text>
@@ -228,13 +227,13 @@ export const EconomyScreen = () => {
             {porCobrar.length > 5 && (
               <Text style={[styles.debtMore, { color: theme.textDim }]}>y {porCobrar.length - 5} más en el desglose</Text>
             )}
-          </View>
+          </PersonaPanel>
         </>
       )}
 
       {/* DONUT DEL MES */}
       <SectionTag text={monthLabel} />
-      <View style={[styles.chartCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <PersonaPanel accent={theme.primary} cut={20} style={styles.chartCard}>
         {monthTotal > 0 ? (
           <View style={styles.chartRow}>
             <SpendingDonut
@@ -266,7 +265,7 @@ export const EconomyScreen = () => {
             <Text style={[styles.emptyText, { color: theme.textDim }]}>Sin gastos este mes</Text>
           </View>
         )}
-      </View>
+      </PersonaPanel>
 
       <SectionTag text="MOVIMIENTOS" />
     </View>
@@ -290,10 +289,10 @@ export const EconomyScreen = () => {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => abrirEdicion(item)}
-          style={[styles.itemRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          style={[styles.itemRow, { backgroundColor: theme.surface, borderLeftColor: circleColor }]}
         >
-          <View style={[styles.itemAccent, { backgroundColor: circleColor }]} />
-          <View style={[styles.iconCircle, { backgroundColor: circleColor }]}>
+          <View style={styles.itemInner}>
+          <View style={[styles.iconSwatch, { backgroundColor: circleColor }]}>
             <CategoryIcon category={getCategory(icon).key} size={20} skew={0} color={getContrastText(item.cat_color || undefined)} />
           </View>
           <View style={styles.itemCenter}>
@@ -313,6 +312,7 @@ export const EconomyScreen = () => {
             <Text style={[styles.amount, { color: amountColor, fontFamily: theme.fonts?.display }]}>
               {positive ? '+' : '-'}¥{formatYen(netoDistinto ? item.neto : item.monto)}
             </Text>
+          </View>
           </View>
         </TouchableOpacity>
 
@@ -438,24 +438,19 @@ const styles = StyleSheet.create({
   headerBtn: { padding: 6 },
 
   // Hero balance
-  heroCard: { borderRadius: 16, borderWidth: 1, padding: 20, paddingLeft: 24, overflow: 'hidden', marginBottom: 18 },
-  heroAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 8 },
+  heroCard: { paddingVertical: 20, paddingLeft: 24, paddingRight: 20, marginBottom: 18 },
   heroLabel: { fontSize: 11, letterSpacing: 2 },
   heroBalance: { fontSize: 44, fontWeight: '900', letterSpacing: 1, marginTop: 2 },
-  heroSplitRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
-  heroSplitItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  heroDivider: { width: 1, height: 30, marginHorizontal: 12 },
-  heroSplitLabel: { fontSize: 10, letterSpacing: 1.5 },
-  heroSplitValue: { fontSize: 16, fontWeight: '800', marginTop: 1 },
-  heroLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1.5, borderRadius: 3, paddingVertical: 9, marginTop: 16 },
-  heroLinkText: { fontSize: 12, letterSpacing: 1.4 },
+  heroSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
+  heroLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 2, paddingVertical: 9, marginTop: 18, transform: [{ skewX: '-11deg' }] },
+  heroLinkText: { fontSize: 12, letterSpacing: 1.4, transform: [{ skewX: '11deg' }] },
 
   // Por cobrar
-  debtCard: { borderRadius: 16, borderWidth: 1.5, padding: 14, marginBottom: 18 },
+  debtCard: { paddingVertical: 14, paddingLeft: 18, paddingRight: 14, marginBottom: 18 },
   debtHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   debtHeadLabel: { fontSize: 10, letterSpacing: 1.6 },
   debtHeadValue: { fontSize: 22 },
-  debtRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, paddingVertical: 9 },
+  debtRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
   debtDot: { width: 10, height: 10, borderRadius: 3, transform: [{ skewX: '-20deg' }] },
   debtWho: { fontSize: 14 },
   debtWhat: { fontSize: 11, marginTop: 1 },
@@ -466,7 +461,7 @@ const styles = StyleSheet.create({
   sectionTagWrap: { marginBottom: 12 },
 
   // Chart
-  chartCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 18 },
+  chartCard: { paddingVertical: 16, paddingLeft: 20, paddingRight: 16, marginBottom: 18 },
   chartRow: { flexDirection: 'row', alignItems: 'center' },
   legend: { flex: 1, marginLeft: 12 },
   legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
@@ -477,9 +472,9 @@ const styles = StyleSheet.create({
   chartEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 30 },
 
   // Transaction rows
-  itemRow: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingLeft: 16, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  itemAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
-  iconCircle: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  itemRow: { paddingVertical: 12, paddingLeft: 16, paddingRight: 12, borderLeftWidth: 7, transform: [{ skewX: '-8deg' }] },
+  itemInner: { flexDirection: 'row', alignItems: 'center', transform: [{ skewX: '8deg' }] },
+  iconSwatch: { width: 42, height: 42, justifyContent: 'center', alignItems: 'center', marginRight: 12, transform: [{ skewX: '-10deg' }] },
   itemCenter: { flex: 1 },
   desc: { fontSize: 15, fontWeight: '700' },
   date: { fontSize: 12, marginTop: 2 },
