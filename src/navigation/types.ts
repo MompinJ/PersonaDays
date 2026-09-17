@@ -28,4 +28,5 @@ export type RootStackParamList = {
   ListsMenuScreen: undefined;
   ListDetailScreen: { listId: number; title: string } | undefined;
   ManageCategories: undefined;
+  FinanceReport: undefined;
 };

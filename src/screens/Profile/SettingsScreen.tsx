@@ -137,7 +137,7 @@ export const SettingsScreen = () => {
           await db.execAsync('BEGIN TRANSACTION;');
           const tables = [
             'jugadores','stats','jugador_stat','misiones','impacto_mision','arcos','logs',
-            'finanzas','financial_categories','arcanos','custom_lists','list_items','jugador_arcanos_slots'
+            'finanzas','finanza_liquidaciones','financial_categories','arcanos','custom_lists','list_items','jugador_arcanos_slots'
           ];
           for (const t of tables) {
             try { await db.runAsync(`DROP TABLE IF EXISTS ${t};`); } catch(e) { console.warn('No se pudo dropear', t, e); }

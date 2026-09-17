@@ -23,7 +23,7 @@ export const seedStatCatalog = async () => {
 };
 
 // Version del schema para migraciones versionadas. SUBIR al agregar una migracion.
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 // Agrega una columna solo si no existe (PRAGMA table_info). Permite que las
 // migraciones sean idempotentes y reutilizables desde el camino de baseline.
@@ -82,6 +82,43 @@ const MIGRATIONS: { version: number; up: () => Promise<void> }[] = [
     version: 4,
     up: async () => {
       await ensureColumn('arcos', 'anthem_cover_url', 'anthem_cover_url TEXT');
+    },
+  },
+  {
+    // v5: Finanzas.
+    // (a) finanzas.id_categoria: hasta ahora la categoria se guardaba por NOMBRE,
+    //     asi que renombrar una categoria dejaba huerfano todo el historico. Se
+    //     agrega la FK real y se rellena casando por nombre. La columna 'categoria'
+    //     se conserva como respaldo legible (y para filas sin match).
+    // (b) finanza_liquidaciones: partes de un movimiento que alguien mas debe
+    //     cubrir (pago yo el cine, un amigo me transfiere su parte). Una fila por
+    //     persona, con abonos parciales, para soportar cuentas de grupo.
+    version: 5,
+    up: async () => {
+      await ensureColumn('finanzas', 'id_categoria', 'id_categoria INTEGER REFERENCES financial_categories(id_categoria)');
+      await db.execAsync(`
+        UPDATE finanzas
+           SET id_categoria = (
+             SELECT c.id_categoria FROM financial_categories c WHERE c.nombre = finanzas.categoria
+           )
+         WHERE id_categoria IS NULL AND categoria IS NOT NULL;
+      `);
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS finanza_liquidaciones (
+          id_liquidacion INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_finanza INTEGER NOT NULL,
+          contraparte TEXT,
+          monto REAL NOT NULL,
+          monto_pagado REAL NOT NULL DEFAULT 0,
+          fecha_pago TEXT,
+          nota TEXT,
+          FOREIGN KEY (id_finanza) REFERENCES finanzas(id_finanza) ON DELETE CASCADE
+        );
+      `);
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_liquidaciones_finanza ON finanza_liquidaciones(id_finanza);
+        CREATE INDEX IF NOT EXISTS idx_finanzas_categoria ON finanzas(id_categoria);
+      `);
     },
   },
 ];
@@ -314,13 +351,32 @@ export const initDatabase = async () => {
       );
 
       -- TABLA FINANZAS
+      -- 'categoria' (nombre) se mantiene por compatibilidad con datos previos a
+      -- la v5; la fuente de verdad es id_categoria.
       CREATE TABLE IF NOT EXISTS finanzas (
         id_finanza INTEGER PRIMARY KEY AUTOINCREMENT,
         tipo TEXT CHECK(tipo IN ('INGRESO', 'GASTO')),
         monto REAL NOT NULL,
         categoria TEXT,
+        id_categoria INTEGER,
         descripcion TEXT,
-        fecha TEXT
+        fecha TEXT,
+        FOREIGN KEY (id_categoria) REFERENCES financial_categories(id_categoria)
+      );
+
+      -- TABLA FINANZA_LIQUIDACIONES (partes que otra persona debe cubrir)
+      -- Una fila por deudor: 'monto' es su parte, 'monto_pagado' lo que ya abono
+      -- (permite pagos parciales). El costo real del movimiento padre es
+      -- monto - SUM(monto_pagado).
+      CREATE TABLE IF NOT EXISTS finanza_liquidaciones (
+        id_liquidacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_finanza INTEGER NOT NULL,
+        contraparte TEXT,
+        monto REAL NOT NULL,
+        monto_pagado REAL NOT NULL DEFAULT 0,
+        fecha_pago TEXT,
+        nota TEXT,
+        FOREIGN KEY (id_finanza) REFERENCES finanzas(id_finanza) ON DELETE CASCADE
       );
     `);
 
@@ -352,6 +408,7 @@ export const initDatabase = async () => {
         CREATE INDEX IF NOT EXISTS idx_finanzas_fecha ON finanzas(fecha);
         CREATE INDEX IF NOT EXISTS idx_logs_arco ON logs(id_arco);
         CREATE INDEX IF NOT EXISTS idx_arco_fotos_arco ON arco_fotos(id_arco);
+        CREATE INDEX IF NOT EXISTS idx_finanzas_tipo_fecha ON finanzas(tipo, fecha);
       `);
     } catch (e) {
       console.error('Error creando índices:', e);

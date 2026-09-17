@@ -18,6 +18,7 @@ interface Props {
   strokeWidth?: number;
   centerLabel?: string;   // texto bajo el monto (ej: "GASTADO")
   centerValue?: string;   // monto grande ya formateado (ej: "¥12,400")
+  gap?: number;           // separacion entre arcos, en px de arco
 }
 
 // Donut chart de proporciones (gasto por categoria) con barrido animado.
@@ -30,6 +31,7 @@ export const SpendingDonut = ({
   strokeWidth = 26,
   centerLabel = 'GASTADO',
   centerValue,
+  gap = 3,
 }: Props) => {
   const theme = useTheme();
   const radius = (size - strokeWidth) / 2;
@@ -49,10 +51,14 @@ export const SpendingDonut = ({
   }, [total, data.length]);
 
   // Construimos los slices con su rotacion de inicio acumulada.
+  // Cada arco se recorta `gap` px para que dos categorias contiguas nunca se
+  // fundan en una sola mancha (critico cuando comparten color o son parecidas).
+  // Con un solo slice no hay nada que separar, asi que el hueco se omite.
   let startFraction = 0;
+  const separacion = data.length > 1 ? gap : 0;
   const segments = data.map((slice, i) => {
     const fraction = slice.value / safeTotal;
-    const sliceLen = fraction * circumference;
+    const sliceLen = Math.max(1, fraction * circumference - separacion);
     const rotation = -90 + startFraction * 360;
     // El arco "crece" reduciendo su dashoffset de sliceLen -> 0.
     const dashoffset = anim.interpolate({

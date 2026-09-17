@@ -156,17 +156,27 @@ export const useHomeSummary = () => {
       });
 
       // --- Finanzas: balance historico + gasto del mes ---
+      // Ambos van NETOS de liquidaciones, igual que Finanzas y el Desglose: si
+      // pagaste 300 y te devolvieron 150, ese movimiento te costo 150. Sin este
+      // descuento Home contradecia al resto de la app.
       const fin: any[] = await db.getAllAsync(
         `SELECT
-            SUM(CASE WHEN tipo='INGRESO' THEN monto ELSE 0 END) as ingresos,
-            SUM(CASE WHEN tipo='GASTO'   THEN monto ELSE 0 END) as gastos
-         FROM finanzas`
+            SUM(CASE WHEN f.tipo='INGRESO' THEN f.monto - COALESCE(l.cobrado,0) ELSE 0 END) as ingresos,
+            SUM(CASE WHEN f.tipo='GASTO'   THEN f.monto - COALESCE(l.cobrado,0) ELSE 0 END) as gastos
+         FROM finanzas f
+         LEFT JOIN (SELECT id_finanza, SUM(monto_pagado) AS cobrado
+                      FROM finanza_liquidaciones GROUP BY id_finanza) l
+                ON l.id_finanza = f.id_finanza`
       );
       const ingresos = fin?.[0]?.ingresos || 0;
       const gastos = fin?.[0]?.gastos || 0;
       const finMes: any[] = await db.getAllAsync(
-        `SELECT SUM(monto) as total FROM finanzas
-          WHERE tipo='GASTO' AND date(fecha) >= date('now','localtime','start of month')`
+        `SELECT SUM(f.monto - COALESCE(l.cobrado,0)) as total
+           FROM finanzas f
+           LEFT JOIN (SELECT id_finanza, SUM(monto_pagado) AS cobrado
+                        FROM finanza_liquidaciones GROUP BY id_finanza) l
+                  ON l.id_finanza = f.id_finanza
+          WHERE f.tipo='GASTO' AND date(f.fecha) >= date('now','localtime','start of month')`
       );
       const gastoMes = finMes?.[0]?.total || 0;
 
