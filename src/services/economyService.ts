@@ -308,6 +308,17 @@ export const desabonar = async (idLiquidacion: number): Promise<void> => {
   await db.runAsync('UPDATE finanza_liquidaciones SET monto_pagado = 0, fecha_pago = NULL WHERE id_liquidacion = ?', [idLiquidacion]);
 };
 
+// Partes de un conjunto de movimientos, en una sola consulta. Lo usa el export
+// a Markdown para no disparar un query por movimiento.
+export const getLiquidacionesFor = async (ids: number[]): Promise<Liquidacion[]> => {
+  if (ids.length === 0) return [];
+  const rows: any[] = await db.getAllAsync(
+    `SELECT * FROM finanza_liquidaciones WHERE id_finanza IN (${ids.map(() => '?').join(',')}) ORDER BY id_finanza, id_liquidacion`,
+    ids
+  );
+  return (rows || []) as Liquidacion[];
+};
+
 // Todas las partes que aun no han vuelto por completo, con el contexto de su
 // movimiento padre.
 export const getReceivables = async (): Promise<Receivable[]> => {

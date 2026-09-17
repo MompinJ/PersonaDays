@@ -4,6 +4,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../themes/useTheme';
+import { useAlert } from '../../context/AlertContext';
+import { exportFinanceMarkdown } from '../../services/financeExport';
 import { PersonaShard } from '../../components/UI/PersonaShard';
 import { PressableScale } from '../../components/UI/PressableScale';
 import { CategoryIcon, getCategory } from '../../components/category-icons';
@@ -167,7 +169,9 @@ const CatBar = ({ cat, color, max, total, delay, open, onPress }: {
 export const FinanceReportScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<any>();
+  const { showAlert } = useAlert();
 
+  const [exportando, setExportando] = useState(false);
   const [periodo, setPeriodo] = useState<PeriodKey>('MES');
   const [tipoDesglose, setTipoDesglose] = useState<TipoMovimiento>('GASTO');
   const [desde, setDesde] = useState<string | null>(null);
@@ -263,6 +267,26 @@ export const FinanceReportScreen = () => {
 
   const maxSerie = serie.reduce((m, p) => Math.max(m, p.ingresos, p.gastos), 0);
 
+  // Vuelca el periodo visible a un .md y abre la hoja de compartir: un reporte
+  // que se puede leer, guardar o mandar a donde sea sin capturas.
+  const exportar = async () => {
+    if (exportando) return;
+    setExportando(true);
+    try {
+      const res = await exportFinanceMarkdown({
+        start: rango.start,
+        end: rango.end,
+        prevStart: rango.prevStart,
+        prevEnd: rango.prevEnd,
+        titulo: rango.titulo,
+        compara: rango.compara,
+      });
+      if (!res.ok) showAlert('NO SE PUDO EXPORTAR', res.reason);
+    } finally {
+      setExportando(false);
+    }
+  };
+
   const Tag = ({ text }: { text: string }) => (
     <View style={styles.tagWrap}><PersonaShard label={text} /></View>
   );
@@ -278,6 +302,14 @@ export const FinanceReportScreen = () => {
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
         </PressableScale>
         <PersonaShard label="DESGLOSE" height={50} fontSize={28} font={theme.fonts?.title} />
+        <View style={{ flex: 1 }} />
+        <PressableScale
+          style={[styles.exportBtn, { borderColor: theme.secondary, backgroundColor: theme.surface, opacity: exportando ? 0.5 : 1 }]}
+          onPress={exportar}
+          scaleTo={0.88}
+        >
+          <MaterialCommunityIcons name="file-export-outline" size={20} color={theme.secondary} />
+        </PressableScale>
       </View>
 
       <Animated.View style={{ flex: 1, opacity: intro, transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
@@ -511,6 +543,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 8, paddingBottom: 10, gap: 14 },
   backBtn: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  exportBtn: { width: 42, height: 42, borderRadius: 21, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
 
   chipRow: { paddingVertical: 6, paddingRight: 16, gap: 10 },
   chip: { borderWidth: 1.5, borderRadius: 3, paddingVertical: 8, paddingHorizontal: 14, transform: [{ skewX: '-11deg' }] },
