@@ -31,4 +31,6 @@ export type RootStackParamList = {
   FinanceReport: undefined;
   MediaLibrary: undefined;
   MediaDetail: { obraId: number };
+  Diary: undefined;
+  DiaryEntry: { fecha: string };
 };

@@ -18,6 +18,7 @@ export const PhoneMenuScreen = () => {
   const { style: introStyle } = useFocusEntrance(18, 420);
 
   const tiles = [
+    { key: 'diary', label: 'DIARIO', glyph: 'diario', action: () => navigation.navigate('Diary') },
     { key: 'calendar', label: 'CALENDARIO', glyph: 'calendario', action: () => navigation.navigate('Calendar') },
     { key: 'arcs', label: 'ARCOS', glyph: 'arcos', action: () => navigation.navigate('Arcs') },
     { key: 'shop', label: 'EMPORIO', glyph: 'emporio', action: () => navigation.navigate('ArcanaShop') },

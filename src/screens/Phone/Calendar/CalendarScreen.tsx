@@ -11,9 +11,14 @@ import { PersonaModal } from '../../../components/UI/PersonaModal';
 import { PersonaCount } from '../../../components/UI/PersonaCount';
 import { P3RCalendarPanel } from '../../../components/UI/P3RDatePicker';
 import { arcDisplayColor } from '../../../services/arcService';
+import { getFechasConEntrada } from '../../../services/diaryService';
+import { useNavigation } from '@react-navigation/native';
 
 export const CalendarScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation<any>();
+  // Dias con entrada de diario: se pintan sobre el tinte del arco.
+  const [diasEscritos, setDiasEscritos] = useState<Set<string>>(new Set());
   const [markedDates, setMarkedDates] = useState<Record<string, string>>({});
   const [activeArc, setActiveArc] = useState<any>(null);
   const [missions, setMissions] = useState<Mision[]>([]);
@@ -36,11 +41,19 @@ export const CalendarScreen = () => {
           // Para la proyeccion de hoy/futuro tomamos TODAS las activas (la complecion
           // es transitoria y se reinicia), asi el pronostico refleja el horario real.
           const missionsRes = await db.getAllAsync<Mision>("SELECT * FROM misiones WHERE activa = 1");
+          // Ventana amplia (un año a cada lado): el panel deja navegar meses y
+          // las marcas deben seguir ahi al moverse.
+          const hoy = new Date();
+          const escritas = await getFechasConEntrada(
+            format(addDays(hoy, -400), 'yyyy-MM-dd'),
+            format(addDays(hoy, 400), 'yyyy-MM-dd')
+          );
           if (isActive) {
             setActiveArc(arcRes);
             setMissions(missionsRes as Mision[]);
-            if (arcRes) generateArcMarkings(arcRes);
-            else setMarkedDates({});
+            setDiasEscritos(new Set(escritas));
+            if (arcRes) generateArcMarkings(arcRes, escritas);
+            else setMarkedDates(Object.fromEntries(escritas.map((f) => [f, theme.secondary])));
           }
         } catch (e) { console.error('Error loading calendar data', e); }
       };
@@ -49,7 +62,9 @@ export const CalendarScreen = () => {
     }, [])
   );
 
-  const generateArcMarkings = (arc: any) => {
+  // El panel admite un color por dia. El arco tiñe su rango completo y encima
+  // se marcan los dias escritos, que asi resaltan dentro del arco.
+  const generateArcMarkings = (arc: any, escritas: string[] = []) => {
     const start = parseISO(arc.fecha_inicio);
     const end = arc.fecha_fin ? parseISO(arc.fecha_fin) : new Date();
     const markings: Record<string, string> = {};
@@ -61,6 +76,7 @@ export const CalendarScreen = () => {
       markings[format(current, 'yyyy-MM-dd')] = arcColor;
       current = addDays(current, 1);
     }
+    escritas.forEach((f) => { markings[f] = theme.secondary; });
     setMarkedDates(markings);
   };
 
@@ -178,6 +194,25 @@ export const CalendarScreen = () => {
             {dayMode === 'done' ? 'COMPLETADAS ESTE DÍA' : 'PROGRAMADAS'}
           </Text>
         </View>
+        {!!selectedDate && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              const f = selectedDate;
+              setModalVisible(false);
+              setSelectedDate(null);
+              navigation.navigate('DiaryEntry', { fecha: f });
+            }}
+            style={[styles.diaryRow, { borderColor: theme.secondary, backgroundColor: theme.background }]}
+          >
+            <Ionicons name="book-outline" size={16} color={theme.secondary} />
+            <Text style={[styles.diaryText, { color: theme.text, fontFamily: theme.fonts?.bold }]}>
+              {diasEscritos.has(selectedDate) ? 'VER LA ENTRADA DEL DIARIO' : 'ESCRIBIR ESTE DÍA'}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.textDim} />
+          </TouchableOpacity>
+        )}
+
         <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
           {dayMissions.length === 0 ? (
             <View style={{ padding: 24, alignItems: 'center' }}>
@@ -233,6 +268,8 @@ const styles = StyleSheet.create({
   calendarWrapper: { flex: 1, justifyContent: 'center' },
   bgMonth: { position: 'absolute', right: 8, top: -28, fontSize: 120, lineHeight: 120, fontFamily: 'Anton_400Regular', opacity: 0.07, letterSpacing: -4 },
 
+  diaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 3, paddingVertical: 11, paddingHorizontal: 12, marginBottom: 14 },
+  diaryText: { flex: 1, fontSize: 13, letterSpacing: 0.5 },
   modeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 2 },
   modeDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8, transform: [{ skewX: '-12deg' }] },
   modeLabel: { fontSize: 12, letterSpacing: 1.5 },

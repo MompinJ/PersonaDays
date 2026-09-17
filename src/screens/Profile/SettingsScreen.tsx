@@ -138,7 +138,7 @@ export const SettingsScreen = () => {
           const tables = [
             'jugadores','stats','jugador_stat','misiones','impacto_mision','arcos','logs',
             'finanzas','finanza_liquidaciones','financial_categories','arcanos','custom_lists','list_items','jugador_arcanos_slots',
-            'media_obras','media_temas'
+            'media_obras','media_temas','diario'
           ];
           for (const t of tables) {
             try { await db.runAsync(`DROP TABLE IF EXISTS ${t};`); } catch(e) { console.warn('No se pudo dropear', t, e); }

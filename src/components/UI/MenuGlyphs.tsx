@@ -56,6 +56,19 @@ const MENU: Record<string, Layer[]> = {
     ['w', 'M22,21 L28,21 L28,37.5 L22,37.5 Z'],   // barra 2
     ['w', 'M31,13 L37,13 L37,37.5 L31,37.5 Z'],   // barra 3
   ],
+  diario: [
+    // Libreta con lomo anillado y un trazo de escritura dentro.
+    ['w', 'M13,6 L40,6 L40,42 L13,42 Z'],
+    ['b', 'M17,12 L36,12 L36,14.4 L17,14.4 Z'],
+    ['b', 'M17,19 L36,19 L36,21.4 L17,21.4 Z'],
+    ['b', 'M17,26 L30,26 L30,28.4 L17,28.4 Z'],
+    ['w', 'M8,9 L12,9 L12,13 L8,13 Z'],
+    ['w', 'M8,17 L12,17 L12,21 L8,21 Z'],
+    ['w', 'M8,25 L12,25 L12,29 L8,29 Z'],
+    ['w', 'M8,33 L12,33 L12,37 L8,37 Z'],
+    ['w', 'M38,30 L44,36 L34,46 L28,40 Z'],
+    ['b', 'M30.5,40.5 L33.5,43.5 L30,45 Z'],
+  ],
   biblioteca: [
     // Pantalla con boton de play (anime) montada sobre un libro abierto (manga).
     ['w', 'M6,6 L42,6 L42,29 L6,29 Z'],

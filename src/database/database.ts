@@ -23,7 +23,7 @@ export const seedStatCatalog = async () => {
 };
 
 // Version del schema para migraciones versionadas. SUBIR al agregar una migracion.
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 // Agrega una columna solo si no existe (PRAGMA table_info). Permite que las
 // migraciones sean idempotentes y reutilizables desde el camino de baseline.
@@ -161,7 +161,29 @@ const MIGRATIONS: { version: number; up: () => Promise<void> }[] = [
         CREATE INDEX IF NOT EXISTS idx_media_obras_tipo ON media_obras(tipo, estado);
       `);
     },
+  },  {
+    // v7: Diario, una entrada por dia.
+    // El UNIQUE en `fecha` hace que la regla "una por dia" la garantice la base
+    // y no la interfaz: ni un doble toque puede crear dos del mismo dia.
+    // `xp_otorgado` marca que ese dia ya pago su XP de Gentileza, para que
+    // editar la entrada despues no la vuelva a dar.
+    version: 7,
+    up: async () => {
+      await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS diario (
+        id_entrada INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT NOT NULL UNIQUE,
+        contenido TEXT DEFAULT '',
+        animo INTEGER,
+        xp_otorgado INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      `);
+      await db.execAsync('CREATE INDEX IF NOT EXISTS idx_diario_fecha ON diario(fecha);');
+    },
   },
+
 ];
 
 const runMigrations = async () => {
@@ -405,6 +427,17 @@ export const initDatabase = async () => {
         FOREIGN KEY (id_categoria) REFERENCES financial_categories(id_categoria)
       );
 
+      -- DIARIO: una entrada por dia (fecha UNIQUE).
+      CREATE TABLE IF NOT EXISTS diario (
+        id_entrada INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT NOT NULL UNIQUE,
+        contenido TEXT DEFAULT '',
+        animo INTEGER,
+        xp_otorgado INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
       -- BIBLIOTECA: obras (anime/manga) y sus temas musicales.
       -- 'etiquetas' es una lista separada por comas; no merece tabla propia
       -- mientras solo sirva para filtrar en local.
@@ -482,6 +515,7 @@ export const initDatabase = async () => {
         CREATE INDEX IF NOT EXISTS idx_arco_fotos_arco ON arco_fotos(id_arco);
         CREATE INDEX IF NOT EXISTS idx_finanzas_tipo_fecha ON finanzas(tipo, fecha);
         CREATE INDEX IF NOT EXISTS idx_media_obras_orden ON media_obras(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_diario_fecha ON diario(fecha);
       `);
     } catch (e) {
       console.error('Error creando índices:', e);
